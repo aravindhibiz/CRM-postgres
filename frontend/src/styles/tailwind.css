@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary Colors */
+    --color-primary: #1E40AF; /* Deep blue (primary) - blue-800 */
+    --color-primary-50: #EFF6FF; /* Very light blue - blue-50 */
+    --color-primary-100: #DBEAFE; /* Light blue - blue-100 */
+    --color-primary-500: #3B82F6; /* Medium blue - blue-500 */
+    --color-primary-600: #2563EB; /* Darker blue - blue-600 */
+    --color-primary-700: #1D4ED8; /* Dark blue - blue-700 */
+    
+    /* Secondary Colors */
+    --color-secondary: #6366F1; /* Vibrant indigo (secondary) - indigo-500 */
+    --color-secondary-50: #EEF2FF; /* Very light indigo - indigo-50 */
+    --color-secondary-100: #E0E7FF; /* Light indigo - indigo-100 */
+    --color-secondary-600: #5B21B6; /* Darker indigo - indigo-600 */
+    --color-secondary-700: #4C1D95; /* Dark indigo - indigo-700 */
+    
+    /* Accent Colors */
+    --color-accent: #F59E0B; /* Warm amber (accent) - amber-500 */
+    --color-accent-50: #FFFBEB; /* Very light amber - amber-50 */
+    --color-accent-100: #FEF3C7; /* Light amber - amber-100 */
+    --color-accent-600: #D97706; /* Darker amber - amber-600 */
+    --color-accent-700: #B45309; /* Dark amber - amber-700 */
+    
+    /* Background Colors */
+    --color-background: #FAFBFC; /* Soft off-white (background) - gray-50 */
+    --color-surface: #FFFFFF; /* Pure white (surface) - white */
+    --color-surface-hover: #F9FAFB; /* Light gray hover - gray-50 */
+    
+    /* Text Colors */
+    --color-text-primary: #1F2937; /* Rich charcoal (text primary) - gray-800 */
+    --color-text-secondary: #6B7280; /* Balanced gray (text secondary) - gray-500 */
+    --color-text-tertiary: #9CA3AF; /* Light gray (text tertiary) - gray-400 */
+    --color-text-inverse: #FFFFFF; /* White text for dark backgrounds - white */
+    
+    /* Status Colors */
+    --color-success: #10B981; /* Fresh green (success) - emerald-500 */
+    --color-success-50: #ECFDF5; /* Very light green - emerald-50 */
+    --color-success-100: #D1FAE5; /* Light green - emerald-100 */
+    --color-success-600: #059669; /* Darker green - emerald-600 */
+    
+    --color-warning: #F59E0B; /* Amber warning (same as accent) - amber-500 */
+    --color-warning-50: #FFFBEB; /* Very light amber - amber-50 */
+    --color-warning-100: #FEF3C7; /* Light amber - amber-100 */
+    --color-warning-600: #D97706; /* Darker amber - amber-600 */
+    
+    --color-error: #EF4444; /* Clear red (error) - red-500 */
+    --color-error-50: #FEF2F2; /* Very light red - red-50 */
+    --color-error-100: #FEE2E2; /* Light red - red-100 */
+    --color-error-600: #DC2626; /* Darker red - red-600 */
+    
+    /* Border Colors */
+    --color-border: #E5E7EB; /* Light gray border - gray-200 */
+    --color-border-light: #F3F4F6; /* Very light gray border - gray-100 */
+    --color-border-dark: #D1D5DB; /* Medium gray border - gray-300 */
+    
+    /* Shadow Colors */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-text-primary font-body;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+/* Map commonly used utility class names to CSS variables so switching
+  the `.dark` class updates colors at runtime. These rules are placed
+  after Tailwind's base so they override static color utilities. */
+.bg-background { background-color: var(--color-background); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-surface-hover { background-color: var(--color-surface-hover); }
+.bg-primary { background-color: var(--color-primary); }
+.text-text-primary { color: var(--color-text-primary); }
+.text-text-secondary { color: var(--color-text-secondary); }
+.text-text-tertiary { color: var(--color-text-tertiary); }
+.text-text-inverse { color: var(--color-text-inverse); }
+.border-border { border-color: var(--color-border); }
+.placeholder-text-tertiary::placeholder { color: var(--color-text-tertiary); }
+
+/* Common Tailwind utilities mapped to variables for runtime theme switching */
+.bg-white { background-color: var(--color-surface); }
+.bg-gray-50 { background-color: var(--color-surface-hover); }
+.bg-gray-100 { background-color: var(--color-surface-hover); }
+.bg-gray-200 { background-color: rgba(255,255,255,0.04); }
+.text-black { color: var(--color-text-primary); }
+.text-white { color: var(--color-text-inverse); }
+.text-gray-800 { color: var(--color-text-primary); }
+.text-gray-700 { color: var(--color-text-secondary); }
+.text-gray-600 { color: var(--color-text-secondary); }
+.border-gray-100 { border-color: var(--color-border-light); }
+.border-gray-200 { border-color: var(--color-border); }
+
+/* primary shades used in UI */
+.bg-primary-50 { background-color: var(--color-primary-50); }
+.bg-primary-100 { background-color: var(--color-primary-100); }
+.bg-primary-600 { background-color: var(--color-primary-600); }
+.text-primary { color: var(--color-primary); }
+
+
+/* Dark mode variable overrides when .dark is present on <html> */
+.dark {
+  --color-background: #0B1220; /* darker background */
+  --color-surface: #0F1724; /* surface */
+  --color-surface-hover: #111827;
+
+  --color-text-primary: #E6EEF8; /* light text */
+  --color-text-secondary: #CBD5E1;
+  --color-text-tertiary: #94A3B8;
+  --color-text-inverse: #0B1220;
+
+  --color-border: #243240;
+  --color-border-light: #1F2937;
+  --color-border-dark: #111827;
+
+  /* tweak primary/secondary for dark backgrounds if needed */
+  --color-primary: #60A5FA;
+  --color-primary-50: #0B1220;
+  --color-primary-100: #0B1220;
+}
+
+/* Ensure Tailwind dark: utilities use the CSS variables at runtime by
+  applying higher-specificity selectors that match the generated dark
+  variant (" .dark .bg-white", etc.). This prevents prebuilt
+  .dark .bg-* rules from locking colors to build-time values. */
+.dark .bg-surface { background-color: var(--color-surface); }
+.dark .bg-background { background-color: var(--color-background); }
+.dark .bg-white { background-color: var(--color-surface); }
+.dark .bg-gray-50 { background-color: var(--color-surface-hover); }
+.dark .bg-gray-100 { background-color: var(--color-surface-hover); }
+.dark .bg-gray-200 { background-color: rgba(255,255,255,0.04); }
+.dark .bg-primary-50 { background-color: var(--color-primary-50); }
+.dark .bg-primary-100 { background-color: var(--color-primary-100); }
+.dark .text-black { color: var(--color-text-primary); }
+.dark .text-white { color: var(--color-text-inverse); }
+.dark .text-gray-800 { color: var(--color-text-primary); }
+.dark .text-gray-700 { color: var(--color-text-secondary); }
+.dark .text-gray-600 { color: var(--color-text-secondary); }
+.dark .text-text-primary { color: var(--color-text-primary); }
+.dark .text-text-secondary { color: var(--color-text-secondary); }
+.dark .border-gray-100 { border-color: var(--color-border-light); }
+.dark .border-gray-200 { border-color: var(--color-border); }
+.dark .border-border { border-color: var(--color-border); }
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-text-inverse px-4 py-2 rounded-lg font-medium transition-all duration-150 ease-out hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+.btn-secondary  {
+    @apply bg-secondary text-text-inverse px-4 py-2 rounded-lg font-medium transition-all duration-150 ease-out hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .card {
+    @apply bg-surface rounded-lg shadow-base border border-border;
+  }
+  
+  .input-field {
+    @apply w-full px-3 py-2 border border-border rounded-md bg-surface text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-150 ease-out;
+  }
+}

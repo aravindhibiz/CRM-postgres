@@ -1,0 +1,52 @@
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
+from decimal import Decimal
+import uuid
+from .user import UserResponse
+from .contact import ContactResponse
+
+class DealBase(BaseModel):
+    name: str
+    value: Optional[Decimal] = None
+    stage: Optional[str] = "lead"
+    probability: Optional[int] = 0
+    expected_close_date: Optional[datetime] = None
+    description: Optional[str] = None
+    source: Optional[str] = None
+    next_action: Optional[str] = None
+
+class DealCreate(DealBase):
+    company_id: Optional[uuid.UUID] = None
+    contact_id: Optional[uuid.UUID] = None
+
+class DealUpdate(BaseModel):
+    name: Optional[str] = None
+    value: Optional[Decimal] = None
+    stage: Optional[str] = None
+    probability: Optional[int] = None
+    expected_close_date: Optional[datetime] = None
+    actual_close_date: Optional[datetime] = None
+    description: Optional[str] = None
+    source: Optional[str] = None
+    lost_reason: Optional[str] = None
+    next_action: Optional[str] = None
+    company_id: Optional[uuid.UUID] = None
+    contact_id: Optional[uuid.UUID] = None
+
+class DealResponse(DealBase):
+    id: uuid.UUID
+    company_id: Optional[uuid.UUID] = None
+    contact_id: Optional[uuid.UUID] = None
+    owner_id: uuid.UUID
+    actual_close_date: Optional[datetime] = None
+    lost_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class DealWithRelations(DealResponse):
+    owner: Optional[UserResponse] = None
+    contact: Optional[ContactResponse] = None
