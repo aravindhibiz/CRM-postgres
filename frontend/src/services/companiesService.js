@@ -3,7 +3,7 @@ import apiClient from '../lib/apiClient';
 export const companiesService = {
   // Get all companies (public read access)
   async getAllCompanies() {
-    const { data, error } = await apiClient.get('/companies');
+    const { data, error } = await apiClient.get('/api/v1/companies');
 
     if (error) throw error;
     return data || [];
@@ -11,7 +11,7 @@ export const companiesService = {
 
   // Get a specific company by ID
   async getCompanyById(companyId) {
-    const { data, error } = await apiClient.get(`/companies/${companyId}`);
+    const { data, error } = await apiClient.get(`/api/v1/companies/${companyId}`);
 
     if (error) {
       if (error.status === 404) {
@@ -40,7 +40,7 @@ export const companiesService = {
       revenue: companyData.revenue || null,
     };
 
-    const { data, error } = await apiClient.post('/companies', cleanCompanyData);
+    const { data, error } = await apiClient.post('/api/v1/companies', cleanCompanyData);
 
     if (error) throw error;
     return data;
@@ -48,7 +48,7 @@ export const companiesService = {
 
   // Update a company
   async updateCompany(companyId, updates) {
-    const { data, error } = await apiClient.put(`/companies/${companyId}`, updates);
+    const { data, error } = await apiClient.put(`/api/v1/companies/${companyId}`, updates);
 
     if (error) throw error;
     return data;
@@ -56,7 +56,7 @@ export const companiesService = {
 
   // Delete a company
   async deleteCompany(companyId) {
-    const { data, error } = await apiClient.delete(`/companies/${companyId}`);
+    const { data, error } = await apiClient.delete(`/api/v1/companies/${companyId}`);
 
     if (error) throw error;
     return true;
@@ -64,7 +64,7 @@ export const companiesService = {
 
   // Search companies
   async searchCompanies(searchQuery) {
-    const { data, error } = await apiClient.get(`/companies?search=${encodeURIComponent(searchQuery)}`);
+    const { data, error } = await apiClient.get(`/api/v1/companies?search=${encodeURIComponent(searchQuery)}`);
 
     if (error) throw error;
     return data || [];
@@ -72,7 +72,7 @@ export const companiesService = {
 
   // Filter companies by industry
   async getCompaniesByIndustry(industry) {
-    const { data, error } = await apiClient.get(`/companies?industry=${encodeURIComponent(industry)}`);
+    const { data, error } = await apiClient.get(`/api/v1/companies?industry=${encodeURIComponent(industry)}`);
 
     if (error) throw error;
     return data || [];
@@ -80,7 +80,7 @@ export const companiesService = {
 
   // Get company statistics
   async getCompanyStats() {
-    const { data, error } = await apiClient.get('/companies/stats');
+    const { data, error } = await apiClient.get('/api/v1/companies/stats');
 
     if (error) {
       // Fallback: calculate stats from all companies
@@ -118,7 +118,7 @@ export const companiesService = {
 
   // Get companies with enriched data
   async getCompaniesWithData() {
-    const { data, error } = await apiClient.get('/companies?include=contacts,deals');
+    const { data, error } = await apiClient.get('/api/v1/companies?include=contacts,deals');
 
     if (error) throw error;
     return data || [];
@@ -155,7 +155,7 @@ export const companiesService = {
     }
 
     const queryString = params.toString();
-    const endpoint = queryString ? `/companies?${queryString}` : '/companies';
+    const endpoint = queryString ? `/api/v1/companies?${queryString}` : '/api/v1/companies';
 
     const { data, error } = await apiClient.get(endpoint);
 
@@ -165,7 +165,7 @@ export const companiesService = {
 
   // Get company with all related data (contacts, deals, activities)
   async getCompanyWithRelations(companyId) {
-    const { data, error } = await apiClient.get(`/companies/${companyId}?include=contacts,deals,activities`);
+    const { data, error } = await apiClient.get(`/api/v1/companies/${companyId}?include=contacts,deals,activities`);
 
     if (error) {
       if (error.status === 404) {

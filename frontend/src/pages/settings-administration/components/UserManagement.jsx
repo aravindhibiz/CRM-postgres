@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
-import userService from '../../../services/userService';
+import { userService } from '../../../services/userService';
 
 const UserManagement = () => {
   const { user: currentUser, userProfile } = useAuth();

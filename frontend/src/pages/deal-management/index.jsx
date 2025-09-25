@@ -12,11 +12,11 @@ import DocumentsSection from './components/DocumentsSection';
 import DealActions from './components/DealActions';
 import DealsGridView from './components/DealsGridView';
 
-import dealsService from '../../services/dealsService';
-import contactsService from '../../services/contactsService';
-import companiesService from '../../services/companiesService';
-import dealActivitiesService from '../../services/dealActivitiesService';
-import dealDocumentsService from '../../services/dealDocumentsService';
+import { dealsService } from '../../services/dealsService';
+import { contactsService } from '../../services/contactsService';
+import { companiesService } from '../../services/companiesService';
+import { dealActivitiesService } from '../../services/dealActivitiesService';
+import { dealDocumentsService } from '../../services/dealDocumentsService';
 
 const DealManagement = () => {
   const { dealId } = useParams();

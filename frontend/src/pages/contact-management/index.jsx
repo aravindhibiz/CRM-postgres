@@ -11,7 +11,7 @@ import ImportContactsModal from './components/ImportContactsModal';
 import ExportContactsModal from './components/ExportContactsModal';
 import MergeDuplicatesModal from './components/MergeDuplicatesModal';
 import FilterPanel from './components/FilterPanel';
-import contactsService from '../../services/contactsService';
+import { contactsService } from '../../services/contactsService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ContactManagement = () => {
@@ -172,12 +172,61 @@ const ContactManagement = () => {
       setError('');
       let result;
       
+      console.log('handleSaveContact called with:', {
+        isAddingContact,
+        isEditingContact,
+        selectedContactId: selectedContact?.id,
+        contactData
+      });
+      
       if (isAddingContact) {
-        result = contactData;
-        setSuccess('Contact created successfully!');
+        // Create new contact
+        console.log('Creating new contact...');
+        
+        // Clean the data - convert empty strings to null for optional UUID fields
+        const cleanedData = {
+          ...contactData,
+          company_id: contactData.company_id || null,
+          owner_id: user?.id
+        };
+        
+        // Remove any undefined or empty string fields that should be null
+        Object.keys(cleanedData).forEach(key => {
+          if (cleanedData[key] === '' && ['company_id'].includes(key)) {
+            cleanedData[key] = null;
+          }
+        });
+        
+        result = await contactsService?.createContact(cleanedData);
+        setSuccess(`Contact "${result?.first_name} ${result?.last_name}" created successfully!`);
       } else if (isEditingContact && selectedContact) {
-        result = contactData;
-        setSuccess('Contact updated successfully!');
+        // Update existing contact
+        console.log('Updating existing contact:', selectedContact?.id);
+        
+        // Clean the data - convert empty strings to null for optional UUID fields
+        const cleanedData = {
+          ...contactData,
+          company_id: contactData.company_id || null,
+          owner_id: contactData.owner_id || user?.id
+        };
+        
+        // Remove any undefined or empty string fields that should be null
+        Object.keys(cleanedData).forEach(key => {
+          if (cleanedData[key] === '' && ['company_id'].includes(key)) {
+            cleanedData[key] = null;
+          }
+        });
+        
+        console.log('Cleaned data for update:', cleanedData);
+        result = await contactsService?.updateContact(selectedContact?.id, cleanedData);
+        console.log('Update result:', result);
+        setSuccess(`Contact "${result?.first_name} ${result?.last_name}" updated successfully!`);
+      } else {
+        console.log('No valid action - missing conditions:', {
+          isAddingContact,
+          isEditingContact,
+          hasSelectedContact: !!selectedContact
+        });
       }
       
       setSelectedContact(result);
@@ -188,7 +237,21 @@ const ContactManagement = () => {
       loadContacts();
     } catch (err) {
       console.error('Error saving contact:', err);
-      setError('Failed to save contact. Please try again.');
+      
+      // Handle different error formats
+      let errorMessage = 'Failed to save contact. Please try again.';
+      
+      if (err?.message) {
+        if (Array.isArray(err.message)) {
+          // Handle validation errors (array of error objects)
+          errorMessage = err.message.map(error => error.msg || error.message || error).join(', ');
+        } else if (typeof err.message === 'string') {
+          errorMessage = err.message;
+        }
+      }
+      
+      console.log('Setting error message:', errorMessage);
+      setError(errorMessage);
     }
   };
 

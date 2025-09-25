@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
-import dealsService from '../../../services/dealsService';
-import contactsService from '../../../services/contactsService';
-import companiesService from '../../../services/companiesService';
+import { contactsService } from '../../../services/contactsService';
+import { companiesService } from '../../../services/companiesService';
 
 const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onSubmit, onCancel, isSaving = false }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -28,7 +29,9 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
   // Populate form when deal prop changes
   useEffect(() => {
+    console.log('DealForm useEffect triggered with deal:', deal);
     if (deal) {
+      console.log('Populating form with deal data:', deal);
       setFormData({
         name: deal?.name || '',
         description: deal?.description || '',
@@ -66,7 +69,19 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    
+    // Prevent double submission with multiple guards
+    if (loading || isSubmitting || submissionRef.current) {
+      console.log('Form submission blocked - already processing');
+      return;
+    }
+    
+    const submissionId = Date.now();
+    submissionRef.current = submissionId;
+    
+    console.log('Starting form submission...', submissionId);
     setLoading(true);
+    setIsSubmitting(true);
     setErrors({});
 
     try {
@@ -98,28 +113,53 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
       // Prepare data for submission
       const submitData = {
-        ...formData,
-        value: parseFloat(formData?.value) || 0,
-        expected_close_date: formData?.expected_close_date || null
+        name: formData.name,
+        description: formData.description || null,
+        value: parseFloat(formData?.value) || null,
+        stage: formData.stage || 'lead',
+        probability: parseInt(formData.probability) || 0,
+        expected_close_date: formData?.expected_close_date || null,
+        source: formData.source || null,
+        next_action: formData.next_action || null,
+        company_id: formData.company_id || null,
+        contact_id: formData.contact_id || null
       };
 
-      let result;
-      if (deal) {
-        // Update existing deal
-        result = await dealsService?.updateDeal(deal?.id, submitData);
-      } else {
-        // Create new deal
-        result = await dealsService?.createDeal(submitData);
-      }
+      // Remove undefined values
+      Object.keys(submitData).forEach(key => {
+        if (submitData[key] === undefined) {
+          delete submitData[key];
+        }
+      });
 
-      onSubmit(result);
+      // Pass data to parent component for API call
+      console.log('Submitting form data to parent component:', submitData);
+      await onSubmit(submitData);
+      
+      console.log('Form submission completed successfully');
     } catch (err) {
-      console.error('Error saving deal:', err);
+      console.error('Error in form submission:', err);
+      
+      // Handle different error formats
+      let errorMessage = 'Failed to save deal. Please try again.';
+      
+      if (err?.message) {
+        if (Array.isArray(err.message)) {
+          // Handle validation errors (array of error objects)
+          errorMessage = err.message.map(error => error.msg || error).join(', ');
+        } else if (typeof err.message === 'string') {
+          errorMessage = err.message;
+        }
+      }
+      
       setErrors({ 
-        submit: err?.message || 'Failed to save deal. Please try again.' 
+        submit: errorMessage
       });
     } finally {
+      console.log('Form submission completed, resetting states...');
       setLoading(false);
+      setIsSubmitting(false);
+      submissionRef.current = null;
     }
   };
 
@@ -464,10 +504,10 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         </button>
         <button
           type="submit"
-          disabled={loading || isSaving}
-          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2"
+          disabled={loading || isSaving || isSubmitting}
+          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {(loading || isSaving) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
+          {(loading || isSaving || isSubmitting) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
           <span>{deal ? 'Update Deal' : 'Create Deal'}</span>
         </button>
       </div>

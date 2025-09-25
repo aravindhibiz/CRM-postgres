@@ -3,7 +3,7 @@ import apiClient from '../lib/apiClient';
 export const contactsService = {
   // Get all contacts for the current user
   async getUserContacts() {
-    const { data, error } = await apiClient.get('/contacts');
+    const { data, error } = await apiClient.get('/api/v1/contacts');
 
     if (error) throw error;
     return data || [];
@@ -11,7 +11,7 @@ export const contactsService = {
 
   // Get a specific contact by ID
   async getContactById(contactId) {
-    const { data, error } = await apiClient.get(`/contacts/${contactId}`);
+    const { data, error } = await apiClient.get(`/api/v1/contacts/${contactId}`);
 
     if (error) {
       if (error.status === 404) {
@@ -39,7 +39,7 @@ export const contactsService = {
       company_id: contactData.company_id || null,
     };
 
-    const { data, error } = await apiClient.post('/contacts', cleanContactData);
+    const { data, error } = await apiClient.post('/api/v1/contacts', cleanContactData);
 
     if (error) throw error;
     return data;
@@ -47,7 +47,7 @@ export const contactsService = {
 
   // Update a contact
   async updateContact(contactId, updates) {
-    const { data, error } = await apiClient.put(`/contacts/${contactId}`, updates);
+    const { data, error } = await apiClient.put(`/api/v1/contacts/${contactId}`, updates);
 
     if (error) throw error;
     return data;
@@ -55,7 +55,7 @@ export const contactsService = {
 
   // Delete a contact
   async deleteContact(contactId) {
-    const { data, error } = await apiClient.delete(`/contacts/${contactId}`);
+    const { data, error } = await apiClient.delete(`/api/v1/contacts/${contactId}`);
 
     if (error) throw error;
     return true;
@@ -74,7 +74,7 @@ export const contactsService = {
 
   // Search contacts
   async searchContacts(searchQuery) {
-    const { data, error } = await apiClient.get(`/contacts?search=${encodeURIComponent(searchQuery)}`);
+    const { data, error } = await apiClient.get(`/api/v1/contacts?search=${encodeURIComponent(searchQuery)}`);
 
     if (error) throw error;
     return data || [];
@@ -103,7 +103,7 @@ export const contactsService = {
     }
 
     const queryString = params.toString();
-    const endpoint = queryString ? `/contacts?${queryString}` : '/contacts';
+    const endpoint = queryString ? `/api/v1/contacts?${queryString}` : '/api/v1/contacts';
 
     const { data, error } = await apiClient.get(endpoint);
 
@@ -113,7 +113,7 @@ export const contactsService = {
 
   // Get contact statistics
   async getContactStats() {
-    const { data, error } = await apiClient.get('/contacts/stats');
+    const { data, error } = await apiClient.get('/api/v1/contacts/stats');
 
     if (error) {
       // Fallback: calculate stats from all contacts if no specific endpoint
@@ -165,7 +165,7 @@ export const contactsService = {
 
   // Merge duplicate contacts
   async mergeContacts(primaryContactId, duplicateContactId, mergedData) {
-    const { data, error } = await apiClient.post(`/contacts/${primaryContactId}/merge`, {
+    const { data, error } = await apiClient.post(`/api/v1/contacts/${primaryContactId}/merge`, {
       duplicate_id: duplicateContactId,
       merged_data: mergedData
     });

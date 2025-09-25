@@ -4,7 +4,7 @@ export const dealDocumentsService = {
   // Get all documents for a specific deal
   async getDealDocuments(dealId) {
     try {
-      const { data, error } = await apiClient.get(`/deals/${dealId}/documents`);
+      const { data, error } = await apiClient.get(`/api/v1/deals/${dealId}/documents`);
 
       if (error) throw error;
       return data || [];
@@ -24,7 +24,7 @@ export const dealDocumentsService = {
         formData.append('file_name', fileName);
       }
 
-      const { data, error } = await apiClient.post(`/deals/${dealId}/documents`, formData, {
+      const { data, error } = await apiClient.post(`/api/v1/deals/${dealId}/documents`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -41,7 +41,7 @@ export const dealDocumentsService = {
   // Delete a deal document
   async deleteDealDocument(documentId) {
     try {
-      const { data, error } = await apiClient.delete(`/documents/${documentId}`);
+      const { data, error } = await apiClient.delete(`/api/v1/documents/${documentId}`);
 
       if (error) throw error;
       return true;
@@ -54,7 +54,7 @@ export const dealDocumentsService = {
   // Get download URL for a document
   async getDocumentDownloadUrl(documentId) {
     try {
-      const { data, error } = await apiClient.get(`/documents/${documentId}/download`);
+      const { data, error } = await apiClient.get(`/api/v1/documents/${documentId}/download`);
 
       if (error) throw error;
       return data?.download_url || null;
@@ -72,6 +72,40 @@ export const dealDocumentsService = {
         // Cleanup if needed
       }
     };
+  },
+
+  // Alias methods for compatibility
+  async uploadDocument(file, dealId, documentType = 'other') {
+    return this.uploadDealDocument(dealId, file, `${documentType}_${file.name}`);
+  },
+
+  async deleteDocument(documentId, filePath = null) {
+    return this.deleteDealDocument(documentId);
+  },
+
+  // Subscribe to document changes (alias for compatibility)
+  subscribeToDocumentChanges(dealId, callback) {
+    return this.subscribeToDealDocuments(dealId, callback);
+  },
+
+  // Unsubscribe from document changes (alias for compatibility)
+  unsubscribeFromDocumentChanges(subscription) {
+    if (subscription && subscription.unsubscribe) {
+      subscription.unsubscribe();
+    }
+  },
+
+  // Utility methods for file handling
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  },
+
+  getFileExtension(filename) {
+    return filename.split('.').pop().toLowerCase();
   }
 };
 

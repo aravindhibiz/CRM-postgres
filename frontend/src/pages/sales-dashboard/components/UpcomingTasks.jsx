@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
-import tasksService from '../../../services/tasksService';
+import { tasksService } from '../../../services/tasksService';
 
 const UpcomingTasks = () => {
   const { user } = useAuth();

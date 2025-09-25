@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ApiClient {
   constructor() {
+    console.log('ApiClient initialized with BASE_URL:', BASE_URL);
+    
     this.client = axios.create({
       baseURL: BASE_URL,
       timeout: 10000,
@@ -67,25 +69,38 @@ class ApiClient {
   // Auth API calls
   async login(email, password) {
     try {
-      const response = await this.client.post('/v1/auth/login', {
+      console.log('Attempting login with:', { email, baseURL: this.client.defaults.baseURL });
+      
+      const response = await this.client.post('/api/v1/auth/login', {
         email,
         password,
       });
+
+      console.log('Login response received:', response.status, response.data);
 
       const { access_token, user } = response.data;
       this.setToken(access_token);
       this.setCurrentUser(user);
 
+      console.log('Login successful, token set:', access_token ? 'Yes' : 'No');
       return { user, error: null };
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Login failed';
+      console.error('Login error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url
+      });
+      
+      const errorMessage = error.response?.data?.detail || error.message || 'Login failed';
       return { user: null, error: { message: errorMessage } };
     }
   }
 
   async register(email, password, userData = {}) {
     try {
-      const response = await this.client.post('/v1/auth/register', {
+      const response = await this.client.post('/api/v1/auth/register', {
         email,
         password,
         first_name: userData.firstName || '',
@@ -117,9 +132,9 @@ class ApiClient {
     }
   }
 
-  async post(endpoint, data) {
+  async post(endpoint, data, config = {}) {
     try {
-      const response = await this.client.post(endpoint, data);
+      const response = await this.client.post(endpoint, data, config);
       return { data: response.data, error: null };
     } catch (error) {
       return { data: null, error: this.handleError(error) };

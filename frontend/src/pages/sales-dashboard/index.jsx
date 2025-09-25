@@ -12,7 +12,8 @@ import UpcomingTasks from './components/UpcomingTasks';
 import PipelineStage from './components/PipelineStage';
 import PerformanceMetrics from './components/PerformanceMetrics';
 
-import dealsService from '../../services/dealsService';
+import { dealsService } from '../../services/dealsService';
+import { dashboardService } from '../../services/dashboardService';
 
 
 
@@ -38,10 +39,12 @@ const SalesDashboard = () => {
 
       // Load all dashboard data in parallel
       const [
+        dashboardOverview,
         pipelineDeals,
         revenueStats,
         performanceStats
       ] = await Promise.all([
+        dashboardService?.getDashboardOverview(),
         dealsService?.getPipelineDeals(),
         dealsService?.getRevenueData(),
         dealsService?.getPerformanceMetrics()

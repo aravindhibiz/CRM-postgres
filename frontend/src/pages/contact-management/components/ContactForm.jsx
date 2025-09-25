@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
-import contactsService from '../../../services/contactsService';
-import companiesService from '../../../services/companiesService';
+import { companiesService } from '../../../services/companiesService';
 
 const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
   const { user } = useAuth();
@@ -97,16 +96,9 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
       // Prepare data for submission - remove companyName from the payload
       const { companyName, ...submitData } = formData;
 
-      let result;
-      if (contact) {
-        // Update existing contact
-        result = await contactsService?.updateContact(contact?.id, submitData);
-      } else {
-        // Create new contact - include companyName for service to handle
-        result = await contactsService?.createContact(formData);
-      }
-
-      onSubmit?.(result);
+      // Pass data to parent component for API call
+      console.log('Submitting contact form data to parent component:', submitData);
+      await onSubmit?.(submitData);
     } catch (err) {
       console.error('Error saving contact:', err);
       setErrors({ 

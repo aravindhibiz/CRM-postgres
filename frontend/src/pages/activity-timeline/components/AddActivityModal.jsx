@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
-import activitiesService from '../../../services/activitiesService';
-import contactsService from '../../../services/contactsService';
-import dealsService from '../../../services/dealsService';
+import { activitiesService } from '../../../services/activitiesService';
+import { contactsService } from '../../../services/contactsService';
+import { dealsService } from '../../../services/dealsService';
 
 const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {} }) => {
   const { user } = useAuth();

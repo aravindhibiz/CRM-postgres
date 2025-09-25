@@ -2,8 +2,18 @@ import apiClient from '../lib/apiClient';
 
 export const tasksService = {
   // Get all tasks for the current user
-  async getUserTasks() {
-    const { data, error } = await apiClient.get('/tasks');
+  async getUserTasks(status = null, priority = null) {
+    let url = '/api/v1/tasks';
+    const params = new URLSearchParams();
+    
+    if (status) params.append('status', status);
+    if (priority) params.append('priority', priority);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const { data, error } = await apiClient.get(url);
 
     if (error) throw error;
     return data || [];
@@ -11,26 +21,33 @@ export const tasksService = {
 
   // Get upcoming tasks
   async getUpcomingTasks(days = 7) {
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
+    const tasks = await this.getUserTasks();
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(now.getDate() + days);
 
-    const { data, error } = await apiClient.get(`/tasks?upcoming=${days}`);
-
-    if (error) throw error;
-    return data || [];
+    return tasks.filter(task => {
+      if (!task.due_date) return false;
+      const dueDate = new Date(task.due_date);
+      return dueDate >= now && dueDate <= futureDate && task.status !== 'completed';
+    });
   },
 
   // Get overdue tasks
   async getOverdueTasks() {
-    const { data, error } = await apiClient.get('/tasks?overdue=true');
+    const tasks = await this.getUserTasks();
+    const now = new Date();
 
-    if (error) throw error;
-    return data || [];
+    return tasks.filter(task => {
+      if (!task.due_date) return false;
+      const dueDate = new Date(task.due_date);
+      return dueDate < now && task.status !== 'completed';
+    });
   },
 
   // Get a specific task by ID
   async getTaskById(taskId) {
-    const { data, error } = await apiClient.get(`/tasks/${taskId}`);
+    const { data, error } = await apiClient.get(`/api/v1/tasks/${taskId}`);
 
     if (error) {
       if (error.status === 404) {
@@ -54,7 +71,7 @@ export const tasksService = {
       assigned_to: taskData.assigned_to || null,
     };
 
-    const { data, error } = await apiClient.post('/tasks', cleanTaskData);
+    const { data, error } = await apiClient.post('/api/v1/tasks', cleanTaskData);
 
     if (error) throw error;
     return data;
@@ -62,7 +79,7 @@ export const tasksService = {
 
   // Update a task
   async updateTask(taskId, updates) {
-    const { data, error } = await apiClient.put(`/tasks/${taskId}`, updates);
+    const { data, error } = await apiClient.put(`/api/v1/tasks/${taskId}`, updates);
 
     if (error) throw error;
     return data;
@@ -70,7 +87,7 @@ export const tasksService = {
 
   // Delete a task
   async deleteTask(taskId) {
-    const { data, error } = await apiClient.delete(`/tasks/${taskId}`);
+    const { data, error } = await apiClient.delete(`/api/v1/tasks/${taskId}`);
 
     if (error) throw error;
     return true;
@@ -78,7 +95,7 @@ export const tasksService = {
 
   // Get task statistics
   async getTaskStats() {
-    const { data, error } = await apiClient.get('/tasks/stats');
+    const { data, error } = await apiClient.get('/api/v1/tasks/stats/overview');
 
     if (error) {
       // Fallback: calculate stats from all tasks

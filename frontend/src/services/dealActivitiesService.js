@@ -4,7 +4,7 @@ export const dealActivitiesService = {
   // Get all activities for a specific deal
   async getDealActivities(dealId) {
     try {
-      const { data, error } = await apiClient.get(`/deals/${dealId}/activities`);
+      const { data, error } = await apiClient.get(`/api/v1/deals/${dealId}/activities`);
 
       if (error) throw error;
       return data || [];
@@ -27,7 +27,7 @@ export const dealActivitiesService = {
         deal_id: dealId,
       };
 
-      const { data, error } = await apiClient.post('/activities', cleanActivityData);
+      const { data, error } = await apiClient.post('/api/v1/activities', cleanActivityData);
 
       if (error) throw error;
       return data;
@@ -40,7 +40,7 @@ export const dealActivitiesService = {
   // Delete a deal activity
   async deleteDealActivity(activityId) {
     try {
-      const { data, error } = await apiClient.delete(`/activities/${activityId}`);
+      const { data, error } = await apiClient.delete(`/api/v1/activities/${activityId}`);
 
       if (error) throw error;
       return true;
@@ -58,6 +58,28 @@ export const dealActivitiesService = {
         // Cleanup if needed
       }
     };
+  },
+
+  // Alias method for compatibility
+  async createActivity(activityData) {
+    return this.createDealActivity(activityData.dealId, activityData);
+  },
+
+  // Alias method for compatibility
+  async deleteActivity(activityId) {
+    return this.deleteDealActivity(activityId);
+  },
+
+  // Subscribe to activity changes (alias for compatibility)
+  subscribeToActivityChanges(dealId, callback) {
+    return this.subscribeToDealActivities(dealId, callback);
+  },
+
+  // Unsubscribe from activity changes (alias for compatibility)
+  unsubscribeFromActivityChanges(subscription) {
+    if (subscription && subscription.unsubscribe) {
+      subscription.unsubscribe();
+    }
   }
 };
 

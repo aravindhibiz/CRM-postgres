@@ -1,10 +1,12 @@
 import apiClient from '../lib/apiClient';
+import { contactsService } from './contactsService';
+import { dealsService } from './dealsService';
 
 export const activitiesService = {
   // Get all activities for the current user
   async getUserActivities(limit = 50) {
     console.log('Fetching user activities...');
-    const { data, error } = await apiClient.get(`/activities?limit=${limit}`);
+    const { data, error } = await apiClient.get(`/api/v1/activities?limit=${limit}`);
 
     if (error) {
       console.error('Error fetching activities:', error);
@@ -12,12 +14,56 @@ export const activitiesService = {
     }
 
     console.log('Fetched raw activities data:', data);
-    return data || [];
+    
+    // Populate related data for each activity
+    const populatedActivities = await this.populateActivityRelations(data || []);
+    
+    return populatedActivities;
+  },
+
+  // Helper method to populate contact and deal information for activities
+  async populateActivityRelations(activities) {
+    
+    const populatedActivities = [];
+    
+    for (const activity of activities) {
+      const populatedActivity = { ...activity };
+      
+      // Fetch contact details if contact_id exists
+      if (activity.contact_id) {
+        try {
+          const contact = await contactsService.getContactById(activity.contact_id);
+          populatedActivity.contact = contact;
+        } catch (err) {
+          console.warn('Could not fetch contact for activity:', activity.id, err);
+          populatedActivity.contact = null;
+        }
+      }
+      
+      // Fetch deal details if deal_id exists
+      if (activity.deal_id) {
+        try {
+          const deal = await dealsService.getDealById(activity.deal_id);
+          populatedActivity.deal = deal;
+        } catch (err) {
+          console.warn('Could not fetch deal for activity:', activity.id, err);
+          populatedActivity.deal = null;
+        }
+      }
+      
+      populatedActivities.push(populatedActivity);
+    }
+    return populatedActivities;
+  },
+
+  // Get recent activities (alias for getUserActivities with limit)
+  async getRecentActivity(limit = 10) {
+    return this.getUserActivities(limit);
   },
 
   // Get activities for a specific deal
   async getDealActivities(dealId) {
-    const { data, error } = await apiClient.get(`/deals/${dealId}/activities`);
+    const { data, error } = await apiClient.get(`/api/v1/deals/${dealId}/activities`);
 
     if (error) throw error;
     return data || [];
@@ -25,7 +71,7 @@ export const activitiesService = {
 
   // Get activities for a specific contact
   async getContactActivities(contactId) {
-    const { data, error } = await apiClient.get(`/contacts/${contactId}/activities`);
+    const { data, error } = await apiClient.get(`/api/v1/contacts/${contactId}/activities`);
 
     if (error) throw error;
     return data || [];
@@ -43,7 +89,7 @@ export const activitiesService = {
       deal_id: activityData.deal_id || null,
     };
 
-    const { data, error } = await apiClient.post('/activities', cleanActivityData);
+    const { data, error } = await apiClient.post('/api/v1/activities', cleanActivityData);
 
     if (error) throw error;
     return data;
@@ -51,7 +97,7 @@ export const activitiesService = {
 
   // Update an activity
   async updateActivity(activityId, updates) {
-    const { data, error } = await apiClient.put(`/activities/${activityId}`, updates);
+    const { data, error } = await apiClient.put(`/api/v1/activities/${activityId}`, updates);
 
     if (error) throw error;
     return data;
@@ -59,7 +105,7 @@ export const activitiesService = {
 
   // Delete an activity
   async deleteActivity(activityId) {
-    const { data, error } = await apiClient.delete(`/activities/${activityId}`);
+    const { data, error } = await apiClient.delete(`/api/v1/activities/${activityId}`);
 
     if (error) throw error;
     return true;
@@ -93,7 +139,7 @@ export const activitiesService = {
     }
 
     const queryString = params.toString();
-    const endpoint = queryString ? `/activities?${queryString}` : '/activities';
+    const endpoint = queryString ? `/api/v1/activities?${queryString}` : '/api/v1/activities';
 
     const { data, error } = await apiClient.get(endpoint);
 
@@ -103,7 +149,7 @@ export const activitiesService = {
 
   // Get activity statistics
   async getActivityStats() {
-    const { data, error } = await apiClient.get('/activities/stats');
+    const { data, error } = await apiClient.get('/api/v1/activities/stats');
 
     if (error) {
       // Fallback: calculate stats from all activities
@@ -146,7 +192,7 @@ export const activitiesService = {
     }
 
     const queryString = params.toString();
-    const endpoint = queryString ? `/activities?${queryString}` : '/activities';
+    const endpoint = queryString ? `/api/v1/activities?${queryString}` : '/api/v1/activities';
 
     const { data, error } = await apiClient.get(endpoint);
 

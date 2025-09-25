@@ -5,9 +5,27 @@ import Image from 'components/AppImage';
 const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+
+
   const handleSelectionChange = (e) => {
     e.stopPropagation();
     onSelectionChange(e.target.checked);
+  };
+
+  // Helper functions to extract display data
+  const getContactName = () => {
+    // Data is already transformed by the parent component
+    return activity?.contact || 'N/A';
+  };
+
+  const getCompanyName = () => {
+    // Data is already transformed by the parent component
+    return activity?.company || 'N/A';
+  };
+
+  const getUserName = () => {
+    // Data is already transformed by the parent component
+    return activity?.user || 'System';
   };
 
   const getActivityIcon = (type) => {
@@ -116,25 +134,25 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
               )}
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <h3 className="text-lg font-semibold text-text-primary">{activity?.title}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(activity?.priority)}`}>
-                    {activity?.priority}
+                  <h3 className="text-lg font-semibold text-text-primary">{activity?.title || 'Untitled Activity'}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(activity?.priority)}`}>
+                    {activity?.type || 'note'}
                   </span>
-                  {activity?.dealValue && (
+                  {activity?.deal?.value && (
                     <span className="px-2 py-1 bg-success-50 text-success rounded-full text-xs font-medium">
-                      {activity?.dealValue}
+                      ${activity.deal.value.toLocaleString()}
                     </span>
                   )}
                 </div>
                 
                 <div className="flex items-center space-x-4 text-sm text-text-secondary">
                   <div className="flex items-center space-x-2">
-                    <Icon name={getChannelIcon(activity?.channel)} size={14} />
-                    <span className="capitalize">{activity?.channel}</span>
+                    <Icon name={getActivityIcon(activity?.type)} size={14} />
+                    <span className="capitalize">{activity?.type || 'note'}</span>
                   </div>
                   <span>{formatTimestamp(activity?.timestamp)}</span>
                   {activity?.duration && (
-                    <span>Duration: {activity?.duration}</span>
+                    <span>Duration: {activity.duration}</span>
                   )}
                 </div>
               </div>
@@ -153,28 +171,26 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
           {/* Contact & Company Info */}
           <div className="flex items-center space-x-4 mb-4">
             <div className="flex items-center space-x-3">
-              {activity?.contactAvatar && (
-                <Image
-                  src={activity?.contactAvatar}
-                  alt={activity?.contact}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              )}
+              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                <span className="text-sm font-medium text-primary">
+                  {getContactName().split(' ').map(n => n[0]).join('').substr(0, 2)}
+                </span>
+              </div>
               <div>
-                <div className="font-medium text-text-primary">{activity?.contact}</div>
-                <div className="text-sm text-text-secondary">{activity?.company}</div>
+                <div className="font-medium text-text-primary">{getContactName()}</div>
+                <div className="text-sm text-text-secondary">{getCompanyName()}</div>
               </div>
             </div>
 
             <div className="flex items-center space-x-3 ml-auto">
-              {activity?.user !== 'System' && activity?.avatar && (
+              {getUserName() !== 'System' && (
                 <div className="flex items-center space-x-2">
-                  <Image
-                    src={activity?.avatar}
-                    alt={activity?.user}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                  <span className="text-sm text-text-secondary">{activity?.user}</span>
+                  <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-xs font-medium text-primary">
+                      {getUserName().split(' ').map(n => n[0]).join('').substr(0, 2)}
+                    </span>
+                  </div>
+                  <span className="text-sm text-text-secondary">{getUserName()}</span>
                 </div>
               )}
             </div>

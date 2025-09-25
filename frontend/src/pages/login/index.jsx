@@ -29,9 +29,9 @@ const Login = () => {
     clearAuthError();
 
     const demoCredentials = {
-      admin: { email: 'admin@salesflow.com', password: 'password123' },
-      sales_rep: { email: 'john.smith@salesflow.com', password: 'password123' },
-      manager: { email: 'sarah.johnson@salesflow.com', password: 'password123' }
+      admin: { email: 'test@example.com', password: 'testpass123' },
+      sales_rep: { email: 'test@example.com', password: 'testpass123' },
+      manager: { email: 'test@example.com', password: 'testpass123' }
     };
 
     const credentials = demoCredentials?.[role];

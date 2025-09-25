@@ -3,7 +3,7 @@ import Header from 'components/ui/Header';
 import Breadcrumb from 'components/ui/Breadcrumb';
 import Icon from 'components/AppIcon';
 import { useAuth } from '../../contexts/AuthContext';
-import activitiesService from '../../services/activitiesService';
+import { activitiesService } from '../../services/activitiesService';
 
 import ActivityCard from './components/ActivityCard';
 import ActivityFilters from './components/ActivityFilters';
@@ -41,7 +41,6 @@ const ActivityTimeline = () => {
       setLoading(true);
       setError('');
       const data = await activitiesService.getUserActivities();
-      console.log("Data received from activitiesService:", data);
       setActivities(data);
       setLastRefresh(new Date());
     } catch (err) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
-import activitiesService from '../../../services/activitiesService';
+import { activitiesService } from '../../../services/activitiesService';
 
 const RecentActivity = () => {
   const { user } = useAuth();
@@ -19,8 +19,20 @@ const RecentActivity = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await activitiesService?.getRecentActivity(10);
-      setActivities(data || []);
+      const rawData = await activitiesService?.getRecentActivity(10);
+      
+      // Transform the data to match expected structure
+      const transformedData = (rawData || []).map(activity => ({
+        id: activity.id,
+        type: activity.type,
+        title: activity.subject,
+        contact: activity.contact ? `${activity.contact.first_name} ${activity.contact.last_name}` : null,
+        company: activity.contact?.company?.name || activity.deal?.company?.name || null,
+        user: activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
+        time: activity.created_at,
+      }));
+      
+      setActivities(transformedData);
     } catch (err) {
       console.error('Error loading recent activity:', err);
       setError('Failed to load activity');

@@ -6,9 +6,10 @@ from ..core.database import get_db
 from ..core.auth import get_current_user
 from ..models.user import UserProfile
 from ..models.activity import Activity
-from ..schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse
+from ..schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, ActivityWithRelations
 
 router = APIRouter()
+
 
 @router.get("/", response_model=List[ActivityResponse])
 async def get_user_activities(
@@ -16,15 +17,13 @@ async def get_user_activities(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    activities = db.query(Activity).options(
-        joinedload(Activity.contact),
-        joinedload(Activity.deal),
-        joinedload(Activity.user)
-    ).filter(Activity.user_id == current_user.id).order_by(Activity.created_at.desc()).limit(limit).all()
+    activities = db.query(Activity).filter(Activity.user_id == current_user.id).order_by(
+        Activity.created_at.desc()).limit(limit).all()
 
     return activities
 
-@router.get("/{activity_id}", response_model=ActivityResponse)
+
+@router.get("/{activity_id}", response_model=ActivityWithRelations)
 async def get_activity_by_id(
     activity_id: UUID,
     db: Session = Depends(get_db),
@@ -44,6 +43,7 @@ async def get_activity_by_id(
 
     return activity
 
+
 @router.post("/", response_model=ActivityResponse)
 async def create_activity(
     activity_data: ActivityCreate,
@@ -60,6 +60,7 @@ async def create_activity(
     db.refresh(db_activity)
 
     return db_activity
+
 
 @router.put("/{activity_id}", response_model=ActivityResponse)
 async def update_activity(
@@ -88,6 +89,7 @@ async def update_activity(
     db.refresh(activity)
 
     return activity
+
 
 @router.delete("/{activity_id}")
 async def delete_activity(

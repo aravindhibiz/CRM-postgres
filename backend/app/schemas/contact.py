@@ -4,6 +4,7 @@ from datetime import datetime
 import uuid
 from .user import UserResponse
 
+
 class ContactBase(BaseModel):
     first_name: str
     last_name: str
@@ -16,9 +17,11 @@ class ContactBase(BaseModel):
     social_linkedin: Optional[str] = None
     social_twitter: Optional[str] = None
 
+
 class ContactCreate(ContactBase):
     company_id: Optional[uuid.UUID] = None
-    owner_id: uuid.UUID
+    owner_id: Optional[uuid.UUID] = None
+
 
 class ContactUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -33,6 +36,7 @@ class ContactUpdate(BaseModel):
     social_twitter: Optional[str] = None
     company_id: Optional[uuid.UUID] = None
 
+
 class ContactResponse(ContactBase):
     id: uuid.UUID
     company_id: Optional[uuid.UUID] = None
@@ -42,6 +46,7 @@ class ContactResponse(ContactBase):
 
     class Config:
         from_attributes = True
+
 
 class ContactWithRelations(ContactResponse):
     owner: Optional[UserResponse] = None
