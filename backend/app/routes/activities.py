@@ -17,7 +17,7 @@ async def get_user_activities(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    activities = db.query(Activity).filter(Activity.user_id == current_user.id).order_by(
+    activities = db.query(Activity).order_by(
         Activity.created_at.desc()).limit(limit).all()
 
     return activities
@@ -33,7 +33,7 @@ async def get_activity_by_id(
         joinedload(Activity.contact),
         joinedload(Activity.deal),
         joinedload(Activity.user)
-    ).filter(Activity.id == activity_id, Activity.user_id == current_user.id).first()
+    ).filter(Activity.id == activity_id).first()
 
     if not activity:
         raise HTTPException(
@@ -70,8 +70,7 @@ async def update_activity(
     current_user: UserProfile = Depends(get_current_user)
 ):
     activity = db.query(Activity).filter(
-        Activity.id == activity_id,
-        Activity.user_id == current_user.id
+        Activity.id == activity_id
     ).first()
 
     if not activity:
@@ -98,8 +97,7 @@ async def delete_activity(
     current_user: UserProfile = Depends(get_current_user)
 ):
     activity = db.query(Activity).filter(
-        Activity.id == activity_id,
-        Activity.user_id == current_user.id
+        Activity.id == activity_id
     ).first()
 
     if not activity:

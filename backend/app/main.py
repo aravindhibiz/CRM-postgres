@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine, Base
-from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users
+from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users, roles, system_config
 # Import all models to ensure SQLAlchemy relationships are set up properly
 from . import models
 
@@ -40,6 +40,9 @@ app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(
     dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(roles.router, prefix="/api/v1/roles", tags=["roles"])
+app.include_router(system_config.router,
+                   prefix="/api/v1/system-config", tags=["system-config"])
 
 
 @app.get("/")

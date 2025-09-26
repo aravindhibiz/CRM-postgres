@@ -1,7 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
+import { contactsService } from '../../../services/contactsService';
 
 const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
+  const [teamMembers, setTeamMembers] = useState([
+    { value: 'all', label: 'All Contacts' }
+  ]);
+  const [loading, setLoading] = useState(false);
+
+  // Load contacts for team member filter
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        setLoading(true);
+        console.log('Loading contacts for activity filters...');
+        const contacts = await contactsService.getUserContacts();
+        console.log('Loaded contacts:', contacts);
+        
+        const contactOptions = [
+          { value: 'all', label: 'All Contacts' },
+          ...contacts.map(contact => ({
+            value: contact.id,
+            label: `${contact.first_name} ${contact.last_name}`,
+            company: contact.company?.name || 'No Company',
+            email: contact.email
+          }))
+        ];
+        
+        console.log('Contact options:', contactOptions);
+        setTeamMembers(contactOptions);
+      } catch (error) {
+        console.error('Error loading contacts:', error);
+        setTeamMembers([{ value: 'all', label: 'All Contacts' }]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContacts();
+  }, []);
+
   const activityTypes = [
     { value: 'all', label: 'All Activities', icon: 'Activity' },
     { value: 'email', label: 'Emails', icon: 'Mail' },
@@ -26,13 +64,7 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
     { value: 'system', label: 'System', icon: 'Settings' }
   ];
 
-  const teamMembers = [
-    { value: 'all', label: 'All Team Members' },
-    { value: 'michael', label: 'Michael Rodriguez' },
-    { value: 'jennifer', label: 'Jennifer Walsh' },
-    { value: 'alex', label: 'Alex Thompson' },
-    { value: 'sarah', label: 'Sarah Chen' }
-  ];
+
 
   const handleFilterChange = (filterType, value) => {
     onFiltersChange({
@@ -43,6 +75,50 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
 
   return (
     <div className="space-y-6">
+      {/* Contact Filter */}
+      <div>
+        <h4 className="text-sm font-medium text-text-primary mb-3">Contact</h4>
+        <div className="space-y-2">
+          {loading ? (
+            <div className="flex items-center space-x-2 text-sm text-text-secondary">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              <span>Loading contacts...</span>
+            </div>
+          ) : (
+            teamMembers?.map((member) => (
+              <label key={member?.value} className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="teamMember"
+                  value={member?.value}
+                  checked={selectedFilters?.teamMember === member?.value}
+                  onChange={(e) => handleFilterChange('teamMember', e?.target?.value)}
+                  className="w-4 h-4 text-primary border-border focus:ring-primary-500"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm text-text-secondary">{member?.label}</span>
+                  {member?.value !== 'all' && (
+                    <div className="text-xs text-text-tertiary space-y-1">
+                      {member?.company && (
+                        <div className="flex items-center space-x-1">
+                          <Icon name="Building" size={10} />
+                          <span>{member?.company}</span>
+                        </div>
+                      )}
+                      {member?.email && (
+                        <div className="flex items-center space-x-1">
+                          <Icon name="Mail" size={10} />
+                          <span>{member?.email}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </label>
+            ))
+          )}
+        </div>
+      </div>
       {/* Activity Type Filter */}
       <div>
         <h4 className="text-sm font-medium text-text-primary mb-3">Activity Type</h4>
@@ -102,25 +178,6 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
                 <Icon name={channel?.icon} size={16} className="text-text-secondary" />
                 <span className="text-sm text-text-secondary">{channel?.label}</span>
               </div>
-            </label>
-          ))}
-        </div>
-      </div>
-      {/* Team Member Filter */}
-      <div>
-        <h4 className="text-sm font-medium text-text-primary mb-3">Team Member</h4>
-        <div className="space-y-2">
-          {teamMembers?.map((member) => (
-            <label key={member?.value} className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="radio"
-                name="teamMember"
-                value={member?.value}
-                checked={selectedFilters?.teamMember === member?.value}
-                onChange={(e) => handleFilterChange('teamMember', e?.target?.value)}
-                className="w-4 h-4 text-primary border-border focus:ring-primary-500"
-              />
-              <span className="text-sm text-text-secondary">{member?.label}</span>
             </label>
           ))}
         </div>

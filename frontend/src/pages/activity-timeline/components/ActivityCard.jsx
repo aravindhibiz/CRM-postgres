@@ -48,17 +48,17 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
   const getActivityColor = (type) => {
     switch (type) {
       case 'email':
-        return 'text-blue-600 bg-blue-50';
-      case 'call':
-        return 'text-green-600 bg-green-50';
+        return 'text-blue-700 bg-blue-100 border border-blue-200';
+      case 'call':  
+        return 'text-green-700 bg-green-100 border border-green-200';
       case 'meeting':
-        return 'text-purple-600 bg-purple-50';
+        return 'text-purple-700 bg-purple-100 border border-purple-200';
       case 'deal_update':
-        return 'text-orange-600 bg-orange-50';
+        return 'text-orange-700 bg-orange-100 border border-orange-200';
       case 'task':
-        return 'text-indigo-600 bg-indigo-50';
+        return 'text-indigo-700 bg-indigo-100 border border-indigo-200';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-gray-700 bg-gray-100 border border-gray-200';
     }
   };
 
@@ -115,53 +115,64 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
       )}
       <div className="flex space-x-4">
         {/* Timeline Icon */}
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getActivityColor(activity?.type)} flex-shrink-0`}>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getActivityColor(activity?.type)} flex-shrink-0 shadow-sm`}>
           <Icon name={getActivityIcon(activity?.type)} size={20} />
         </div>
 
         {/* Activity Content */}
-        <div className="flex-1 card p-6">
+        <div className="flex-1 bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow duration-200">
           {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center space-x-3 flex-1">
-              {showCheckbox && (
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={handleSelectionChange}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-              )}
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h3 className="text-lg font-semibold text-text-primary">{activity?.title || 'Untitled Activity'}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(activity?.priority)}`}>
-                    {activity?.type || 'note'}
-                  </span>
-                  {activity?.deal?.value && (
-                    <span className="px-2 py-1 bg-success-50 text-success rounded-full text-xs font-medium">
-                      ${activity.deal.value.toLocaleString()}
+          <div className="p-6 border-b border-border">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3 flex-1">
+                {showCheckbox && (
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={handleSelectionChange}
+                    className="rounded border-border text-primary focus:ring-primary"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <h3 className="text-lg font-semibold text-text-primary line-clamp-1">
+                      {activity?.title || 'Untitled Activity'}
+                    </h3>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(activity?.priority)} whitespace-nowrap`}>
+                      {activity?.type || 'note'}
                     </span>
-                  )}
-                </div>
-                
-                <div className="flex items-center space-x-4 text-sm text-text-secondary">
-                  <div className="flex items-center space-x-2">
-                    <Icon name={getActivityIcon(activity?.type)} size={14} />
-                    <span className="capitalize">{activity?.type || 'note'}</span>
+                    {activity?.deal?.value && (
+                      <span className="px-3 py-1 bg-success-50 text-success rounded-full text-xs font-medium whitespace-nowrap">
+                        ${activity.deal.value.toLocaleString()}
+                      </span>
+                    )}
                   </div>
-                  <span>{formatTimestamp(activity?.timestamp)}</span>
-                  {activity?.duration && (
-                    <span>Duration: {activity.duration}</span>
-                  )}
+                  
+                  <div className="flex items-center space-x-4 text-sm text-text-tertiary">
+                    <span className="flex items-center space-x-1">
+                      <Icon name="Clock" size={14} />
+                      <span>{formatTimestamp(activity?.timestamp)}</span>
+                    </span>
+                    {activity?.duration && (
+                      <span className="flex items-center space-x-1">
+                        <Icon name="Timer" size={14} />
+                        <span>{activity.duration}</span>
+                      </span>
+                    )}
+                    {getUserName() !== 'System' && (
+                      <span className="flex items-center space-x-1">
+                        <Icon name="User" size={14} />
+                        <span>{getUserName()}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-2">
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out"
+                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out flex-shrink-0"
+                title={isExpanded ? "Show less" : "Show more"}
               >
                 <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={16} />
               </button>
@@ -169,42 +180,51 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
           </div>
 
           {/* Contact & Company Info */}
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">
-                  {getContactName().split(' ').map(n => n[0]).join('').substr(0, 2)}
+          <div className="px-6 py-4 bg-surface-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-sm">
+                  <span className="text-sm font-semibold text-white">
+                    {getContactName().split(' ').map(n => n[0]).join('').substr(0, 2)}
+                  </span>
+                </div>
+                <div>
+                  <div className="font-medium text-text-primary">{getContactName()}</div>
+                  <div className="text-sm text-text-secondary flex items-center space-x-1">
+                    <Icon name="Building" size={12} />
+                    <span>{getCompanyName()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getActivityColor(activity?.type)}`}>
+                  <Icon name={getActivityIcon(activity?.type)} size={12} className="mr-1" />
+                  {activity?.type?.replace('_', ' ') || 'note'}
                 </span>
               </div>
-              <div>
-                <div className="font-medium text-text-primary">{getContactName()}</div>
-                <div className="text-sm text-text-secondary">{getCompanyName()}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 ml-auto">
-              {getUserName() !== 'System' && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center">
-                    <span className="text-xs font-medium text-primary">
-                      {getUserName().split(' ').map(n => n[0]).join('').substr(0, 2)}
-                    </span>
-                  </div>
-                  <span className="text-sm text-text-secondary">{getUserName()}</span>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Description Preview */}
-          <div className="mb-4">
-            <p className="text-text-secondary text-sm leading-relaxed">
-              {isExpanded 
-                ? activity?.description
-                : `${activity?.description?.substring(0, 150)}${activity?.description?.length > 150 ? '...' : ''}`
-              }
-            </p>
-          </div>
+          {activity?.description && (
+            <div className="px-6 py-4">
+              <p className="text-text-primary text-sm leading-relaxed">
+                {isExpanded 
+                  ? activity?.description
+                  : `${activity?.description?.substring(0, 200)}${activity?.description?.length > 200 ? '...' : ''}`
+                }
+              </p>
+              {activity?.description?.length > 200 && !isExpanded && (
+                <button
+                  onClick={() => setIsExpanded(true)}
+                  className="text-primary text-sm font-medium hover:text-primary-600 mt-2 transition-colors"
+                >
+                  Read more
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Additional Info */}
           {isExpanded && (
@@ -272,32 +292,40 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <div className="flex items-center space-x-2">
-              <button className="flex items-center space-x-2 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-primary-50 rounded-lg transition-all duration-150 ease-out">
-                <Icon name="MessageSquare" size={14} />
-                <span>Reply</span>
-              </button>
-              
-              <button className="flex items-center space-x-2 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-primary-50 rounded-lg transition-all duration-150 ease-out">
-                <Icon name="Plus" size={14} />
-                <span>Follow-up</span>
-              </button>
-              
-              <button className="flex items-center space-x-2 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-primary-50 rounded-lg transition-all duration-150 ease-out">
-                <Icon name="Calendar" size={14} />
-                <span>Schedule</span>
-              </button>
-            </div>
+          <div className="px-6 py-4 bg-surface-50 border-t border-border rounded-b-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1">
+                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border">
+                  <Icon name="MessageSquare" size={14} />
+                  <span>Reply</span>
+                </button>
+                
+                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border">
+                  <Icon name="Plus" size={14} />
+                  <span>Follow-up</span>
+                </button>
+                
+                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border">
+                  <Icon name="Calendar" size={14} />
+                  <span>Schedule</span>
+                </button>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded transition-all duration-150 ease-out">
-                <Icon name="Share" size={14} />
-              </button>
-              
-              <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded transition-all duration-150 ease-out">
-                <Icon name="MoreHorizontal" size={14} />
-              </button>
+              <div className="flex items-center space-x-1">
+                <button 
+                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
+                  title="Share activity"
+                >
+                  <Icon name="Share" size={14} />
+                </button>
+                
+                <button 
+                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
+                  title="More options"
+                >
+                  <Icon name="MoreHorizontal" size={14} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

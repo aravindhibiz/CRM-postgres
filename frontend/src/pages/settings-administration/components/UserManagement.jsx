@@ -1,24 +1,29 @@
 // src/pages/settings-administration/components/UserManagement.jsx
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
-import { useAuth } from '../../../contexts/AuthContext';
 import { userService } from '../../../services/userService';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const UserManagement = () => {
-  const { user: currentUser, userProfile } = useAuth();
+  try {
+    const { user: currentUser } = useAuth();
+    
+    // Debug logging
+    console.log('UserManagement - currentUser:', currentUser);
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ 
     email: '', 
     firstName: '', 
     lastName: '', 
-    role: '', 
+    role: 'sales_rep', 
     message: '' 
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -72,10 +77,10 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    if (currentUser && userProfile?.role === 'admin') {
+    if (currentUser && currentUser?.role === 'admin') {
       loadUsers();
     }
-  }, [currentUser, userProfile, searchQuery, statusFilter, roleFilter]);
+  }, [currentUser, searchQuery, statusFilter, roleFilter]);
 
   // Auto-clear messages
   useEffect(() => {
@@ -134,10 +139,16 @@ const UserManagement = () => {
     
     try {
       setError('');
-      await userService?.inviteUser(inviteForm);
+      const inviteData = {
+        email: inviteForm.email,
+        first_name: inviteForm.firstName,
+        last_name: inviteForm.lastName,
+        role: inviteForm.role
+      };
+      await userService?.inviteUser(inviteData);
       setSuccess('User invitation sent successfully!');
       setShowInviteModal(false);
-      setInviteForm({ email: '', firstName: '', lastName: '', role: '', message: '' });
+      setInviteForm({ email: '', firstName: '', lastName: '', role: 'sales_rep', message: '' });
       loadUsers();
     } catch (err) {
       console.error('Error inviting user:', err);
@@ -151,7 +162,7 @@ const UserManagement = () => {
       
       switch (action) {
         case 'activate':
-          await userService?.activateUser(userId);
+          await userService?.reactivateUser(userId);
           setSuccess('User activated successfully');
           break;
         case 'deactivate':
@@ -185,8 +196,21 @@ const UserManagement = () => {
     );
   };
 
+  // Show loading state if still loading
+  if (loading && !currentUser) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <Icon name="Loader" size={48} className="text-text-tertiary mx-auto mb-4 animate-spin" />
+          <h3 className="text-lg font-medium text-text-primary mb-2">Loading...</h3>
+          <p className="text-text-secondary">Please wait while we load your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show access denied for non-admin users
-  if (!currentUser || !userProfile || userProfile?.role !== 'admin') {
+  if (!currentUser || currentUser?.role !== 'admin') {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
@@ -518,6 +542,18 @@ const UserManagement = () => {
       )}
     </div>
   );
+  } catch (error) {
+    console.error('Error in UserManagement component:', error);
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <Icon name="AlertCircle" size={48} className="text-error mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-text-primary mb-2">Something went wrong</h3>
+          <p className="text-text-secondary">Please refresh the page and try again.</p>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default UserManagement;

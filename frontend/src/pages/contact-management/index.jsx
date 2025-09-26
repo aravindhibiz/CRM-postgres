@@ -12,6 +12,7 @@ import ExportContactsModal from './components/ExportContactsModal';
 import MergeDuplicatesModal from './components/MergeDuplicatesModal';
 import FilterPanel from './components/FilterPanel';
 import { contactsService } from '../../services/contactsService';
+import { companiesService } from '../../services/companiesService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ContactManagement = () => {
@@ -183,10 +184,40 @@ const ContactManagement = () => {
         // Create new contact
         console.log('Creating new contact...');
         
+        let companyId = contactData.company_id;
+        
+        // Handle company creation if companyName is provided but no company_id
+        if (contactData.companyName?.trim() && !companyId) {
+          console.log('Creating new company:', contactData.companyName);
+          
+          try {
+            // First check if company already exists
+            const existingCompanies = await companiesService?.searchCompanies(contactData.companyName?.trim());
+            const existingCompany = existingCompanies?.find(
+              company => company.name?.toLowerCase() === contactData.companyName?.trim()?.toLowerCase()
+            );
+            
+            if (existingCompany) {
+              console.log('Found existing company:', existingCompany);
+              companyId = existingCompany.id;
+            } else {
+              // Create new company
+              const newCompany = await companiesService?.createCompany({
+                name: contactData.companyName?.trim()
+              });
+              console.log('Created new company:', newCompany);
+              companyId = newCompany.id;
+            }
+          } catch (companyError) {
+            console.error('Error handling company:', companyError);
+            throw new Error(`Failed to create company "${contactData.companyName}": ${companyError.message}`);
+          }
+        }
+        
         // Clean the data - convert empty strings to null for optional UUID fields
-        const cleanedData = {
+        const { companyName, ...cleanedData } = {
           ...contactData,
-          company_id: contactData.company_id || null,
+          company_id: companyId || null,
           owner_id: user?.id
         };
         
@@ -203,10 +234,40 @@ const ContactManagement = () => {
         // Update existing contact
         console.log('Updating existing contact:', selectedContact?.id);
         
+        let companyId = contactData.company_id;
+        
+        // Handle company creation if companyName is provided but no company_id
+        if (contactData.companyName?.trim() && !companyId) {
+          console.log('Creating new company for update:', contactData.companyName);
+          
+          try {
+            // First check if company already exists
+            const existingCompanies = await companiesService?.searchCompanies(contactData.companyName?.trim());
+            const existingCompany = existingCompanies?.find(
+              company => company.name?.toLowerCase() === contactData.companyName?.trim()?.toLowerCase()
+            );
+            
+            if (existingCompany) {
+              console.log('Found existing company:', existingCompany);
+              companyId = existingCompany.id;
+            } else {
+              // Create new company
+              const newCompany = await companiesService?.createCompany({
+                name: contactData.companyName?.trim()
+              });
+              console.log('Created new company:', newCompany);
+              companyId = newCompany.id;
+            }
+          } catch (companyError) {
+            console.error('Error handling company:', companyError);
+            throw new Error(`Failed to create company "${contactData.companyName}": ${companyError.message}`);
+          }
+        }
+        
         // Clean the data - convert empty strings to null for optional UUID fields
-        const cleanedData = {
+        const { companyName, ...cleanedData } = {
           ...contactData,
-          company_id: contactData.company_id || null,
+          company_id: companyId || null,
           owner_id: contactData.owner_id || user?.id
         };
         

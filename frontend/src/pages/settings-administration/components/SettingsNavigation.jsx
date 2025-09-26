@@ -15,30 +15,6 @@ const SettingsNavigation = ({ activeSection, onSectionChange }) => {
       label: 'Permissions',
       icon: 'Shield',
       description: 'Role-based access control'
-    },
-    {
-      id: 'integrations',
-      label: 'Integrations',
-      icon: 'Plug',
-      description: 'API connections and services'
-    },
-    {
-      id: 'custom-fields',
-      label: 'Custom Fields',
-      icon: 'ListPlus',
-      description: 'Field creation and configuration'
-    },
-    {
-      id: 'email-templates',
-      label: 'Email Templates',
-      icon: 'Mail',
-      description: 'Template editor and management'
-    },
-    {
-      id: 'system-config',
-      label: 'System Configuration',
-      icon: 'Settings',
-      description: 'General system settings'
     }
   ];
 

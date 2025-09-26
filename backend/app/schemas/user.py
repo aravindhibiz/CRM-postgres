@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 import uuid
 
+
 class UserBase(BaseModel):
     email: EmailStr
     first_name: str
@@ -10,12 +11,15 @@ class UserBase(BaseModel):
     role: Optional[str] = "sales_rep"
     phone: Optional[str] = None
 
+
 class UserCreate(UserBase):
     password: str
+
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 class UserResponse(UserBase):
     id: uuid.UUID
@@ -26,13 +30,31 @@ class UserResponse(UserBase):
 
     model_config = {"from_attributes": True}
 
+
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
+    is_active: Optional[bool] = None
+    role: Optional[str] = None
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+
+class UserInvite(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    role: str = "sales_rep"
+
+
+class UserStats(BaseModel):
+    total: int
+    active: int
+    inactive: int
+    roles: dict

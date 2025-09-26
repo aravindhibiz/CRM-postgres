@@ -1,48 +1,77 @@
 // src/pages/settings-administration/components/SystemConfiguration.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
+import { systemConfigService } from '../../../services/systemConfigService';
 
 const SystemConfiguration = () => {
-  const [config, setConfig] = useState({
-    general: {
-      companyName: 'SalesFlow Pro Inc.',
-      timezone: 'America/New_York',
-      dateFormat: 'MM/DD/YYYY',
-      currency: 'USD',
-      language: 'en'
-    },
-    sales: {
-      defaultPipelineStage: 'Prospecting',
-      dealCurrency: 'USD',
-      requireDealValue: true,
-      autoProgressDeals: false,
-      dealInactivityDays: 30
-    },
-    notifications: {
-      emailNotifications: true,
-      dealUpdateNotifications: true,
-      taskReminders: true,
-      weeklyReports: true,
-      systemAlerts: true
-    },
-    security: {
-      passwordComplexity: true,
-      twoFactorAuth: false,
-      sessionTimeout: 480,
-      loginAttempts: 5,
-      dataEncryption: true
-    },
-    backup: {
-      autoBackup: true,
-      backupFrequency: 'daily',
-      retentionDays: 30,
-      backupLocation: 'cloud'
-    }
-  });
-
+  const [config, setConfig] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [exportFormat, setExportFormat] = useState('json');
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // Load configuration data
+  const loadConfiguration = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const configData = await systemConfigService.getConfigurationsGrouped();
+      
+      // Transform API data to match expected structure
+      const transformedConfig = {
+        general: {
+          companyName: configData.general?.company_name || 'SalesFlow Pro Inc.',
+          timezone: configData.general?.timezone || 'America/New_York',
+          dateFormat: configData.general?.date_format || 'MM/DD/YYYY',
+          currency: configData.general?.currency || 'USD',
+          language: configData.general?.language || 'en'
+        },
+        sales: {
+          defaultPipelineStage: configData.sales?.default_pipeline_stage || 'Prospecting',
+          dealCurrency: configData.sales?.deal_currency || 'USD',
+          requireDealValue: configData.sales?.require_deal_value ?? true,
+          autoProgressDeals: configData.sales?.auto_progress_deals ?? false,
+          dealInactivityDays: configData.sales?.deal_inactivity_days || 30
+        },
+        notifications: {
+          emailNotifications: configData.notifications?.email_notifications ?? true,
+          dealUpdateNotifications: configData.notifications?.deal_update_notifications ?? true,
+          taskReminders: configData.notifications?.task_reminders ?? true,
+          weeklyReports: configData.notifications?.weekly_reports ?? true,
+          systemAlerts: configData.notifications?.system_alerts ?? true
+        },
+        security: {
+          passwordComplexity: configData.security?.password_complexity ?? true,
+          twoFactorAuth: configData.security?.two_factor_auth ?? false,
+          sessionTimeout: configData.security?.session_timeout || 480,
+          loginAttempts: configData.security?.login_attempts || 5,
+          dataEncryption: configData.security?.data_encryption ?? true
+        },
+        backup: {
+          autoBackup: configData.backup?.auto_backup ?? true,
+          backupFrequency: configData.backup?.backup_frequency || 'daily',
+          retentionDays: configData.backup?.retention_days || 30,
+          backupLocation: configData.backup?.backup_location || 'cloud'
+        }
+      };
+
+      setConfig(transformedConfig);
+    } catch (err) {
+      console.error('Error loading configuration:', err);
+      setError('Failed to load configuration. Using default values.');
+      // Set default configuration on error
+      setConfig(systemConfigService.getDefaultConfiguration());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConfiguration();
+  }, []);
 
   const timezones = [
     'America/New_York',
@@ -91,24 +120,87 @@ const SystemConfiguration = () => {
     setHasChanges(true);
   };
 
-  const handleSaveChanges = () => {
-    console.log('Saving configuration:', config);
-    setHasChanges(false);
-    // Here you would typically make an API call to save the configuration
+  const handleSaveChanges = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Transform config back to API format
+      const apiConfig = {
+        // General settings
+        company_name: config.general?.companyName,
+        timezone: config.general?.timezone,
+        date_format: config.general?.dateFormat,
+        currency: config.general?.currency,
+        language: config.general?.language,
+        
+        // Sales settings
+        default_pipeline_stage: config.sales?.defaultPipelineStage,
+        deal_currency: config.sales?.dealCurrency,
+        require_deal_value: config.sales?.requireDealValue,
+        auto_progress_deals: config.sales?.autoProgressDeals,
+        deal_inactivity_days: config.sales?.dealInactivityDays,
+        
+        // Notification settings
+        email_notifications: config.notifications?.emailNotifications,
+        deal_update_notifications: config.notifications?.dealUpdateNotifications,
+        task_reminders: config.notifications?.taskReminders,
+        weekly_reports: config.notifications?.weeklyReports,
+        system_alerts: config.notifications?.systemAlerts,
+        
+        // Security settings
+        password_complexity: config.security?.passwordComplexity,
+        two_factor_auth: config.security?.twoFactorAuth,
+        session_timeout: config.security?.sessionTimeout,
+        login_attempts: config.security?.loginAttempts,
+        data_encryption: config.security?.dataEncryption,
+        
+        // Backup settings
+        auto_backup: config.backup?.autoBackup,
+        backup_frequency: config.backup?.backupFrequency,
+        retention_days: config.backup?.retentionDays,
+        backup_location: config.backup?.backupLocation
+      };
+
+      await systemConfigService.updateConfigurationsBulk(apiConfig);
+      setSuccess('Configuration saved successfully!');
+      setHasChanges(false);
+    } catch (err) {
+      console.error('Error saving configuration:', err);
+      setError('Failed to save configuration. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExportConfig = () => {
-    const configData = exportFormat === 'json' ? JSON.stringify(config, null, 2) : config;
-    const blob = new Blob([configData], { type: exportFormat === 'json' ? 'application/json' : 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `system-config.${exportFormat}`;
-    document.body?.appendChild(a);
-    a?.click();
-    document.body?.removeChild(a);
-    URL.revokeObjectURL(url);
-    setShowExportModal(false);
+  const handleExportConfig = async () => {
+    try {
+      setError('');
+      const exportData = await systemConfigService.exportConfiguration();
+      
+      // Create and download file
+      const dataStr = exportFormat === 'json' 
+        ? JSON.stringify(exportData, null, 2)
+        : Object.entries(exportData.configurations).map(([category, settings]) => 
+            Object.entries(settings).map(([key, value]) => `${category}.${key}=${value}`).join('\n')
+          ).join('\n');
+      
+      const dataBlob = new Blob([dataStr], { type: exportFormat === 'json' ? 'application/json' : 'text/plain' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `system-config.${exportFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setShowExportModal(false);
+      setSuccess('Configuration exported successfully!');
+    } catch (err) {
+      console.error('Error exporting configuration:', err);
+      setError('Failed to export configuration. Please try again.');
+    }
   };
 
   const handleTestBackup = () => {

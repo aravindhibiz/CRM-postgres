@@ -3,6 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 import uuid
 from .user import UserResponse
+from .company import CompanyResponse
 
 
 class ContactBase(BaseModel):
@@ -50,4 +51,4 @@ class ContactResponse(ContactBase):
 
 class ContactWithRelations(ContactResponse):
     owner: Optional[UserResponse] = None
-    # company: Optional["CompanyResponse"] = None  # Forward reference
+    company: Optional[CompanyResponse] = None

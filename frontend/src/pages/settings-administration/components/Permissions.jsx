@@ -1,16 +1,14 @@
 // src/pages/settings-administration/components/Permissions.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
+import { rolesService } from '../../../services/rolesService';
 
 const Permissions = () => {
-  const [selectedRole, setSelectedRole] = useState('Sales Manager');
-  
-  const roles = [
-    { name: 'Admin', userCount: 2 },
-    { name: 'Sales Manager', userCount: 5 },
-    { name: 'Sales Rep', userCount: 12 },
-    { name: 'Sales Operations', userCount: 3 }
-  ];
+  const [selectedRole, setSelectedRole] = useState('Admin');
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const permissions = [
     {
@@ -61,100 +59,63 @@ const Permissions = () => {
     }
   ];
 
-  const [rolePermissions, setRolePermissions] = useState({
-    'Admin': {
-      view_dashboard: true,
-      view_analytics: true,
-      export_reports: true,
-      view_contacts: true,
-      create_contacts: true,
-      edit_contacts: true,
-      delete_contacts: true,
-      import_export_contacts: true,
-      view_deals: true,
-      create_deals: true,
-      edit_deals: true,
-      delete_deals: true,
-      move_pipeline_stages: true,
-      view_users: true,
-      invite_users: true,
-      edit_user_roles: true,
-      deactivate_users: true,
-      manage_integrations: true,
-      configure_custom_fields: true,
-      manage_email_templates: true,
-      access_system_settings: true
-    },
-    'Sales Manager': {
-      view_dashboard: true,
-      view_analytics: true,
-      export_reports: true,
-      view_contacts: true,
-      create_contacts: true,
-      edit_contacts: true,
-      delete_contacts: false,
-      import_export_contacts: true,
-      view_deals: true,
-      create_deals: true,
-      edit_deals: true,
-      delete_deals: false,
-      move_pipeline_stages: true,
-      view_users: true,
-      invite_users: false,
-      edit_user_roles: false,
-      deactivate_users: false,
-      manage_integrations: false,
-      configure_custom_fields: false,
-      manage_email_templates: true,
-      access_system_settings: false
-    },
-    'Sales Rep': {
-      view_dashboard: true,
-      view_analytics: false,
-      export_reports: false,
-      view_contacts: true,
-      create_contacts: true,
-      edit_contacts: true,
-      delete_contacts: false,
-      import_export_contacts: false,
-      view_deals: true,
-      create_deals: true,
-      edit_deals: true,
-      delete_deals: false,
-      move_pipeline_stages: true,
-      view_users: false,
-      invite_users: false,
-      edit_user_roles: false,
-      deactivate_users: false,
-      manage_integrations: false,
-      configure_custom_fields: false,
-      manage_email_templates: false,
-      access_system_settings: false
-    },
-    'Sales Operations': {
-      view_dashboard: true,
-      view_analytics: true,
-      export_reports: true,
-      view_contacts: true,
-      create_contacts: true,
-      edit_contacts: true,
-      delete_contacts: true,
-      import_export_contacts: true,
-      view_deals: true,
-      create_deals: false,
-      edit_deals: false,
-      delete_deals: false,
-      move_pipeline_stages: false,
-      view_users: true,
-      invite_users: false,
-      edit_user_roles: false,
-      deactivate_users: false,
-      manage_integrations: true,
-      configure_custom_fields: true,
-      manage_email_templates: true,
-      access_system_settings: true
+  const [rolePermissions, setRolePermissions] = useState({});
+
+  // Load roles and permissions data
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const [rolesData, permissionsData] = await Promise.all([
+        rolesService.getAllRoles(),
+        rolesService.getAllPermissions()
+      ]);
+
+      // Transform roles data to match the expected format
+      const transformedRoles = rolesData.map(role => ({
+        name: role.display_name,
+        userCount: 0 // TODO: Get actual user count from API
+      }));
+
+      setRoles(transformedRoles);
+
+      // Load permissions for each role
+      const permissionsMap = {};
+      for (const role of rolesData) {
+        try {
+          const rolePerms = await rolesService.getRolePermissions(role.name);
+          permissionsMap[role.display_name] = rolePerms;
+        } catch (err) {
+          console.warn(`Failed to load permissions for role ${role.name}:`, err);
+          permissionsMap[role.display_name] = {};
+        }
+      }
+
+      setRolePermissions(permissionsMap);
+
+      // Set first role as selected if none selected
+      if (transformedRoles.length > 0 && !selectedRole) {
+        setSelectedRole(transformedRoles[0].name);
+      }
+    } catch (err) {
+      console.error('Error loading permissions data:', err);
+      setError('Failed to load permissions data. Please try again.');
+      // Set fallback roles if API fails
+      setRoles([
+        { name: 'Admin', userCount: 0 },
+        { name: 'Sales Manager', userCount: 0 },
+        { name: 'Sales Rep', userCount: 0 },
+        { name: 'Sales Operations', userCount: 0 }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handlePermissionChange = (permissionKey) => {
     setRolePermissions(prev => ({
@@ -166,9 +127,31 @@ const Permissions = () => {
     }));
   };
 
-  const handleSaveChanges = () => {
-    console.log('Saving permission changes for:', selectedRole, rolePermissions?.[selectedRole]);
-    // Here you would typically make an API call to save the changes
+  const handleSaveChanges = async () => {
+    try {
+      setError('');
+      setSuccess('');
+
+      console.log('Saving permission changes for:', selectedRole);
+      console.log('Current permissions:', rolePermissions[selectedRole]);
+      
+      const permissions = rolePermissions[selectedRole] || {};
+      
+      // Call the backend API to save permissions
+      const result = await rolesService.updateRolePermissionsByName(selectedRole, permissions);
+      
+      setSuccess(`Permissions updated successfully for ${selectedRole}!`);
+      
+      // Reload the permissions to reflect changes
+      await loadData();
+      
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error saving permission changes:', err);
+      setError('Failed to save permission changes. Please try again.');
+      setTimeout(() => setError(''), 5000);
+    }
   };
 
   const getPermissionCount = (role) => {
@@ -192,6 +175,27 @@ const Permissions = () => {
           <span>Save Changes</span>
         </button>
       </div>
+
+      {/* Success Message */}
+      {success && (
+        <div className="bg-success-50 border border-success-200 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
+            <Icon name="CheckCircle" size={20} className="text-success-600" />
+            <div className="text-success-800">{success}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
+            <Icon name="AlertCircle" size={20} className="text-error-600" />
+            <div className="text-error-800">{error}</div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Role Selection */}
         <div className="lg:col-span-4">

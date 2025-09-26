@@ -18,6 +18,11 @@ export const activitiesService = {
     // Populate related data for each activity
     const populatedActivities = await this.populateActivityRelations(data || []);
     
+    console.log('Populated activities data:', populatedActivities);
+    if (populatedActivities && populatedActivities.length > 0) {
+      console.log('First populated activity sample:', populatedActivities[0]);
+    }
+    
     return populatedActivities;
   },
 

@@ -22,7 +22,7 @@ async def get_user_contacts(
         joinedload(Contact.deals),
         joinedload(Contact.activities),
         joinedload(Contact.tasks)
-    ).filter(Contact.owner_id == current_user.id).order_by(Contact.updated_at.desc()).all()
+    ).order_by(Contact.updated_at.desc()).all()
 
     return contacts
 

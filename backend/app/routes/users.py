@@ -1,17 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import func, or_
+from typing import List, Optional
 from uuid import UUID
 from ..core.database import get_db
 from ..core.auth import get_current_user
 from ..models.user import UserProfile
-from ..schemas.user import UserResponse, UserUpdate
+from ..schemas.user import UserResponse, UserUpdate, UserInvite, UserStats
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[UserResponse])
 async def get_all_users(
+    search: Optional[str] = Query(
+        None, description="Search users by name or email"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    roles: Optional[str] = Query(
+        None, description="Filter by multiple roles (comma-separated)"),
+    status: Optional[str] = Query(
+        None, description="Filter by status (active/inactive)"),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -22,7 +30,32 @@ async def get_all_users(
             detail="Not enough permissions"
         )
 
-    users = db.query(UserProfile).all()
+    query = db.query(UserProfile)
+
+    # Apply search filter
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                UserProfile.first_name.ilike(search_term),
+                UserProfile.last_name.ilike(search_term),
+                UserProfile.email.ilike(search_term)
+            )
+        )
+
+    # Apply role filter
+    if role:
+        query = query.filter(UserProfile.role == role)
+    elif roles:
+        role_list = [r.strip() for r in roles.split(',')]
+        query = query.filter(UserProfile.role.in_(role_list))
+
+    # Apply status filter
+    if status:
+        is_active = status.lower() == 'active'
+        query = query.filter(UserProfile.is_active == is_active)
+
+    users = query.all()
     return users
 
 
@@ -135,3 +168,77 @@ async def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+@router.get("/stats", response_model=UserStats)
+async def get_user_stats(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    # Only admin users can get user stats
+    if current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+
+    total_users = db.query(UserProfile).count()
+    active_users = db.query(UserProfile).filter(
+        UserProfile.is_active == True).count()
+
+    # Get role distribution
+    role_stats = db.query(
+        UserProfile.role,
+        func.count(UserProfile.id).label('count')
+    ).group_by(UserProfile.role).all()
+
+    roles = {role: count for role, count in role_stats}
+
+    return UserStats(
+        total=total_users,
+        active=active_users,
+        inactive=total_users - active_users,
+        roles=roles
+    )
+
+
+@router.post("/invite", response_model=UserResponse)
+async def invite_user(
+    invite_data: UserInvite,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    # Only admin users can invite new users
+    if current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+
+    # Check if user already exists
+    existing_user = db.query(UserProfile).filter(
+        UserProfile.email == invite_data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists"
+        )
+
+    # Create new user with temporary password (in real app, send invitation email)
+    from ..core.auth import get_password_hash
+
+    new_user = UserProfile(
+        email=invite_data.email,
+        first_name=invite_data.first_name,
+        last_name=invite_data.last_name,
+        role=invite_data.role,
+        hashed_password=get_password_hash(
+            "temporary123"),  # Temporary password
+        is_active=True
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user

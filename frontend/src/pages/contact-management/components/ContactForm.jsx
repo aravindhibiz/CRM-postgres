@@ -93,8 +93,8 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         return;
       }
 
-      // Prepare data for submission - remove companyName from the payload
-      const { companyName, ...submitData } = formData;
+      // Prepare data for submission - include companyName for potential company creation
+      const submitData = { ...formData };
 
       // Pass data to parent component for API call
       console.log('Submitting contact form data to parent component:', submitData);
