@@ -120,21 +120,23 @@
 .dark {
   --color-background: #0B1220; /* darker background */
   --color-surface: #0F1724; /* surface */
-  --color-surface-hover: #111827;
+  --color-surface-hover: #1F2937;
 
   --color-text-primary: #E6EEF8; /* light text */
   --color-text-secondary: #CBD5E1;
   --color-text-tertiary: #94A3B8;
   --color-text-inverse: #0B1220;
 
-  --color-border: #243240;
+  --color-border: #374151;
   --color-border-light: #1F2937;
   --color-border-dark: #111827;
 
   /* tweak primary/secondary for dark backgrounds if needed */
   --color-primary: #60A5FA;
-  --color-primary-50: #0B1220;
-  --color-primary-100: #0B1220;
+  --color-primary-50: #1E3A8A20; /* semi-transparent for dark mode */
+  --color-primary-100: #1E3A8A40; /* semi-transparent for dark mode */
+  --color-primary-600: #3B82F6;
+  --color-primary-700: #2563EB;
 }
 
 /* Ensure Tailwind dark: utilities use the CSS variables at runtime by
@@ -174,5 +176,24 @@
   
   .input-field {
     @apply w-full px-3 py-2 border border-border rounded-md bg-surface text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-150 ease-out;
+  }
+
+  /* Enhanced form field styles for better dark mode support */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: var(--color-text-tertiary);
+  }
+
+  .dark select option {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
   }
 }

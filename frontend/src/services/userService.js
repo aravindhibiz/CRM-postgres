@@ -137,7 +137,7 @@ export const userService = {
   getUserRoles() {
     return [
       { value: 'admin', label: 'Administrator', description: 'Full system access' },
-      { value: 'manager', label: 'Sales Manager', description: 'Team management access' },
+      { value: 'sales_manager', label: 'Sales Manager', description: 'Team management access' },
       { value: 'sales_rep', label: 'Sales Representative', description: 'Standard user access' },
       { value: 'user', label: 'User', description: 'Basic user access' }
     ];

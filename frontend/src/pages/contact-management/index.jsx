@@ -14,6 +14,7 @@ import FilterPanel from './components/FilterPanel';
 import { contactsService } from '../../services/contactsService';
 import { companiesService } from '../../services/companiesService';
 import { useAuth } from '../../contexts/AuthContext';
+import { permissionsService } from '../../services/permissionsService';
 
 const ContactManagement = () => {
   const { user } = useAuth();
@@ -407,21 +408,25 @@ const ContactManagement = () => {
               </div>
               
               <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
-                <button 
-                  onClick={handleAddContact}
-                  className="btn-primary inline-flex items-center space-x-2"
-                >
-                  <Icon name="UserPlus" size={18} />
-                  <span>Add Contact</span>
-                </button>
-                
-                <button 
-                  onClick={() => setIsImportModalOpen(true)}
-                  className="inline-flex items-center space-x-2 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out"
-                >
-                  <Icon name="Upload" size={18} />
-                  <span>Import</span>
-                </button>
+                {permissionsService.hasPermission(user?.role, 'contacts', 'create') && (
+                  <button
+                    onClick={handleAddContact}
+                    className="btn-primary inline-flex items-center space-x-2"
+                  >
+                    <Icon name="UserPlus" size={18} />
+                    <span>Add Contact</span>
+                  </button>
+                )}
+
+                {permissionsService.hasPermission(user?.role, 'contacts', 'import_export') && (
+                  <button
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out"
+                  >
+                    <Icon name="Upload" size={18} />
+                    <span>Import</span>
+                  </button>
+                )}
                 
                 <button 
                   onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
@@ -549,21 +554,25 @@ const ContactManagement = () => {
                       
                       {selectedContacts?.length > 0 && (
                         <div className="flex space-x-2">
-                          <button
-                            onClick={() => setIsExportModalOpen(true)}
-                            className="text-text-secondary hover:text-text-primary"
-                            title="Export Selected"
-                          >
-                            <Icon name="Download" size={16} />
-                          </button>
-                          <button
-                            onClick={handleBulkDelete}
-                            className="text-error hover:text-error-600"
-                            title="Delete Selected"
-                          >
-                            <Icon name="Trash2" size={16} />
-                          </button>
-                          {selectedContacts?.length === 2 && (
+                          {permissionsService.hasPermission(user?.role, 'contacts', 'import_export') && (
+                            <button
+                              onClick={() => setIsExportModalOpen(true)}
+                              className="text-text-secondary hover:text-text-primary"
+                              title="Export Selected"
+                            >
+                              <Icon name="Download" size={16} />
+                            </button>
+                          )}
+                          {permissionsService.hasPermission(user?.role, 'contacts', 'delete_own') && (
+                            <button
+                              onClick={handleBulkDelete}
+                              className="text-error hover:text-error-600"
+                              title="Delete Selected"
+                            >
+                              <Icon name="Trash2" size={16} />
+                            </button>
+                          )}
+                          {selectedContacts?.length === 2 && permissionsService.hasPermission(user?.role, 'contacts', 'merge_duplicates') && (
                             <button
                               onClick={() => setIsMergeModalOpen(true)}
                               className="text-text-secondary hover:text-text-primary"

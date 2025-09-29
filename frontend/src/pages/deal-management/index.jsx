@@ -362,12 +362,10 @@ const DealManagement = () => {
       }
       
       // If we get here, everything was successful
-      if (!selectedDeal?.id) {
-        // For new deals, navigate back to list after successful creation
-        setIsSaving(false);
-        handleBackToList();
-        return;
-      }
+      setIsSaving(false);
+
+      // Navigate back to list after successful creation or update
+      handleBackToList();
       
     } catch (err) {
       console.error('Error saving deal:', err);

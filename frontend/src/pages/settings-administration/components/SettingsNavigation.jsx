@@ -1,29 +1,70 @@
 // src/pages/settings-administration/components/SettingsNavigation.jsx
 import React from 'react';
 import Icon from '../../../components/AppIcon';
+import { useAuth } from '../../../contexts/AuthContext';
+import { permissionsService } from '../../../services/permissionsService';
 
 const SettingsNavigation = ({ activeSection, onSectionChange }) => {
+  const { user } = useAuth();
+
   const navigationItems = [
     {
       id: 'user-management',
       label: 'User Management',
       icon: 'Users',
-      description: 'Manage users, roles and status'
+      description: 'Manage users, roles and status',
+      requiredPermission: 'settings.user_management'
     },
     {
       id: 'permissions',
       label: 'Permissions',
       icon: 'Shield',
-      description: 'Role-based access control'
+      description: 'Role-based access control',
+      requiredPermission: 'settings.permissions'
+    },
+    {
+      id: 'integrations',
+      label: 'Integrations',
+      icon: 'Plug',
+      description: 'API connections and services',
+      requiredPermission: 'settings.integrations'
+    },
+    {
+      id: 'custom-fields',
+      label: 'Custom Fields',
+      icon: 'ListPlus',
+      description: 'Field creation and configuration',
+      requiredPermission: 'settings.custom_fields'
+    },
+    {
+      id: 'email-templates',
+      label: 'Email Templates',
+      icon: 'Mail',
+      description: 'Template editor and management',
+      requiredPermission: 'settings.email_templates'
+    },
+    {
+      id: 'system-config',
+      label: 'System Configuration',
+      icon: 'Settings',
+      description: 'General system settings',
+      requiredPermission: 'settings.system_config'
     }
   ];
+
+  // Filter navigation items based on user permissions
+  const allowedItems = navigationItems.filter(item => {
+    if (!item.requiredPermission) return true;
+    const [module, action] = item.requiredPermission.split('.');
+    return permissionsService.hasPermission(user?.role, module, action);
+  });
 
   return (
     <nav className="w-80 bg-surface border-r border-border h-full">
       <div className="p-6">
         <h2 className="text-lg font-semibold text-text-primary mb-6">Settings Categories</h2>
         <ul className="space-y-2">
-          {navigationItems?.map((item) => (
+          {allowedItems?.map((item) => (
             <li key={item?.id}>
               <button
                 onClick={() => onSectionChange?.(item?.id)}

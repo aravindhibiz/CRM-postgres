@@ -7,26 +7,8 @@ const DealActions = ({ onSave, onDelete, onClone, onCreateTask, isSaving }) => {
       {/* Primary Actions */}
       <div className="flex space-x-3">
         <button
-          onClick={onSave}
-          disabled={isSaving}
-          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-        >
-          {isSaving ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <Icon name="Save" size={16} />
-              <span>Save Deal</span>
-            </>
-          )}
-        </button>
-
-        <button
           onClick={onCreateTask}
-          className="btn-secondary flex items-center space-x-2"
+          className="btn-primary flex items-center space-x-2"
         >
           <Icon name="Plus" size={16} />
           <span>Create Task</span>

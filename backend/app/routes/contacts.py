@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 from uuid import UUID
 from ..core.database import get_db
-from ..core.auth import get_current_user
+from ..core.auth import (
+    get_current_user, require_sales_user, require_any_authenticated,
+    can_access_user_data, can_modify_user_data
+)
 from ..models.user import UserProfile
 from ..models.contact import Contact
 from ..models.company import Company
@@ -11,20 +14,34 @@ from ..schemas.contact import ContactCreate, ContactUpdate, ContactResponse, Con
 
 router = APIRouter()
 
+
 @router.get("/", response_model=List[ContactWithRelations])
 async def get_user_contacts(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    contacts = db.query(Contact).options(
+    query = db.query(Contact).options(
         joinedload(Contact.company),
         joinedload(Contact.owner),
         joinedload(Contact.deals),
         joinedload(Contact.activities),
         joinedload(Contact.tasks)
-    ).order_by(Contact.updated_at.desc()).all()
+    )
 
+    # Role-based filtering
+    if current_user.role == 'admin':
+        # Admin can see all contacts
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all contacts (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own contacts
+        query = query.filter(Contact.owner_id == current_user.id)
+
+    contacts = query.order_by(Contact.updated_at.desc()).all()
     return contacts
+
 
 @router.get("/{contact_id}", response_model=ContactWithRelations)
 async def get_contact_by_id(
@@ -48,6 +65,7 @@ async def get_contact_by_id(
 
     return contact
 
+
 @router.post("/", response_model=ContactResponse)
 async def create_contact(
     contact_data: ContactCreate,
@@ -65,6 +83,7 @@ async def create_contact(
     db.refresh(db_contact)
 
     return db_contact
+
 
 @router.put("/{contact_id}", response_model=ContactResponse)
 async def update_contact(
@@ -93,6 +112,7 @@ async def update_contact(
     db.refresh(contact)
 
     return contact
+
 
 @router.delete("/{contact_id}")
 async def delete_contact(

@@ -28,7 +28,7 @@ const Routes = () => {
           <Route
             path="/sales-dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="dashboard.view_personal">
                 <SalesDashboard />
               </ProtectedRoute>
             }
@@ -36,7 +36,7 @@ const Routes = () => {
           <Route
             path="/deal-management"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="deals.view_own">
                 <DealManagement />
               </ProtectedRoute>
             }
@@ -44,7 +44,7 @@ const Routes = () => {
           <Route
             path="/deal-management/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="deals.create">
                 <DealManagement />
               </ProtectedRoute>
             }
@@ -52,7 +52,7 @@ const Routes = () => {
           <Route
             path="/deal-management/:dealId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="deals.view_own">
                 <DealManagement />
               </ProtectedRoute>
             }
@@ -60,7 +60,7 @@ const Routes = () => {
           <Route
             path="/contact-management"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="contacts.view_own">
                 <ContactManagement />
               </ProtectedRoute>
             }
@@ -68,7 +68,7 @@ const Routes = () => {
           <Route
             path="/pipeline-analytics"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="analytics.view_personal">
                 <PipelineAnalytics />
               </ProtectedRoute>
             }
@@ -76,7 +76,7 @@ const Routes = () => {
           <Route
             path="/activity-timeline"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="activities.view_own">
                 <ActivityTimeline />
               </ProtectedRoute>
             }
@@ -84,7 +84,7 @@ const Routes = () => {
           <Route
             path="/settings-administration"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={['admin', 'sales_manager']} requiredPermission="settings.view_own_profile">
                 <SettingsAdministration />
               </ProtectedRoute>
             }

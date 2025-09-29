@@ -6,13 +6,13 @@ import Image from 'components/AppImage';
 const PipelineStage = ({ stage, totalValue, weightedValue }) => {
   const getStageColor = (stageId) => {
     const colors = {
-      'lead': 'bg-gray-100 border-gray-300',
-      'qualified': 'bg-blue-50 border-blue-300',
-      'proposal': 'bg-yellow-50 border-yellow-300',
-      'negotiation': 'bg-orange-50 border-orange-300',
-      'closed': 'bg-green-50 border-green-300'
+      'lead': 'bg-surface border-border',
+      'qualified': 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/50',
+      'proposal': 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700/50',
+      'negotiation': 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700/50',
+      'closed': 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50'
     };
-    return colors?.[stageId] || 'bg-gray-100 border-gray-300';
+    return colors?.[stageId] || 'bg-surface border-border';
   };
 
   const getStageIcon = (stageId) => {
@@ -60,7 +60,7 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
             ref={provided?.innerRef}
             {...provided?.droppableProps}
             className={`min-h-[200px] space-y-3 ${
-              snapshot?.isDraggingOver ? 'bg-primary-50 border-primary-300' : ''
+              snapshot?.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700/50' : ''
             }`}
           >
             {stage?.deals?.map((deal, index) => (
@@ -87,7 +87,7 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
                       <span className="text-lg font-semibold text-text-primary">
                         ${(deal?.value / 1000)?.toFixed(0)}K
                       </span>
-                      <span className="text-xs px-2 py-1 bg-primary-50 text-primary rounded-full">
+                      <span className="text-xs px-2 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-400 rounded-full">
                         {deal?.probability}%
                       </span>
                     </div>

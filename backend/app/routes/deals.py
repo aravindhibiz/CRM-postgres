@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from uuid import UUID
 from ..core.database import get_db
-from ..core.auth import get_current_user
+from ..core.auth import (
+    get_current_user, require_sales_user, require_any_authenticated,
+    can_access_user_data, can_modify_user_data
+)
 from ..models.user import UserProfile
 from ..models.deal import Deal
 from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelations
@@ -13,14 +16,26 @@ router = APIRouter()
 @router.get("/", response_model=List[DealWithRelations])
 async def get_user_deals(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deals = db.query(Deal).options(
+    query = db.query(Deal).options(
         joinedload(Deal.company),
         joinedload(Deal.contact),
         joinedload(Deal.owner)
-    ).filter(Deal.owner_id == current_user.id).order_by(Deal.updated_at.desc()).all()
+    )
 
+    # Role-based filtering
+    if current_user.role == 'admin':
+        # Admin can see all deals
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all deals (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deals = query.order_by(Deal.updated_at.desc()).all()
     return deals
 
 @router.get("/pipeline", response_model=dict)

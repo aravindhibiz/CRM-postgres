@@ -178,8 +178,9 @@ const Register = () => {
                   onChange={handleChange}
                 >
                   <option value="sales_rep">Sales Representative</option>
-                  <option value="manager">Manager</option>
+                  <option value="sales_manager">Sales Manager</option>
                   <option value="admin">Administrator</option>
+                  <option value="user">User</option>
                 </select>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Icon name="User" size={18} className="text-text-tertiary" />

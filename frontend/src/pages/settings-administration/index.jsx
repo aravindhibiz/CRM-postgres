@@ -5,6 +5,10 @@ import Breadcrumb from '../../components/ui/Breadcrumb';
 import SettingsNavigation from './components/SettingsNavigation';
 import UserManagement from './components/UserManagement';
 import Permissions from './components/Permissions';
+import Integrations from './components/Integrations';
+import CustomFields from './components/CustomFields';
+import EmailTemplates from './components/EmailTemplates';
+import SystemConfiguration from './components/SystemConfiguration';
 
 const SettingsAdministration = () => {
   const [activeSection, setActiveSection] = useState('user-management');
@@ -15,6 +19,14 @@ const SettingsAdministration = () => {
         return <UserManagement />;
       case 'permissions':
         return <Permissions />;
+            case 'integrations':
+        return <Integrations />;
+      case 'custom-fields':
+        return <CustomFields />;
+      case 'email-templates':
+        return <EmailTemplates />;
+      case 'system-config':
+        return <SystemConfiguration />;
       default:
         return <UserManagement />;
     }
@@ -48,6 +60,10 @@ const SettingsAdministration = () => {
                 >
                   <option value="user-management">User Management</option>
                   <option value="permissions">Permissions</option>
+                  <option value="integrations">Integrations</option>
+                  <option value="custom-fields">Custom Fields</option>
+                  <option value="email-templates">Email Templates</option>
+                  <option value="system-config">System Configuration</option>
                 </select>
               </div>
             </div>

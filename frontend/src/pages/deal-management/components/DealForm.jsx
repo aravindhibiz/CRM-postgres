@@ -245,6 +245,31 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Form Actions - Top */}
+      <div className="flex justify-between items-center py-4 border-b border-border">
+        <h3 className="text-lg font-semibold text-text-primary">
+          {deal ? 'Edit Deal' : 'Create New Deal'}
+        </h3>
+        <div className="flex space-x-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"
+            disabled={loading || isSaving}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading || isSaving || isSubmitting}
+            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {(loading || isSaving || isSubmitting) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
+            <span>{deal ? 'Update Deal' : 'Create Deal'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Error Messages */}
       {errors?.submit && (
         <div className="bg-error-50 border border-error-200 text-error p-4 rounded-lg flex items-center space-x-2">
@@ -262,7 +287,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           type="text"
           value={formData?.name}
           onChange={(e) => handleInputChange('name', e?.target?.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-primary focus:border-primary ${
+          className={`w-full px-3 py-2 border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary ${
             errors?.name ? 'border-error' : 'border-border'
           }`}
           placeholder="Enterprise Software License - Acme Corp"
@@ -287,7 +312,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
               step="0.01"
               value={formData?.value}
               onChange={(e) => handleInputChange('value', e?.target?.value)}
-              className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-primary focus:border-primary ${
+              className={`w-full pl-8 pr-3 py-2 border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary ${
                 errors?.value ? 'border-error' : 'border-border'
               }`}
               placeholder="50000"
@@ -306,7 +331,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           <select
             value={formData?.stage}
             onChange={(e) => handleInputChange('stage', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             {dealStages?.map(stage => (
               <option key={stage?.value} value={stage?.value}>
@@ -326,7 +351,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
             max="100"
             value={formData?.probability}
             onChange={(e) => handleInputChange('probability', parseInt(e?.target?.value) || 0)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           />
         </div>
       </div>
@@ -340,7 +365,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           <select
             value={formData?.contact_id}
             onChange={(e) => handleContactChange(e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             <option value="">Select Contact</option>
             {contacts?.map(contact => (
@@ -358,7 +383,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           <select
             value={formData?.company_id}
             onChange={(e) => handleInputChange('company_id', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             <option value="">Select Company</option>
             {companies?.map(company => (
@@ -380,7 +405,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
             type="date"
             value={formData?.expected_close_date}
             onChange={(e) => handleInputChange('expected_close_date', e?.target?.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-primary focus:border-primary ${
+            className={`w-full px-3 py-2 border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary ${
               errors?.expected_close_date ? 'border-error' : 'border-border'
             }`}
             min={new Date()?.toISOString()?.split('T')?.[0]}
@@ -397,7 +422,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           <select
             value={formData?.lead_source}
             onChange={(e) => handleInputChange('lead_source', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             {leadSources?.map(source => (
               <option key={source?.value} value={source?.value}>
@@ -417,7 +442,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           value={formData?.description}
           onChange={(e) => handleInputChange('description', e?.target?.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+          className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
           placeholder="Describe the deal, requirements, and key details..."
         />
       </div>
@@ -432,7 +457,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
             type="text"
             value={formData?.next_step}
             onChange={(e) => handleInputChange('next_step', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Schedule demo, send proposal, etc."
           />
         </div>
@@ -445,7 +470,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
             type="text"
             value={formData?.competitor_info}
             onChange={(e) => handleInputChange('competitor_info', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Competing against..."
           />
         </div>
@@ -460,7 +485,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           {formData?.tags?.map((tag, index) => (
             <span
               key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300"
             >
               {tag}
               <button
@@ -479,38 +504,19 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
             value={newTag}
             onChange={(e) => setNewTag(e?.target?.value)}
             onKeyPress={(e) => e?.key === 'Enter' && (e?.preventDefault(), addTag())}
-            className="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="flex-1 px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Add a tag and press Enter"
           />
           <button
             type="button"
             onClick={addTag}
-            className="px-3 py-2 bg-text-secondary text-white rounded-lg hover:bg-text-primary transition-colors duration-150"
+            className="px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-150"
           >
             Add
           </button>
         </div>
       </div>
 
-      {/* Form Actions */}
-      <div className="flex justify-end space-x-3 pt-4 border-t border-border">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"
-          disabled={loading || isSaving}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading || isSaving || isSubmitting}
-          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {(loading || isSaving || isSubmitting) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-          <span>{deal ? 'Update Deal' : 'Create Deal'}</span>
-        </button>
-      </div>
     </form>
   );
 };

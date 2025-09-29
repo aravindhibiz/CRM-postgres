@@ -29,9 +29,10 @@ const Login = () => {
     clearAuthError();
 
     const demoCredentials = {
-      admin: { email: 'test@example.com', password: 'testpass123' },
-      sales_rep: { email: 'test@example.com', password: 'testpass123' },
-      manager: { email: 'test@example.com', password: 'testpass123' }
+      admin: { email: 'aravind@hibizsolutions.com', password: '12345' },
+      sales_manager: { email: 'peter@gmail.com', password: '12345' },
+      sales_rep: { email: 'steve@gmail.com', password: '12345' },
+      user: { email: 'tony@gmail.com', password: '12345' }
     };
 
     const credentials = demoCredentials?.[role];
@@ -62,23 +63,57 @@ const Login = () => {
             <p className="text-text-secondary mt-2">Sign in to your SalesFlow account</p>
           </div>
 
-          {/* Demo Login Buttons */}
-          <div className="mb-6">
-            <p className="text-sm text-text-secondary text-center mb-3">Quick Demo Access:</p>
-            <div className="grid grid-cols-1 gap-2">
+         
+          {/* Demo Credentials */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-background text-text-secondary">Quick Demo Access</span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <button
+                type="button"
                 onClick={() => handleDemoLogin('admin')}
                 disabled={isLoading}
-                className="w-full py-2 px-4 text-sm border border-primary text-primary rounded-lg hover:bg-primary-50 transition-colors duration-150 disabled:opacity-50"
+                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
               >
-                Demo as Admin
+                <Icon name="Crown" size={16} className="mr-2" />
+                Admin Demo
               </button>
+
               <button
+                type="button"
+                onClick={() => handleDemoLogin('sales_manager')}
+                disabled={isLoading}
+                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
+              >
+                <Icon name="Users" size={16} className="mr-2" />
+                Manager Demo
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleDemoLogin('sales_rep')}
                 disabled={isLoading}
-                className="w-full py-2 px-4 text-sm border border-primary text-primary rounded-lg hover:bg-primary-50 transition-colors duration-150 disabled:opacity-50"
+                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
               >
-                Demo as Sales Rep
+                <Icon name="Target" size={16} className="mr-2" />
+                Sales Rep Demo
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('user')}
+                disabled={isLoading}
+                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
+              >
+                <Icon name="User" size={16} className="mr-2" />
+                User Demo
               </button>
             </div>
           </div>
@@ -204,6 +239,7 @@ const Login = () => {
               </button>
             </div>
           </form>
+
 
           <div className="mt-6 text-center">
             <p className="text-sm text-text-secondary">

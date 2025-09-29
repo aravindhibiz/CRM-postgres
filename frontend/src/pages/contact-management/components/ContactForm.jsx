@@ -177,7 +177,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="text"
             value={formData?.first_name}
             onChange={(e) => handleInputChange('first_name', e?.target?.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-primary focus:border-primary ${
+            className={`w-full px-3 py-2 border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary ${
               errors?.first_name ? 'border-error' : 'border-border'
             }`}
             placeholder="John"
@@ -196,7 +196,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="text"
             value={formData?.last_name}
             onChange={(e) => handleInputChange('last_name', e?.target?.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-primary focus:border-primary ${
+            className={`w-full px-3 py-2 border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary ${
               errors?.last_name ? 'border-error' : 'border-border'
             }`}
             placeholder="Doe"
@@ -218,7 +218,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="email"
             value={formData?.email}
             onChange={(e) => handleInputChange('email', e?.target?.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-primary focus:border-primary ${
+            className={`w-full px-3 py-2 border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary ${
               errors?.email ? 'border-error' : 'border-border'
             }`}
             placeholder="john.doe@company.com"
@@ -237,7 +237,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="tel"
             value={formData?.phone}
             onChange={(e) => handleInputChange('phone', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="+1 (555) 123-4567"
           />
         </div>
@@ -253,7 +253,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="text"
             value={formData?.position}
             onChange={(e) => handleInputChange('position', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Sales Manager"
           />
         </div>
@@ -266,7 +266,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="text"
             value={formData?.department}
             onChange={(e) => handleInputChange('department', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Sales"
           />
         </div>
@@ -281,7 +281,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           <select
             value={formData?.company_id}
             onChange={(e) => handleInputChange('company_id', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             <option value="">Select Existing Company</option>
             {companies?.map(company => (
@@ -295,7 +295,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="text"
             value={formData?.companyName}
             onChange={(e) => handleInputChange('companyName', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Or enter new company name"
           />
         </div>
@@ -310,7 +310,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           <select
             value={formData?.status}
             onChange={(e) => handleInputChange('status', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             {contactStatuses?.map(status => (
               <option key={status?.value} value={status?.value}>
@@ -327,7 +327,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           <select
             value={formData?.lead_source}
             onChange={(e) => handleInputChange('lead_source', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary focus:ring-primary focus:border-primary"
           >
             {leadSources?.map(source => (
               <option key={source?.value} value={source?.value}>
@@ -347,7 +347,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           {formData?.tags?.map((tag, index) => (
             <span
               key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300"
             >
               {tag}
               <button
@@ -366,13 +366,13 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             value={newTag}
             onChange={(e) => setNewTag(e?.target?.value)}
             onKeyPress={(e) => e?.key === 'Enter' && (e?.preventDefault(), addTag())}
-            className="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="flex-1 px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="Add a tag and press Enter"
           />
           <button
             type="button"
             onClick={addTag}
-            className="px-3 py-2 bg-text-secondary text-white rounded-lg hover:bg-text-primary transition-colors duration-150"
+            className="px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-150"
           >
             Add
           </button>
@@ -389,7 +389,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="url"
             value={formData?.linkedin_url}
             onChange={(e) => handleInputChange('linkedin_url', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="https://linkedin.com/in/johndoe"
           />
         </div>
@@ -402,7 +402,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             type="url"
             value={formData?.twitter_url}
             onChange={(e) => handleInputChange('twitter_url', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="https://twitter.com/johndoe"
           />
         </div>
@@ -417,7 +417,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           value={formData?.notes}
           onChange={(e) => handleInputChange('notes', e?.target?.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+          className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
           placeholder="Additional notes about this contact..."
         />
       </div>
@@ -427,7 +427,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"
+          className="px-4 py-2 text-text-secondary hover:text-text-primary dark:hover:text-text-primary transition-colors duration-150"
           disabled={loading}
         >
           Cancel

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { permissionsService } from '../../services/permissionsService';
 import Icon from '../AppIcon';
 import ThemeToggle from '../ThemeToggle';
 
@@ -13,17 +14,30 @@ const Header = () => {
   const location = useLocation();
 
   const navigationItems = [
-    { label: 'Dashboard', path: '/sales-dashboard', icon: 'BarChart3', tooltip: 'Pipeline overview and metrics' },
-    { label: 'Deals', path: '/deal-management', icon: 'Target', tooltip: 'Manage deal lifecycle and opportunities' },
-    { label: 'Contacts', path: '/contact-management', icon: 'Users', tooltip: 'Customer relationship management' },
-    { label: 'Analytics', path: '/pipeline-analytics', icon: 'TrendingUp', tooltip: 'Performance insights and analysis' },
-    { label: 'Activity', path: '/activity-timeline', icon: 'Clock', tooltip: 'Interaction timeline and history' }
+    { label: 'Dashboard', path: '/sales-dashboard', icon: 'BarChart3', tooltip: 'Pipeline overview and metrics', requiredPermission: 'dashboard.view_personal' },
+    { label: 'Deals', path: '/deal-management', icon: 'Target', tooltip: 'Manage deal lifecycle and opportunities', requiredPermission: 'deals.view_own' },
+    { label: 'Contacts', path: '/contact-management', icon: 'Users', tooltip: 'Customer relationship management', requiredPermission: 'contacts.view_own' },
+    { label: 'Analytics', path: '/pipeline-analytics', icon: 'TrendingUp', tooltip: 'Performance insights and analysis', requiredPermission: 'analytics.view_personal' },
+    { label: 'Activity', path: '/activity-timeline', icon: 'Clock', tooltip: 'Interaction timeline and history', requiredPermission: 'activities.view_own' }
   ];
 
   const userMenuItems = [
-  { label: 'Settings', path: '/settings-administration', icon: 'Settings' },
+  { label: 'Settings', path: '/settings-administration', icon: 'Settings', requiredPermission: 'settings.view_own_profile' },
   { label: 'Logout', action: 'logout', icon: 'LogOut' }
   ];
+
+  // Filter navigation items based on user permissions
+  const allowedNavItems = navigationItems.filter(item => {
+    if (!item.requiredPermission) return true;
+    const [module, action] = item.requiredPermission.split('.');
+    return permissionsService.hasPermission(user?.role, module, action);
+  });
+
+  const allowedUserMenuItems = userMenuItems.filter(item => {
+    if (!item.requiredPermission) return true;
+    const [module, action] = item.requiredPermission.split('.');
+    return permissionsService.hasPermission(user?.role, module, action);
+  });
 
   const isActiveRoute = (path) => {
     return location.pathname === path;
@@ -87,7 +101,7 @@ const Header = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1">
-              {navigationItems?.map((item) => (
+              {allowedNavItems?.map((item) => (
                 <Link
                   key={item?.path}
                   to={item?.path}
@@ -124,8 +138,8 @@ const Header = () => {
                     </div>
                     <div className="text-xs text-text-secondary">
                       {userProfile?.role === 'admin' ? 'Administrator' :
-                       userProfile?.role === 'manager' ? 'Manager' :
-                       userProfile?.role === 'sales_rep' ? 'Sales Rep' : 
+                       userProfile?.role === 'sales_manager' ? 'Sales Manager' :
+                       userProfile?.role === 'sales_rep' ? 'Sales Rep' :
                        'User'}
                     </div>
                   </div>
@@ -136,7 +150,7 @@ const Header = () => {
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-lg border border-border z-1100">
                     <div className="py-2">
-                      {userMenuItems?.map((item) => {
+                      {allowedUserMenuItems?.map((item) => {
                         if (item.action === 'logout') {
                           return (
                             <div
@@ -203,7 +217,7 @@ const Header = () => {
               </div>
 
               <nav className="space-y-2">
-                {navigationItems?.map((item) => (
+                {allowedNavItems?.map((item) => (
                   <Link
                     key={item?.path}
                     to={item?.path}
@@ -220,7 +234,7 @@ const Header = () => {
                 
                 <div className="border-t border-border my-4"></div>
                 
-                {userMenuItems?.map((item) => {
+                {allowedUserMenuItems?.map((item) => {
                   if (item.action === 'logout') {
                     return (
                       <div

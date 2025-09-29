@@ -4,7 +4,11 @@ from sqlalchemy import func, or_
 from typing import List, Optional
 from uuid import UUID
 from ..core.database import get_db
-from ..core.auth import get_current_user
+from ..core.auth import (
+    get_current_user, require_admin, require_manager_or_admin,
+    require_sales_user, require_any_authenticated, can_access_user_data,
+    can_modify_user_data
+)
 from ..models.user import UserProfile
 from ..schemas.user import UserResponse, UserUpdate, UserInvite, UserStats
 
@@ -21,16 +25,16 @@ async def get_all_users(
     status: Optional[str] = Query(
         None, description="Filter by status (active/inactive)"),
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_manager_or_admin())
 ):
-    # Only admin users can get all users
-    if current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
-
+    # Role-based data filtering
     query = db.query(UserProfile)
+
+    # Admin can see all users, managers can see their team + themselves
+    if current_user.role != 'admin':
+        # For now, sales_manager can see all users
+        # TODO: Implement team-based filtering when team structure is defined
+        pass
 
     # Apply search filter
     if search:
@@ -113,11 +117,11 @@ async def update_user(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    # Only admin users can update other users
-    if current_user.role != 'admin':
+    # Check if user can modify this user's data
+    if not can_modify_user_data(current_user, str(user_id)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            detail="Not enough permissions to modify this user"
         )
 
     user = db.query(UserProfile).filter(UserProfile.id == user_id).first()
@@ -142,14 +146,9 @@ async def update_user(
 async def delete_user(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_admin())
 ):
-    # Only admin users can delete other users
-    if current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
+    # Only admin users can delete users (handled by decorator)
 
     # Don't allow deleting self
     if current_user.id == user_id:
@@ -206,14 +205,9 @@ async def get_user_stats(
 async def invite_user(
     invite_data: UserInvite,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_admin())
 ):
-    # Only admin users can invite new users
-    if current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
+    # Only admin users can invite new users (handled by decorator)
 
     # Check if user already exists
     existing_user = db.query(UserProfile).filter(
