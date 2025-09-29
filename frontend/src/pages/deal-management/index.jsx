@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Header from 'components/ui/Header';
 import Breadcrumb from 'components/ui/Breadcrumb';
 import Icon from 'components/AppIcon';
+import Pagination from 'components/Pagination';
 
 import DealForm from './components/DealForm';
 import ActivityTimeline from './components/ActivityTimeline';
@@ -49,6 +50,10 @@ const DealManagement = () => {
   // Filter state
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   // Real-time subscription channels
   const [activityChannel, setActivityChannel] = useState(null);
   const [documentChannel, setDocumentChannel] = useState(null);
@@ -67,6 +72,28 @@ const DealManagement = () => {
   const filteredDeals = selectedStageFilter === 'all' 
     ? allDeals 
     : allDeals.filter(deal => deal.stage === selectedStageFilter);
+
+  // Pagination calculations
+  const totalItems = filteredDeals.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDeals = filteredDeals.slice(startIndex, endIndex);
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStageFilter]);
+
+  // Handle pagination functions
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when items per page changes
+  };
 
   // Load initial data
   useEffect(() => {
@@ -684,6 +711,21 @@ const DealManagement = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-text-primary">All Deals</h2>
                     <div className="flex items-center space-x-4">
+                      {/* Items per page selector */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-text-secondary">Show:</span>
+                        <select
+                          value={itemsPerPage}
+                          onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                          className="text-sm border border-border rounded-md px-2 py-1 bg-surface"
+                        >
+                          <option value={10}>10</option>
+                          <option value={25}>25</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                      </div>
+                      
                       {/* View Toggle */}
                       <div className="flex items-center bg-gray-100 rounded-lg p-1">
                         <button
@@ -778,62 +820,90 @@ const DealManagement = () => {
                 ) : isGridView ? (
                   <div className="p-6">
                     <DealsGridView
-                      deals={filteredDeals}
+                      deals={paginatedDeals}
                       stages={stages}
                       onEditDeal={handleEditDeal}
                     />
+                    
+                    {/* Pagination for Grid View */}
+                    {filteredDeals.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-border">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          totalItems={totalItems}
+                          itemsPerPage={itemsPerPage}
+                          onPageChange={handlePageChange}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Deal</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Stage</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Value</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Probability</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Created</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-border">
-                        {filteredDeals.map((deal) => (
-                          <tr key={deal.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm font-medium text-text-primary">{deal.name || 'Untitled Deal'}</div>
-                                <div className="text-sm text-text-secondary truncate max-w-xs">{deal.description || 'No description'}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                stages.find(s => s.value === deal.stage)?.color || 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {stages.find(s => s.value === deal.stage)?.label || deal.stage}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                              ${(deal.value || 0).toLocaleString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                              {deal.probability || 0}%
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
-                              {new Date(deal.created_at).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button
-                                onClick={() => handleEditDeal(deal)}
-                                className="text-primary hover:text-primary-600 mr-3"
-                              >
-                                Edit
-                              </button>
-                            </td>
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Deal</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Stage</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Value</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Probability</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Created</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-border">
+                          {paginatedDeals.map((deal) => (
+                            <tr key={deal.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                  <div className="text-sm font-medium text-text-primary">{deal.name || 'Untitled Deal'}</div>
+                                  <div className="text-sm text-text-secondary truncate max-w-xs">{deal.description || 'No description'}</div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  stages.find(s => s.value === deal.stage)?.color || 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {stages.find(s => s.value === deal.stage)?.label || deal.stage}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                                ${(deal.value || 0).toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                                {deal.probability || 0}%
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                                {new Date(deal.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button
+                                  onClick={() => handleEditDeal(deal)}
+                                  className="text-primary hover:text-primary-600 mr-3"
+                                >
+                                  Edit
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Pagination for List View */}
+                    {filteredDeals.length > 0 && (
+                      <div className="px-6 py-4 border-t border-border">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          totalItems={totalItems}
+                          itemsPerPage={itemsPerPage}
+                          onPageChange={handlePageChange}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : (

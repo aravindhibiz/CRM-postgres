@@ -77,7 +77,7 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    if (currentUser && currentUser?.role === 'admin') {
+    if (currentUser && ['admin', 'sales_manager'].includes(currentUser?.role)) {
       loadUsers();
     }
   }, [currentUser, searchQuery, statusFilter, roleFilter]);

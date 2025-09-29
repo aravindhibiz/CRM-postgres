@@ -13,6 +13,7 @@ from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelatio
 
 router = APIRouter()
 
+
 @router.get("/", response_model=List[DealWithRelations])
 async def get_user_deals(
     db: Session = Depends(get_db),
@@ -38,16 +39,30 @@ async def get_user_deals(
     deals = query.order_by(Deal.updated_at.desc()).all()
     return deals
 
+
 @router.get("/pipeline", response_model=dict)
 async def get_pipeline_deals(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deals = db.query(Deal).options(
+    query = db.query(Deal).options(
         joinedload(Deal.company),
         joinedload(Deal.contact),
         joinedload(Deal.owner)
-    ).filter(Deal.owner_id == current_user.id).order_by(Deal.updated_at.desc()).all()
+    )
+
+    # Role-based filtering - same as main deals endpoint
+    if current_user.role == 'admin':
+        # Admin can see all deals
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all deals (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deals = query.order_by(Deal.updated_at.desc()).all()
 
     # Group deals by stage
     pipeline_data = {
@@ -75,19 +90,33 @@ async def get_pipeline_deals(
 
     return pipeline_data
 
+
 @router.get("/{deal_id}", response_model=DealWithRelations)
 async def get_deal_by_id(
     deal_id: UUID,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deal = db.query(Deal).options(
+    query = db.query(Deal).options(
         joinedload(Deal.company),
         joinedload(Deal.contact),
         joinedload(Deal.owner),
         joinedload(Deal.activities),
         joinedload(Deal.documents)
-    ).filter(Deal.id == deal_id, Deal.owner_id == current_user.id).first()
+    ).filter(Deal.id == deal_id)
+
+    # Role-based filtering for individual deal access
+    if current_user.role == 'admin':
+        # Admin can see any deal
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see any deal (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deal = query.first()
 
     if not deal:
         raise HTTPException(
@@ -96,6 +125,7 @@ async def get_deal_by_id(
         )
 
     return deal
+
 
 @router.post("/", response_model=DealResponse)
 async def create_deal(
@@ -114,17 +144,28 @@ async def create_deal(
 
     return db_deal
 
+
 @router.put("/{deal_id}", response_model=DealResponse)
 async def update_deal(
     deal_id: UUID,
     deal_data: DealUpdate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deal = db.query(Deal).filter(
-        Deal.id == deal_id,
-        Deal.owner_id == current_user.id
-    ).first()
+    query = db.query(Deal).filter(Deal.id == deal_id)
+
+    # Role-based filtering for update access
+    if current_user.role == 'admin':
+        # Admin can update any deal
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can update any deal (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only update their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deal = query.first()
 
     if not deal:
         raise HTTPException(
@@ -142,16 +183,27 @@ async def update_deal(
 
     return deal
 
+
 @router.delete("/{deal_id}")
 async def delete_deal(
     deal_id: UUID,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deal = db.query(Deal).filter(
-        Deal.id == deal_id,
-        Deal.owner_id == current_user.id
-    ).first()
+    query = db.query(Deal).filter(Deal.id == deal_id)
+
+    # Role-based filtering for delete access
+    if current_user.role == 'admin':
+        # Admin can delete any deal
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can delete any deal (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only delete their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deal = query.first()
 
     if not deal:
         raise HTTPException(
@@ -164,17 +216,32 @@ async def delete_deal(
 
     return {"message": "Deal deleted successfully"}
 
+
 @router.get("/stats/overview")
 async def get_deals_stats(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deals = db.query(Deal).filter(Deal.owner_id == current_user.id).all()
+    query = db.query(Deal)
+
+    # Role-based filtering
+    if current_user.role == 'admin':
+        # Admin can see all deals
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all deals (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deals = query.all()
 
     total_value = sum([float(deal.value or 0) for deal in deals])
     won_deals = [deal for deal in deals if deal.stage == 'closed_won']
     lost_deals = [deal for deal in deals if deal.stage == 'closed_lost']
-    active_deals = [deal for deal in deals if deal.stage not in ['closed_won', 'closed_lost']]
+    active_deals = [deal for deal in deals if deal.stage not in [
+        'closed_won', 'closed_lost']]
 
     stats = {
         'total_deals': len(deals),
@@ -189,12 +256,26 @@ async def get_deals_stats(
 
     return stats
 
+
 @router.get("/analytics/revenue")
 async def get_revenue_data(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deals = db.query(Deal).filter(Deal.owner_id == current_user.id).all()
+    query = db.query(Deal)
+
+    # Role-based filtering
+    if current_user.role == 'admin':
+        # Admin can see all deals
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all deals (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deals = query.all()
 
     # Generate last 12 months of revenue data
     from datetime import datetime, timedelta
@@ -216,7 +297,8 @@ async def get_revenue_data(
             deal.actual_close_date.year == month_date.year
         ]
 
-        actual = sum([float(deal.value or 0) for deal in month_deals if deal.stage == 'closed_won'])
+        actual = sum([float(deal.value or 0)
+                     for deal in month_deals if deal.stage == 'closed_won'])
 
         # Generate forecast (simple projection)
         forecast = actual * 1.1 if actual > 0 else 50000
@@ -231,21 +313,37 @@ async def get_revenue_data(
 
     return revenue_data
 
+
 @router.get("/analytics/performance")
 async def get_performance_metrics(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deals = db.query(Deal).filter(Deal.owner_id == current_user.id).all()
+    query = db.query(Deal)
+
+    # Role-based filtering
+    if current_user.role == 'admin':
+        # Admin can see all deals
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all deals (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deals = query.all()
 
     won_deals = [deal for deal in deals if deal.stage == 'closed_won']
     lost_deals = [deal for deal in deals if deal.stage == 'closed_lost']
     total_closed = len(won_deals) + len(lost_deals)
 
     achieved = sum([float(deal.value or 0) for deal in won_deals])
-    quota = max(achieved * 1.3, 500000)  # Assume quota is 30% higher than achieved
+    # Assume quota is 30% higher than achieved
+    quota = max(achieved * 1.3, 500000)
     avg_deal_size = achieved / len(won_deals) if won_deals else 25000
-    conversion_rate = round((len(won_deals) / total_closed) * 100) if total_closed > 0 else 0
+    conversion_rate = round((len(won_deals) / total_closed)
+                            * 100) if total_closed > 0 else 0
 
     return {
         "achieved": int(achieved),
@@ -258,17 +356,32 @@ async def get_performance_metrics(
         "totalDeals": len(deals)
     }
 
+
 @router.get("/analytics/winrate")
 async def get_win_rate_data(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    deals = db.query(Deal).filter(Deal.owner_id == current_user.id).all()
+    query = db.query(Deal)
+
+    # Role-based filtering
+    if current_user.role == 'admin':
+        # Admin can see all deals
+        pass
+    elif current_user.role == 'sales_manager':
+        # Manager can see all deals (for now, until team structure is implemented)
+        pass
+    else:
+        # Sales reps and users can only see their own deals
+        query = query.filter(Deal.owner_id == current_user.id)
+
+    deals = query.all()
 
     won_deals = len([deal for deal in deals if deal.stage == 'closed_won'])
     lost_deals = len([deal for deal in deals if deal.stage == 'closed_lost'])
     total_closed = won_deals + lost_deals
-    base_win_rate = round((won_deals / total_closed) * 100) if total_closed > 0 else 0
+    base_win_rate = round((won_deals / total_closed) *
+                          100) if total_closed > 0 else 0
 
     # Generate quarterly win rate data with some variation
     import random

@@ -1,5 +1,5 @@
 // src/pages/settings-administration/index.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../components/ui/Header';
 import Breadcrumb from '../../components/ui/Breadcrumb';
 import SettingsNavigation from './components/SettingsNavigation';
@@ -9,9 +9,36 @@ import Integrations from './components/Integrations';
 import CustomFields from './components/CustomFields';
 import EmailTemplates from './components/EmailTemplates';
 import SystemConfiguration from './components/SystemConfiguration';
+import { useAuth } from '../../contexts/AuthContext';
+import { permissionsService } from '../../services/permissionsService';
 
 const SettingsAdministration = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('user-management');
+
+  // Set default active section based on user permissions
+  useEffect(() => {
+    if (user) {
+      // List of sections in priority order
+      const sections = [
+        { id: 'user-management', permission: 'settings.user_management' },
+        { id: 'integrations', permission: 'settings.integrations' },
+        { id: 'custom-fields', permission: 'settings.custom_fields' },
+        { id: 'email-templates', permission: 'settings.email_templates' },
+        { id: 'permissions', permission: 'settings.permissions' },
+        { id: 'system-config', permission: 'settings.system_config' }
+      ];
+
+      // Find the first section the user has access to
+      for (const section of sections) {
+        const [module, action] = section.permission.split('.');
+        if (permissionsService.hasPermission(user?.role, module, action)) {
+          setActiveSection(section.id);
+          break;
+        }
+      }
+    }
+  }, [user]);
 
   const renderActiveSection = () => {
     switch (activeSection) {
@@ -58,12 +85,24 @@ const SettingsAdministration = () => {
                   onChange={(e) => setActiveSection(e?.target?.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                 >
-                  <option value="user-management">User Management</option>
-                  <option value="permissions">Permissions</option>
-                  <option value="integrations">Integrations</option>
-                  <option value="custom-fields">Custom Fields</option>
-                  <option value="email-templates">Email Templates</option>
-                  <option value="system-config">System Configuration</option>
+                  {user && permissionsService.hasPermission(user?.role, 'settings', 'user_management') && (
+                    <option value="user-management">User Management</option>
+                  )}
+                  {user && permissionsService.hasPermission(user?.role, 'settings', 'permissions') && (
+                    <option value="permissions">Permissions</option>
+                  )}
+                  {user && permissionsService.hasPermission(user?.role, 'settings', 'integrations') && (
+                    <option value="integrations">Integrations</option>
+                  )}
+                  {user && permissionsService.hasPermission(user?.role, 'settings', 'custom_fields') && (
+                    <option value="custom-fields">Custom Fields</option>
+                  )}
+                  {user && permissionsService.hasPermission(user?.role, 'settings', 'email_templates') && (
+                    <option value="email-templates">Email Templates</option>
+                  )}
+                  {user && permissionsService.hasPermission(user?.role, 'settings', 'system_config') && (
+                    <option value="system-config">System Configuration</option>
+                  )}
                 </select>
               </div>
             </div>

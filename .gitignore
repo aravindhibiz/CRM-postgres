@@ -21,6 +21,14 @@ yarn-error.log*
 /coverage
 /test-reports
 /playwright-report
+/frontend/dist
+/frontend/e2e
+
+/frontend/src/components/__tests__
+/frontend/src/contexts/__tests__
+/frontend/src/hooks/__tests__
+/frontend/src/services/__tests__
+/frontend/src/utils/__tests__
 
 # gemini-cli settings
 .gemini/

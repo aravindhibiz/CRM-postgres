@@ -117,6 +117,8 @@ const ContactManagement = () => {
       return contact?.status === 'active';
     } else if (activeTab === 'inactive') {
       return contact?.status === 'inactive';
+    } else if (activeTab === 'my') {
+      return contact?.owner_id === user?.id;
     }
     return true; // 'all' tab
   });
@@ -520,6 +522,14 @@ const ContactManagement = () => {
                   }`}
                 >
                   Inactive
+                </button>
+                <button
+                  onClick={() => setActiveTab('my')}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    activeTab === 'my' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  My Contacts
                 </button>
               </div>
             </div>

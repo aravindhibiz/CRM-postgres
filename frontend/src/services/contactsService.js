@@ -152,15 +152,10 @@ export const contactsService = {
 
   // Import contacts (bulk create)
   async importContacts(contactsData) {
-    // Since we don't have bulk create endpoint, create one by one
-    try {
-      const results = await Promise.all(
-        contactsData.map(contactData => this.createContact(contactData))
-      );
-      return results;
-    } catch (error) {
-      throw error;
-    }
+    const { data, error } = await apiClient.post('/api/v1/contacts/import', contactsData);
+
+    if (error) throw error;
+    return data;
   },
 
   // Merge duplicate contacts

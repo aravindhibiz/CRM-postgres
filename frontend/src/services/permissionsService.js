@@ -52,12 +52,12 @@ export const permissionsService = {
       export_reports: ['admin', 'sales_manager']
     },
     settings: {
-      user_management: ['admin'],
+      user_management: ['admin', 'sales_manager'],
       permissions: ['admin'],
       system_config: ['admin'],
-      integrations: ['admin'],
-      custom_fields: ['admin'],
-      email_templates: ['admin'],
+      integrations: ['admin', 'sales_manager'],
+      custom_fields: ['admin', 'sales_manager'],
+      email_templates: ['admin', 'sales_manager'],
       view_own_profile: ['admin', 'sales_manager', 'sales_rep', 'user'],
       edit_own_profile: ['admin', 'sales_manager', 'sales_rep', 'user']
     }
