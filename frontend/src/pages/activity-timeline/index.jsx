@@ -33,6 +33,8 @@ const ActivityTimeline = () => {
   const [viewMode, setViewMode] = useState('timeline'); // 'timeline' or 'insights'
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [editingActivity, setEditingActivity] = useState(null);
 
   const loadActivities = useCallback(async () => {
     if (!user) return;
@@ -73,6 +75,17 @@ const ActivityTimeline = () => {
 
   const handleActivityAdded = (newActivity) => {
     setActivities(prevActivities => [newActivity, ...prevActivities]);
+  };
+
+  const handleEditActivity = (activity) => {
+    setEditingActivity(activity);
+    setIsAddModalOpen(true);
+  };
+
+  const handleActivityUpdated = (updatedActivity) => {
+    setActivities(prevActivities =>
+      prevActivities.map(act => act.id === updatedActivity.id ? updatedActivity : act)
+    );
   };
 
   const handleBulkAction = async (action, activityIds) => {
@@ -261,7 +274,7 @@ const ActivityTimeline = () => {
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mt-4 lg:mt-0">
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-surface border border-border rounded-lg p-1">
+              {/* <div className="flex items-center bg-surface border border-border rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('timeline')}
                   className={`px-3 py-1.5 text-sm rounded-md transition-all duration-150 ${
@@ -284,10 +297,10 @@ const ActivityTimeline = () => {
                   <Icon name="BarChart3" size={16} className="inline mr-1" />
                   Insights
                 </button>
-              </div>
+              </div> */}
 
               {/* Auto-refresh Toggle */}
-              <div className="flex items-center space-x-2">
+              {/* <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setAutoRefresh(!autoRefresh)}
                   className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-150 ${
@@ -302,7 +315,7 @@ const ActivityTimeline = () => {
                 <span className="text-xs text-text-tertiary">
                   Last: {lastRefresh.toLocaleTimeString()}
                 </span>
-              </div>
+              </div> */}
 
               {/* Action Buttons */}
               <div className="flex items-center space-x-3">
@@ -355,8 +368,8 @@ const ActivityTimeline = () => {
 
           <div className="flex flex-col lg:flex-row gap-6">
             <div className={`lg:w-80 ${isSidebarOpen ? 'block' : 'hidden lg:block'}`}>
-              <div className="card p-6 sticky top-24">
-                <div className="flex items-center justify-between mb-4">
+              <div className="card sticky top-24 max-h-[calc(100vh-8rem)] flex flex-col">
+                <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
                   <h3 className="text-lg font-semibold text-text-primary">Filters</h3>
                   <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -366,10 +379,12 @@ const ActivityTimeline = () => {
                   </button>
                 </div>
                 
-                <ActivityFilters
-                  selectedFilters={selectedFilters}
-                  onFiltersChange={setSelectedFilters}
-                />
+                <div className="flex-1 overflow-y-auto p-6 pt-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                  <ActivityFilters
+                    selectedFilters={selectedFilters}
+                    onFiltersChange={setSelectedFilters}
+                  />
+                </div>
               </div>
             </div>
 
@@ -453,6 +468,7 @@ const ActivityTimeline = () => {
                             isSelected={selectedActivities.has(activity.id)}
                             onSelectionChange={(isSelected) => handleActivitySelection(activity.id, isSelected)}
                             showCheckbox={true}
+                            onEdit={handleEditActivity}
                           />
                         ))
                       ) : (
@@ -484,8 +500,16 @@ const ActivityTimeline = () => {
       {isAddModalOpen && (
         <AddActivityModal
           isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setSelectedTemplate(null);
+            setEditingActivity(null);
+          }}
           onActivityAdded={handleActivityAdded}
+          onActivityUpdated={handleActivityUpdated}
+          prefilledData={selectedTemplate ? selectedTemplate.template : {}}
+          templateData={selectedTemplate}
+          editingActivity={editingActivity}
         />
       )}
       
@@ -494,9 +518,9 @@ const ActivityTimeline = () => {
           isOpen={isTemplateModalOpen}
           onClose={() => setIsTemplateModalOpen(false)}
           onTemplateSelected={(template) => {
+            setSelectedTemplate(template);
             setIsTemplateModalOpen(false);
             setIsAddModalOpen(true);
-            // Pass template data to add modal
           }}
         />
       )}

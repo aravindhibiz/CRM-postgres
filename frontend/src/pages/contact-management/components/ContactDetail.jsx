@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
@@ -6,20 +6,105 @@ import ActivityTimeline from './ActivityTimeline';
 import DealsList from './DealsList';
 import ComposeEmailModal from './ComposeEmailModal';
 import LogCallModal from './LogCallModal';
+import { activitiesService } from '../../../services/activitiesService';
+import { dealsService } from '../../../services/dealsService';
 
 const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [contactActivities, setContactActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+  const [contactDeals, setContactDeals] = useState([]);
+  const [loadingDeals, setLoadingDeals] = useState(false);
   
   if (!contact) return null;
 
+  // Fetch activities for this specific contact
+  useEffect(() => {
+    const fetchContactActivities = async () => {
+      if (!contact?.id) return;
+      
+      try {
+        setLoadingActivities(true);
+        console.log(`Fetching activities for contact: ${contact.id}`);
+        
+        // Get all activities and filter for this contact
+        const allActivities = await activitiesService.getUserActivities();
+        const filteredActivities = allActivities.filter(activity => 
+          activity.contact_id === contact.id
+        );
+        
+        console.log(`Found ${filteredActivities.length} activities for contact ${contact.first_name} ${contact.last_name}`);
+        setContactActivities(filteredActivities);
+      } catch (error) {
+        console.error('Error fetching contact activities:', error);
+        setContactActivities([]);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+
+    fetchContactActivities();
+  }, [contact?.id]);
+
+  // Fetch deals for this specific contact
+  useEffect(() => {
+    const fetchContactDeals = async () => {
+      if (!contact?.id) return;
+      
+      try {
+        setLoadingDeals(true);
+        console.log(`Fetching deals for contact: ${contact.id}`);
+        
+        // Get all deals and filter for this contact
+        const allDeals = await dealsService.getUserDeals();
+        const filteredDeals = allDeals.filter(deal => 
+          deal.contact_id === contact.id
+        );
+        
+        console.log(`Found ${filteredDeals.length} deals for contact ${contact.first_name} ${contact.last_name}`);
+        setContactDeals(filteredDeals);
+      } catch (error) {
+        console.error('Error fetching contact deals:', error);
+        setContactDeals([]);
+      } finally {
+        setLoadingDeals(false);
+      }
+    };
+
+    fetchContactDeals();
+  }, [contact?.id]);
+
   const handleActivityAdded = (newActivity) => {
+    // Add the new activity to the local activities state
+    setContactActivities(prevActivities => [newActivity, ...prevActivities]);
+
     if (onContactUpdate) {
       // Update the contact with the new activity
       const updatedContact = {
         ...contact,
         activities: [newActivity, ...(contact.activities || [])]
+      };
+      onContactUpdate(updatedContact);
+    }
+  };
+
+  const handleActivityUpdated = (updatedActivity) => {
+    // Update the activity in the local activities state
+    setContactActivities(prevActivities =>
+      prevActivities.map(activity =>
+        activity.id === updatedActivity.id ? updatedActivity : activity
+      )
+    );
+
+    if (onContactUpdate) {
+      // Update the contact with the updated activity
+      const updatedContact = {
+        ...contact,
+        activities: contact.activities?.map(activity =>
+          activity.id === updatedActivity.id ? updatedActivity : activity
+        )
       };
       onContactUpdate(updatedContact);
     }
@@ -178,7 +263,7 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
               activeTab === 'deals' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
             }`}
           >
-            Deals ({contact?.deals?.length || 0})
+            Deals ({contactDeals.length})
           </button>
           <button
             onClick={() => setActiveTab('notes')}
@@ -334,17 +419,20 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
         )}
         
         {activeTab === 'activity' && (
-          <ActivityTimeline 
-            activities={contact?.activities || []} 
+          <ActivityTimeline
+            activities={contactActivities}
             contact={contact}
             onActivityAdded={handleActivityAdded}
+            onActivityUpdated={handleActivityUpdated}
+            loading={loadingActivities}
           />
         )}
         
         {activeTab === 'deals' && (
           <DealsList 
-            deals={contact?.deals || []} 
-            contactName={contact?.full_name || `${contact?.first_name || ''} ${contact?.last_name || ''}`?.trim() || 'Unnamed Contact'} 
+            deals={contactDeals} 
+            contactName={contact?.full_name || `${contact?.first_name || ''} ${contact?.last_name || ''}`?.trim() || 'Unnamed Contact'}
+            loading={loadingDeals}
           />
         )}
         

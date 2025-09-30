@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Icon from 'components/AppIcon';
 
-const DealsList = ({ deals, contactName }) => {
+const DealsList = ({ deals, contactName, loading = false }) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -59,7 +59,12 @@ const DealsList = ({ deals, contactName }) => {
           <span>Add Deal</span>
         </Link>
       </div>
-      {deals?.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading deals...</p>
+        </div>
+      ) : deals?.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-border">
             <thead>

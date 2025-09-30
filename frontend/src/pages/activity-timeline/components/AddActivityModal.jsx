@@ -5,7 +5,7 @@ import { activitiesService } from '../../../services/activitiesService';
 import { contactsService } from '../../../services/contactsService';
 import { dealsService } from '../../../services/dealsService';
 
-const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {} }) => {
+const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated, prefilledData = {}, templateData = null, editingActivity = null }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState([]);
@@ -24,6 +24,43 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
     user_id: user?.id || ''
   }), [user]);
 
+  // Template variable substitution
+  const substituteTemplateVariables = useCallback((text, selectedContact, selectedDeal) => {
+    if (!text) return text;
+    
+    let substituted = text;
+    
+    // User variables
+    substituted = substituted.replace(/{user_name}/g, user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : user?.email || 'User');
+    
+    // Contact variables
+    if (selectedContact) {
+      substituted = substituted.replace(/{contact_name}/g, `${selectedContact.first_name} ${selectedContact.last_name}`);
+      substituted = substituted.replace(/{company_name}/g, selectedContact.company?.name || 'Company');
+    } else {
+      substituted = substituted.replace(/{contact_name}/g, '[Contact Name]');
+      substituted = substituted.replace(/{company_name}/g, '[Company Name]');
+    }
+    
+    // Deal variables
+    if (selectedDeal) {
+      substituted = substituted.replace(/{deal_title}/g, selectedDeal.title || '[Deal Title]');
+      substituted = substituted.replace(/{deal_value}/g, selectedDeal.value ? `$${selectedDeal.value.toLocaleString()}` : '[Deal Value]');
+    }
+    
+    // Date variables
+    const today = new Date();
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    substituted = substituted.replace(/{today}/g, today.toLocaleDateString());
+    substituted = substituted.replace(/{follow_up_date}/g, nextWeek.toLocaleDateString());
+    
+    // Generic placeholders
+    substituted = substituted.replace(/{topic}/g, '[Discussion Topic]');
+    substituted = substituted.replace(/{next_action}/g, '[Next Action]');
+    
+    return substituted;
+  }, [user]);
+
   useEffect(() => {
     if (isOpen) {
       const loadData = async () => {
@@ -40,12 +77,58 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
         }
       };
       loadData();
-      setFormData({ ...initialFormState(), ...prefilledData });
+
+      // If editing, populate form with existing activity data
+      if (editingActivity) {
+        const editFormData = {
+          type: editingActivity.type || 'note',
+          subject: editingActivity.title || editingActivity.subject || '',
+          description: editingActivity.description || '',
+          contact_id: editingActivity.contact_id || '',
+          deal_id: editingActivity.deal_id || '',
+          duration_minutes: editingActivity.duration ? parseInt(editingActivity.duration) : '',
+          scheduled_at: editingActivity.scheduled_at || '',
+          user_id: editingActivity.user_id || user?.id || ''
+        };
+        setFormData(editFormData);
+      } else {
+        const baseFormData = { ...initialFormState(), ...prefilledData };
+
+        // Apply template data if provided
+        if (templateData) {
+          const selectedContact = contacts.find(c => c.id === baseFormData.contact_id);
+          const selectedDeal = deals.find(d => d.id === baseFormData.deal_id);
+
+          baseFormData.type = templateData.type;
+          baseFormData.subject = substituteTemplateVariables(templateData.template.subject, selectedContact, selectedDeal);
+          baseFormData.description = substituteTemplateVariables(templateData.template.description, selectedContact, selectedDeal);
+          baseFormData.duration_minutes = templateData.template.duration_minutes;
+          baseFormData.priority = templateData.template.priority;
+        }
+
+        setFormData(baseFormData);
+      }
     } else {
       setFormData({});
       setErrors({});
     }
-  }, [isOpen]);
+  }, [isOpen, editingActivity]);
+
+  // Handle form field changes with template substitution
+  const handleFieldChange = (field, value) => {
+    const updatedFormData = { ...formData, [field]: value };
+    
+    // If we have template data and contact/deal changed, update template variables
+    if (templateData && (field === 'contact_id' || field === 'deal_id')) {
+      const selectedContact = contacts.find(c => c.id === (field === 'contact_id' ? value : formData.contact_id));
+      const selectedDeal = deals.find(d => d.id === (field === 'deal_id' ? value : formData.deal_id));
+      
+      updatedFormData.subject = substituteTemplateVariables(templateData.template.subject, selectedContact, selectedDeal);
+      updatedFormData.description = substituteTemplateVariables(templateData.template.description, selectedContact, selectedDeal);
+    }
+    
+    setFormData(updatedFormData);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,14 +138,14 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
     try {
       const requiredFields = ['type', 'subject'];
       const validationErrors = {};
-      
+
       requiredFields.forEach(field => {
         if (!formData[field]?.trim()) {
           validationErrors[field] = `${field.replace('_', ' ')} is required`;
         }
       });
 
-      if (['call', 'meeting'].includes(formData.type) && formData.duration_minutes && 
+      if (['call', 'meeting'].includes(formData.type) && formData.duration_minutes &&
           (isNaN(formData.duration_minutes) || parseInt(formData.duration_minutes) <= 0)) {
         validationErrors.duration_minutes = 'Please enter a valid duration';
       }
@@ -78,18 +161,30 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
         duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
         scheduled_at: formData.scheduled_at || null,
         user_id: user?.id,
-        contact_id: formData.contact_id || null,
-        deal_id: formData.deal_id || null,
+        contact_id: formData.contact_id && formData.contact_id !== '' ? formData.contact_id : null,
+        deal_id: formData.deal_id && formData.deal_id !== '' ? formData.deal_id : null,
       };
 
-      const newActivity = await activitiesService.createActivity(submitData);
-      onActivityAdded(newActivity);
+      console.log('Form data before submit:', formData);
+      console.log('Submit data to API:', submitData);
+
+      if (editingActivity) {
+        // Update existing activity
+        const updatedActivity = await activitiesService.updateActivity(editingActivity.id, submitData);
+        console.log('Activity updated:', updatedActivity);
+        onActivityUpdated && onActivityUpdated(updatedActivity);
+      } else {
+        // Create new activity
+        const newActivity = await activitiesService.createActivity(submitData);
+        console.log('New activity created:', newActivity);
+        onActivityAdded(newActivity);
+      }
       onClose();
 
     } catch (err) {
-      console.error('Error creating activity:', err);
-      setErrors({ 
-        submit: err.message || 'Failed to create activity. Please try again.' 
+      console.error(`Error ${editingActivity ? 'updating' : 'creating'} activity:`, err);
+      setErrors({
+        submit: err.message || `Failed to ${editingActivity ? 'update' : 'create'} activity. Please try again.`
       });
     } finally {
       setLoading(false);
@@ -97,7 +192,7 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear errors for this field
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -105,6 +200,9 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
         return newErrors;
       });
     }
+    
+    // Use the template-aware field change handler
+    handleFieldChange(field, value);
   };
 
   const activityTypes = [
@@ -124,7 +222,17 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
         <div className="bg-surface rounded-lg shadow-xl max-w-2xl w-full relative z-10">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-text-primary">Add New Activity</h3>
+              <div className="flex items-center space-x-3">
+                <h3 className="text-xl font-semibold text-text-primary">
+                  {editingActivity ? 'Edit Activity' : 'Add New Activity'}
+                </h3>
+                {templateData && !editingActivity && (
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-primary-50 text-primary text-sm rounded-full">
+                    <Icon name="FileTemplate" size={14} />
+                    <span>Using: {templateData.name}</span>
+                  </div>
+                )}
+              </div>
               <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
                 <Icon name="X" size={24} />
               </button>
@@ -238,7 +346,7 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, prefilledData = {}
               <div className="flex justify-end space-x-3 pt-4 border-t border-border">
                 <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Creating...' : 'Create Activity'}
+                  {loading ? (editingActivity ? 'Updating...' : 'Creating...') : (editingActivity ? 'Update Activity' : 'Create Activity')}
                 </button>
               </div>
             </form>

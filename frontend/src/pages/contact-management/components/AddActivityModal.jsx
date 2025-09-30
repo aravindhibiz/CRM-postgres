@@ -3,14 +3,27 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../../contexts/AuthContext';
 import Icon from 'components/AppIcon';
 
-const AddActivityModal = ({ contact, onClose, onActivityAdded }) => {
+const AddActivityModal = ({ contact, onClose, onActivityAdded, onActivityUpdated, editingActivity }) => {
   const { user } = useAuth();
-  const [activityData, setActivityData] = useState({
-    type: 'note',
-    subject: '',
-    description: '',
-    scheduled_at: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDThh:mm
-    duration_minutes: 30
+  const [activityData, setActivityData] = useState(() => {
+    if (editingActivity) {
+      return {
+        type: editingActivity.type || 'note',
+        subject: editingActivity.subject || '',
+        description: editingActivity.description || '',
+        scheduled_at: editingActivity.scheduled_at
+          ? new Date(editingActivity.scheduled_at).toISOString().slice(0, 16)
+          : new Date().toISOString().slice(0, 16),
+        duration_minutes: editingActivity.duration_minutes || 30
+      };
+    }
+    return {
+      type: 'note',
+      subject: '',
+      description: '',
+      scheduled_at: new Date().toISOString().slice(0, 16),
+      duration_minutes: 30
+    };
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,14 +48,14 @@ const AddActivityModal = ({ contact, onClose, onActivityAdded }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!activityData.subject.trim()) {
       toast.error('Please enter a subject for the activity');
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const activityPayload = {
         type: activityData.type,
@@ -54,12 +67,17 @@ const AddActivityModal = ({ contact, onClose, onActivityAdded }) => {
         user_id: user?.id
       };
 
-      await onActivityAdded(activityPayload);
-      toast.success(`${activityData.type.charAt(0).toUpperCase() + activityData.type.slice(1)} activity logged successfully!`);
+      if (editingActivity) {
+        await onActivityUpdated(activityPayload);
+        toast.success(`Activity updated successfully!`);
+      } else {
+        await onActivityAdded(activityPayload);
+        toast.success(`${activityData.type.charAt(0).toUpperCase() + activityData.type.slice(1)} activity logged successfully!`);
+      }
       onClose();
     } catch (error) {
-      console.error('Error adding activity:', error);
-      toast.error('Failed to log activity. Please try again.');
+      console.error(`Error ${editingActivity ? 'updating' : 'adding'} activity:`, error);
+      toast.error(`Failed to ${editingActivity ? 'update' : 'log'} activity. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -81,7 +99,9 @@ const AddActivityModal = ({ contact, onClose, onActivityAdded }) => {
             <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <div className="flex items-center space-x-2">
                 <Icon name={selectedType?.icon} size={20} className="text-primary" />
-                <h3 className="text-lg font-semibold text-text-primary">Log Activity</h3>
+                <h3 className="text-lg font-semibold text-text-primary">
+                  {editingActivity ? 'Edit Activity' : 'Log Activity'}
+                </h3>
               </div>
               <button
                 type="button"
@@ -210,10 +230,10 @@ const AddActivityModal = ({ contact, onClose, onActivityAdded }) => {
                 {isSubmitting ? (
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Logging...</span>
+                    <span>{editingActivity ? 'Updating...' : 'Logging...'}</span>
                   </div>
                 ) : (
-                  'Log Activity'
+                  editingActivity ? 'Update Activity' : 'Log Activity'
                 )}
               </button>
             </div>

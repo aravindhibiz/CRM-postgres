@@ -1,89 +1,19 @@
 import React, { useState } from 'react';
 import Icon from 'components/AppIcon';
+import { activityTemplatesService } from '../../../services/activityTemplatesService';
 
 const ActivityTemplateModal = ({ isOpen, onClose, onTemplateSelected }) => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const templates = [
-    {
-      id: 'follow-up-email',
-      name: 'Follow-up Email',
-      description: 'Standard follow-up email template',
-      type: 'email',
-      icon: 'Mail',
-      template: {
-        subject: 'Follow up on our conversation',
-        description: 'Hi {contact_name},\n\nI wanted to follow up on our conversation about {topic}. Do you have any questions or would you like to schedule a call to discuss next steps?\n\nBest regards,\n{user_name}',
-        priority: 'medium',
-        duration_minutes: 15
-      }
-    },
-    {
-      id: 'discovery-call',
-      name: 'Discovery Call',
-      description: 'Initial discovery call template',
-      type: 'call',
-      icon: 'Phone',
-      template: {
-        subject: 'Discovery call with {contact_name}',
-        description: 'Discovery call to understand {company_name}\'s needs and challenges.\n\nTopics to cover:\n- Current situation\n- Pain points\n- Goals and objectives\n- Timeline\n- Budget considerations',
-        priority: 'high',
-        duration_minutes: 30
-      }
-    },
-    {
-      id: 'demo-meeting',
-      name: 'Product Demo',
-      description: 'Product demonstration meeting',
-      type: 'meeting',
-      icon: 'Monitor',
-      template: {
-        subject: 'Product demo for {company_name}',
-        description: 'Product demonstration meeting with {contact_name} from {company_name}.\n\nDemo agenda:\n- Overview of our solution\n- Key features relevant to their needs\n- Q&A session\n- Next steps discussion',
-        priority: 'high',
-        duration_minutes: 45
-      }
-    },
-    {
-      id: 'proposal-review',
-      name: 'Proposal Review',
-      description: 'Review proposal with client',
-      type: 'meeting',
-      icon: 'FileText',
-      template: {
-        subject: 'Proposal review meeting',
-        description: 'Review and discuss the proposal with {contact_name}.\n\nAgenda:\n- Walk through proposal details\n- Address questions and concerns\n- Discuss terms and conditions\n- Timeline for decision',
-        priority: 'high',
-        duration_minutes: 60
-      }
-    },
-    {
-      id: 'check-in-call',
-      name: 'Check-in Call',
-      description: 'Regular customer check-in',
-      type: 'call',
-      icon: 'Phone',
-      template: {
-        subject: 'Regular check-in with {contact_name}',
-        description: 'Scheduled check-in call to ensure customer satisfaction and identify any issues or opportunities.\n\nDiscussion points:\n- How things are going\n- Any challenges or concerns\n- Feedback on our service\n- Upcoming needs or projects',
-        priority: 'medium',
-        duration_minutes: 20
-      }
-    },
-    {
-      id: 'thank-you-email',
-      name: 'Thank You Email',
-      description: 'Post-meeting thank you',
-      type: 'email',
-      icon: 'Heart',
-      template: {
-        subject: 'Thank you for your time',
-        description: 'Hi {contact_name},\n\nThank you for taking the time to meet with me today. I appreciate your insights about {company_name}\'s needs.\n\nAs discussed, I\'ll {next_action} and get back to you by {follow_up_date}.\n\nPlease don\'t hesitate to reach out if you have any questions.\n\nBest regards,\n{user_name}',
-        priority: 'low',
-        duration_minutes: 10
-      }
-    }
-  ];
+  const templates = activityTemplatesService.getBuiltInTemplates();
+  const categories = ['all', 'communication', 'sales', 'support'];
+  
+  const filteredTemplates = selectedCategory === 'all' 
+    ? templates 
+    : templates.filter(template => template.category === selectedCategory);
+
+
 
   const getIconColor = (type) => {
     switch (type) {
@@ -118,8 +48,31 @@ const ActivityTemplateModal = ({ isOpen, onClose, onTemplateSelected }) => {
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="mb-6">
+            <p className="text-text-secondary text-sm mb-4">
+              Select a template to quickly create an activity with pre-filled content. Template variables will be automatically substituted with actual data.
+            </p>
+            
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-3 py-1 text-sm rounded-full transition-colors duration-150 ${
+                    selectedCategory === category
+                      ? 'bg-primary text-white'
+                      : 'bg-surface text-text-secondary hover:bg-surface-hover'
+                  }`}
+                >
+                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map((template) => (
+            {filteredTemplates.map((template) => (
               <div
                 key={template.id}
                 className={`border border-border rounded-lg p-4 cursor-pointer transition-all duration-150 hover:shadow-md ${
@@ -150,20 +103,36 @@ const ActivityTemplateModal = ({ isOpen, onClose, onTemplateSelected }) => {
           </div>
 
           {selectedTemplate && (
-            <div className="mt-6 p-4 border border-border rounded-lg bg-surface">
-              <h4 className="font-medium text-text-primary mb-3">Template Preview</h4>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <span className="font-medium text-text-secondary">Subject:</span>
-                  <p className="text-text-primary mt-1">{selectedTemplate.template.subject}</p>
+            <div className="mt-6 space-y-4">
+              <div className="p-4 border border-border rounded-lg bg-surface">
+                <h4 className="font-medium text-text-primary mb-3">Template Preview</h4>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="font-medium text-text-secondary">Subject:</span>
+                    <p className="text-text-primary mt-1">{selectedTemplate.template.subject}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-text-secondary">Description:</span>
+                    <p className="text-text-primary mt-1 whitespace-pre-line">{selectedTemplate.template.description}</p>
+                  </div>
+                  <div className="flex items-center space-x-4 text-text-tertiary">
+                    <span>Priority: {selectedTemplate.template.priority}</span>
+                    <span>Duration: {selectedTemplate.template.duration_minutes} minutes</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium text-text-secondary">Description:</span>
-                  <p className="text-text-primary mt-1 whitespace-pre-line">{selectedTemplate.template.description}</p>
-                </div>
-                <div className="flex items-center space-x-4 text-text-tertiary">
-                  <span>Priority: {selectedTemplate.template.priority}</span>
-                  <span>Duration: {selectedTemplate.template.duration_minutes} minutes</span>
+              </div>
+              
+              <div className="p-4 border border-border rounded-lg bg-blue-50">
+                <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                  <Icon name="Info" size={16} className="mr-2" />
+                  Template Variables
+                </h4>
+                <div className="text-xs text-blue-800 space-y-1">
+                  <p><code className="bg-blue-100 px-1 rounded">{'{contact_name}'}</code> - Contact's full name</p>
+                  <p><code className="bg-blue-100 px-1 rounded">{'{company_name}'}</code> - Company name</p>
+                  <p><code className="bg-blue-100 px-1 rounded">{'{user_name}'}</code> - Your name</p>
+                  <p><code className="bg-blue-100 px-1 rounded">{'{today}'}</code> - Today's date</p>
+                  <p><code className="bg-blue-100 px-1 rounded">{'{follow_up_date}'}</code> - One week from today</p>
                 </div>
               </div>
             </div>

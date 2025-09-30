@@ -17,8 +17,11 @@ async def get_user_activities(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    activities = db.query(Activity).order_by(
-        Activity.created_at.desc()).limit(limit).all()
+    activities = db.query(Activity).options(
+        joinedload(Activity.contact),
+        joinedload(Activity.deal),
+        joinedload(Activity.user)
+    ).order_by(Activity.created_at.desc()).limit(limit).all()
 
     return activities
 

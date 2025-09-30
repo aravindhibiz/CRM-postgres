@@ -5,9 +5,10 @@ import Icon from 'components/AppIcon';
 import AddActivityModal from './AddActivityModal';
 import { activitiesService } from '../../../services/activitiesService';
 
-const ActivityTimeline = ({ activities, contact, onActivityAdded }) => {
+const ActivityTimeline = ({ activities, contact, onActivityAdded, onActivityUpdated, loading = false }) => {
   const [filter, setFilter] = useState('all');
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
   
   const getActivityIcon = (type) => {
     switch (type) {
@@ -60,12 +61,32 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded }) => {
     }
   };
 
+  const handleUpdateActivity = async (activityData) => {
+    try {
+      const updatedActivity = await activitiesService.updateActivity(editingActivity.id, activityData);
+      if (onActivityUpdated) {
+        onActivityUpdated(updatedActivity);
+      }
+      return updatedActivity;
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      throw error;
+    }
+  };
+
+  const handleEditActivity = (activity) => {
+    setEditingActivity(activity);
+    setShowAddActivityModal(true);
+  };
+
   const handleOpenAddModal = () => {
+    setEditingActivity(null);
     setShowAddActivityModal(true);
   };
 
   const handleCloseAddModal = () => {
     setShowAddActivityModal(false);
+    setEditingActivity(null);
   };
   
   const filteredActivities = filter === 'all' 
@@ -104,7 +125,12 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded }) => {
           </button>
         </div>
       </div>
-      {sortedActivities?.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading activities...</p>
+        </div>
+      ) : sortedActivities?.length > 0 ? (
         <div className="relative">
           {/* Timeline line */}
           <div className="absolute left-6 top-0 bottom-0 w-px bg-border"></div>
@@ -134,10 +160,14 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded }) => {
                       </p>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="text-text-tertiary hover:text-text-primary">
+                      <button
+                        onClick={() => handleEditActivity(activity)}
+                        className="text-text-tertiary hover:text-text-primary"
+                        title="Edit activity"
+                      >
                         <Icon name="Edit" size={14} />
                       </button>
-                      <button className="text-text-tertiary hover:text-error">
+                      <button className="text-text-tertiary hover:text-error" title="Delete activity">
                         <Icon name="Trash2" size={14} />
                       </button>
                     </div>
@@ -183,6 +213,8 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded }) => {
           contact={contact}
           onClose={handleCloseAddModal}
           onActivityAdded={handleAddActivity}
+          onActivityUpdated={handleUpdateActivity}
+          editingActivity={editingActivity}
         />
       )}
     </div>

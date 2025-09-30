@@ -21,9 +21,7 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
           { value: 'all', label: 'All Contacts' },
           ...contacts.map(contact => ({
             value: contact.id,
-            label: `${contact.first_name} ${contact.last_name}`,
-            company: contact.company?.name || 'No Company',
-            email: contact.email
+            label: `${contact.first_name} ${contact.last_name}`
           }))
         ];
         
@@ -74,7 +72,7 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-4">
       {/* Contact Filter */}
       <div>
         <h4 className="text-sm font-medium text-text-primary mb-3">Contact</h4>

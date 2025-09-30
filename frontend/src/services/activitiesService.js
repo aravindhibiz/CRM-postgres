@@ -15,14 +15,10 @@ export const activitiesService = {
 
     console.log('Fetched raw activities data:', data);
     
-    // Populate related data for each activity
+    // For now, populate the relationships since we simplified the backend
     const populatedActivities = await this.populateActivityRelations(data || []);
     
     console.log('Populated activities data:', populatedActivities);
-    if (populatedActivities && populatedActivities.length > 0) {
-      console.log('First populated activity sample:', populatedActivities[0]);
-    }
-    
     return populatedActivities;
   },
 
@@ -84,6 +80,8 @@ export const activitiesService = {
 
   // Create a new activity
   async createActivity(activityData) {
+    console.log('Creating activity with data:', activityData);
+    
     const cleanActivityData = {
       type: activityData.type,
       subject: activityData.subject,
@@ -94,17 +92,43 @@ export const activitiesService = {
       deal_id: activityData.deal_id || null,
     };
 
+    console.log('Sending clean activity data:', cleanActivityData);
+
     const { data, error } = await apiClient.post('/api/v1/activities', cleanActivityData);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating activity:', error);
+      throw error;
+    }
+    
+    console.log('Created activity response:', data);
     return data;
   },
 
   // Update an activity
   async updateActivity(activityId, updates) {
-    const { data, error } = await apiClient.put(`/api/v1/activities/${activityId}`, updates);
+    console.log('Updating activity with data:', updates);
 
-    if (error) throw error;
+    const cleanActivityData = {
+      type: updates.type,
+      subject: updates.subject,
+      description: updates.description || null,
+      duration_minutes: updates.duration_minutes || null,
+      outcome: updates.outcome || null,
+      contact_id: updates.contact_id || null,
+      deal_id: updates.deal_id || null,
+    };
+
+    console.log('Sending clean update data:', cleanActivityData);
+
+    const { data, error } = await apiClient.put(`/api/v1/activities/${activityId}`, cleanActivityData);
+
+    if (error) {
+      console.error('Error updating activity:', error);
+      throw error;
+    }
+
+    console.log('Updated activity response:', data);
     return data;
   },
 

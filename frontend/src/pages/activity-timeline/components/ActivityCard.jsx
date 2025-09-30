@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
 
-const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false }) => {
+const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
 
@@ -312,14 +312,22 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
               </div>
 
               <div className="flex items-center space-x-1">
-                <button 
+                <button
+                  onClick={() => onEdit && onEdit(activity)}
+                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
+                  title="Edit activity"
+                >
+                  <Icon name="Edit" size={14} />
+                </button>
+
+                <button
                   className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
                   title="Share activity"
                 >
                   <Icon name="Share" size={14} />
                 </button>
-                
-                <button 
+
+                <button
                   className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
                   title="More options"
                 >

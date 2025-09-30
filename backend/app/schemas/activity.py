@@ -5,6 +5,27 @@ import uuid
 from .user import UserResponse
 
 
+class ContactForActivity(BaseModel):
+    id: uuid.UUID
+    first_name: str
+    last_name: str
+    email: Optional[str] = None
+    company_id: Optional[uuid.UUID] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DealForActivity(BaseModel):
+    id: uuid.UUID
+    title: str
+    value: Optional[float] = None
+    stage: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ActivityBase(BaseModel):
     type: str
     subject: str
@@ -41,8 +62,8 @@ class ActivityResponse(ActivityBase):
 
 
 class ActivityWithRelations(ActivityResponse):
-    contact: Optional[Any] = None
-    deal: Optional[Any] = None
+    contact: Optional[ContactForActivity] = None
+    deal: Optional[DealForActivity] = None
     user: Optional[UserResponse] = None
 
     class Config:
