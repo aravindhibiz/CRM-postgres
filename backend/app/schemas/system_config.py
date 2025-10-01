@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Any, Dict, Optional
+from pydantic import BaseModel, Field
+from typing import Any, Dict, Optional, List
 from datetime import datetime
 import uuid
 
@@ -31,3 +31,44 @@ class SystemConfigResponse(SystemConfigBase):
 
 class SystemConfigBulkUpdate(BaseModel):
     configurations: Dict[str, Any]
+
+
+class SystemConfigBulkUpdateItem(BaseModel):
+    key: str
+    value: Any
+
+
+class SystemConfigBulkUpdateRequest(BaseModel):
+    configurations: List[SystemConfigBulkUpdateItem] = Field(
+        ..., 
+        description="List of configuration updates"
+    )
+
+
+class SystemConfigBulkUpdateRequestNew(BaseModel):
+    configurations: List[SystemConfigBulkUpdateItem]
+
+
+class SystemConfigCategoryResponse(BaseModel):
+    category: str
+    label: str
+    description: str
+    icon: str
+    configurations: List[SystemConfigResponse]
+
+
+class SystemConfigSchemaResponse(BaseModel):
+    categories: Dict[str, Dict[str, Any]]
+    field_types: Dict[str, Any]
+
+
+class SystemConfigExportResponse(BaseModel):
+    export_date: datetime
+    configurations: Dict[str, Any]
+    metadata: Dict[str, Any]
+
+
+class SystemConfigValidationResponse(BaseModel):
+    valid: bool
+    errors: List[str] = []
+    warnings: List[str] = []

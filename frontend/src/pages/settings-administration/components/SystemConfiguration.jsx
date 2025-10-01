@@ -1,5 +1,6 @@
 // src/pages/settings-administration/components/SystemConfiguration.jsx
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import Icon from '../../../components/AppIcon';
 import { systemConfigService } from '../../../services/systemConfigService';
 
@@ -18,50 +19,38 @@ const SystemConfiguration = () => {
       setLoading(true);
       setError('');
 
+      // Get configurations grouped by category from the API
       const configData = await systemConfigService.getConfigurationsGrouped();
       
-      // Transform API data to match expected structure
-      const transformedConfig = {
-        general: {
-          companyName: configData.general?.company_name || 'SalesFlow Pro Inc.',
-          timezone: configData.general?.timezone || 'America/New_York',
-          dateFormat: configData.general?.date_format || 'MM/DD/YYYY',
-          currency: configData.general?.currency || 'USD',
-          language: configData.general?.language || 'en'
-        },
-        sales: {
-          defaultPipelineStage: configData.sales?.default_pipeline_stage || 'Prospecting',
-          dealCurrency: configData.sales?.deal_currency || 'USD',
-          requireDealValue: configData.sales?.require_deal_value ?? true,
-          autoProgressDeals: configData.sales?.auto_progress_deals ?? false,
-          dealInactivityDays: configData.sales?.deal_inactivity_days || 30
-        },
-        notifications: {
-          emailNotifications: configData.notifications?.email_notifications ?? true,
-          dealUpdateNotifications: configData.notifications?.deal_update_notifications ?? true,
-          taskReminders: configData.notifications?.task_reminders ?? true,
-          weeklyReports: configData.notifications?.weekly_reports ?? true,
-          systemAlerts: configData.notifications?.system_alerts ?? true
-        },
-        security: {
-          passwordComplexity: configData.security?.password_complexity ?? true,
-          twoFactorAuth: configData.security?.two_factor_auth ?? false,
-          sessionTimeout: configData.security?.session_timeout || 480,
-          loginAttempts: configData.security?.login_attempts || 5,
-          dataEncryption: configData.security?.data_encryption ?? true
-        },
-        backup: {
-          autoBackup: configData.backup?.auto_backup ?? true,
-          backupFrequency: configData.backup?.backup_frequency || 'daily',
-          retentionDays: configData.backup?.retention_days || 30,
-          backupLocation: configData.backup?.backup_location || 'cloud'
-        }
-      };
+      console.log('Loaded configuration data:', configData);
+      
+      // Convert grouped data to flat array format for transformation
+      const flatConfigArray = [];
+      Object.entries(configData).forEach(([category, fields]) => {
+        Object.entries(fields).forEach(([field, value]) => {
+          flatConfigArray.push({
+            key: `${category}.${field}`,
+            value: value,
+            category: category
+          });
+        });
+      });
+
+      console.log('Flat config array:', flatConfigArray);
+      
+      // Transform flat data to UI format
+      const transformedConfig = systemConfigService.transformConfigurationsForUI(flatConfigArray);
+
+      console.log('Transformed configuration for UI:', transformedConfig);
 
       setConfig(transformedConfig);
     } catch (err) {
       console.error('Error loading configuration:', err);
       setError('Failed to load configuration. Using default values.');
+      
+      // Show error toast
+      toast.error('Failed to load configuration settings');
+      
       // Set default configuration on error
       setConfig(systemConfigService.getDefaultConfiguration());
     } finally {
@@ -125,49 +114,113 @@ const SystemConfiguration = () => {
       setLoading(true);
       setError('');
 
-      // Transform config back to API format
-      const apiConfig = {
-        // General settings
-        company_name: config.general?.companyName,
-        timezone: config.general?.timezone,
-        date_format: config.general?.dateFormat,
-        currency: config.general?.currency,
-        language: config.general?.language,
+      // Transform UI config to API format using service helper
+      const flatConfigurations = systemConfigService.transformConfigurationsFromUI(config);
+      
+      // Filter out only valid configurations that exist in the backend
+      const validKeys = new Set([
+        // General
+        'general.company_name', 'general.company_email', 'general.company_phone', 
+        'general.company_address', 'general.timezone', 'general.date_format', 
+        'general.time_format', 'general.currency', 'general.language',
         
-        // Sales settings
-        default_pipeline_stage: config.sales?.defaultPipelineStage,
-        deal_currency: config.sales?.dealCurrency,
-        require_deal_value: config.sales?.requireDealValue,
-        auto_progress_deals: config.sales?.autoProgressDeals,
-        deal_inactivity_days: config.sales?.dealInactivityDays,
+        // Sales
+        'sales.default_pipeline_stage', 'sales.deal_currency', 'sales.require_deal_value',
+        'sales.auto_progress_deals', 'sales.deal_inactivity_warning_days', 
+        'sales.lead_scoring_enabled', 'sales.opportunity_auto_close_days',
         
-        // Notification settings
-        email_notifications: config.notifications?.emailNotifications,
-        deal_update_notifications: config.notifications?.dealUpdateNotifications,
-        task_reminders: config.notifications?.taskReminders,
-        weekly_reports: config.notifications?.weeklyReports,
-        system_alerts: config.notifications?.systemAlerts,
+        // Notifications
+        'notifications.email_notifications', 'notifications.deal_update_notifications',
+        'notifications.task_reminders', 'notifications.weekly_reports', 
+        'notifications.system_alerts', 'notifications.lead_assignment_alerts',
+        'notifications.quota_achievement_alerts',
         
-        // Security settings
-        password_complexity: config.security?.passwordComplexity,
-        two_factor_auth: config.security?.twoFactorAuth,
-        session_timeout: config.security?.sessionTimeout,
-        login_attempts: config.security?.loginAttempts,
-        data_encryption: config.security?.dataEncryption,
+        // Security
+        'security.password_complexity', 'security.min_password_length', 
+        'security.two_factor_auth', 'security.session_timeout_minutes',
+        'security.max_login_attempts', 'security.lockout_duration_minutes',
+        'security.data_encryption_at_rest', 'security.audit_log_retention_days',
         
-        // Backup settings
-        auto_backup: config.backup?.autoBackup,
-        backup_frequency: config.backup?.backupFrequency,
-        retention_days: config.backup?.retentionDays,
-        backup_location: config.backup?.backupLocation
-      };
+        // Backup
+        'backup.enable_automatic_backups', 'backup.backup_frequency', 
+        'backup.backup_retention_days', 'backup.backup_location', 'backup.compress_backups',
+        
+        // Integrations
+        'integrations.email_service_provider', 'integrations.calendar_integration',
+        'integrations.crm_sync_enabled', 'integrations.api_rate_limit',
+        
+        // Performance
+        'performance.enable_caching', 'performance.cache_ttl_seconds',
+        'performance.max_search_results', 'performance.database_query_timeout'
+      ]);
+      
+      const validConfigurations = flatConfigurations.filter(config => {
+        const isValid = validKeys.has(config.key);
+        if (!isValid) {
+          console.warn(`Skipping invalid configuration key: ${config.key}`);
+        }
+        return isValid;
+      });
+      
+      console.log('Original flat configurations:', flatConfigurations);
+      console.log('Valid configurations after filtering:', validConfigurations);
+      console.log('Request payload that will be sent:', {
+        configurations: validConfigurations
+      });
 
-      await systemConfigService.updateConfigurationsBulk(apiConfig);
+      // Validate the format before sending
+      if (!Array.isArray(validConfigurations) || validConfigurations.length === 0) {
+        throw new Error('No valid configurations to save');
+      }
+
+      // Validate each configuration has key and value
+      const invalidConfigs = validConfigurations.filter(config => {
+        return !config.key || config.value === undefined || config.value === null || config.value === '';
+      });
+      if (invalidConfigs.length > 0) {
+        console.error('Invalid configurations found:', invalidConfigs);
+        throw new Error(`Some configurations have missing or empty values: ${invalidConfigs.map(c => c.key).join(', ')}`);
+      }
+
+      // Ensure all values are properly typed
+      const typedConfigurations = validConfigurations.map(config => ({
+        key: config.key,
+        value: config.value
+      }));
+
+      console.log('Final configurations to send:', typedConfigurations);
+
+      const result = await systemConfigService.updateConfigurationsBulk(typedConfigurations);
+      
+      console.log('Save result:', result);
+      
       setSuccess('Configuration saved successfully!');
       setHasChanges(false);
+      
+      // Show success toast
+      toast.success('System configuration updated successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
+      // Reload configuration to get fresh data
+      await loadConfiguration();
+      
     } catch (err) {
       console.error('Error saving configuration:', err);
-      setError('Failed to save configuration. Please try again.');
+      console.error('Full error object:', JSON.stringify(err, null, 2));
+      
+      // Extract error message safely - the apiClient already handles FastAPI validation errors
+      let errorMessage = 'Failed to save configuration. Please try again.';
+      
+      if (err && err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      
+      // Show error toast with safe message
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -197,9 +250,16 @@ const SystemConfiguration = () => {
       
       setShowExportModal(false);
       setSuccess('Configuration exported successfully!');
+      
+      // Show success toast
+      toast.success('Configuration exported successfully!');
     } catch (err) {
       console.error('Error exporting configuration:', err);
-      setError('Failed to export configuration. Please try again.');
+      const errorMessage = 'Failed to export configuration. Please try again.';
+      setError(errorMessage);
+      
+      // Show error toast
+      toast.error(errorMessage);
     }
   };
 
@@ -210,6 +270,35 @@ const SystemConfiguration = () => {
 
   return (
     <div className="space-y-6">
+      {/* Error and Success Messages */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
+          <Icon name="AlertCircle" size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="font-medium text-red-800">Configuration Error</h4>
+            <p className="text-red-700 text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3">
+          <Icon name="CheckCircle" size={20} className="text-green-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="font-medium text-green-800">Success</h4>
+            <p className="text-green-700 text-sm mt-1">{success}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+          <span className="text-blue-700">Loading configuration...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -219,21 +308,27 @@ const SystemConfiguration = () => {
         <div className="flex space-x-3">
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth flex items-center space-x-2 border border-border"
+            disabled={loading}
+            className="bg-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth flex items-center space-x-2 border border-border disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Icon name="Download" size={16} />
             <span>Export Configuration</span>
           </button>
           <button
             onClick={handleSaveChanges}
-            disabled={!hasChanges}
+            disabled={!hasChanges || loading}
             className={`px-4 py-2 rounded-lg transition-colors duration-150 ease-smooth flex items-center space-x-2 ${
-              hasChanges
-                ? 'bg-primary text-white hover:bg-primary-600' :'bg-gray-100 text-gray-400 cursor-not-allowed'
+              hasChanges && !loading
+                ? 'bg-primary text-white hover:bg-primary-600' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
-            <Icon name="Save" size={16} />
-            <span>Save Changes</span>
+            {loading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Icon name="Save" size={16} />
+            )}
+            <span>{loading ? 'Saving...' : 'Save Changes'}</span>
           </button>
         </div>
       </div>
@@ -251,8 +346,38 @@ const SystemConfiguration = () => {
               <label className="block text-sm font-medium text-text-primary mb-1">Company Name</label>
               <input
                 type="text"
-                value={config?.general?.companyName}
-                onChange={(e) => updateConfig('general', 'companyName', e?.target?.value)}
+                value={config?.general?.company_name || ''}
+                onChange={(e) => updateConfig('general', 'company_name', e?.target?.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Company Email</label>
+              <input
+                type="email"
+                value={config?.general?.company_email || ''}
+                onChange={(e) => updateConfig('general', 'company_email', e?.target?.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Company Phone</label>
+              <input
+                type="tel"
+                value={config?.general?.company_phone || ''}
+                onChange={(e) => updateConfig('general', 'company_phone', e?.target?.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Company Address</label>
+              <textarea
+                value={config?.general?.company_address || ''}
+                onChange={(e) => updateConfig('general', 'company_address', e?.target?.value)}
+                rows={3}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               />
             </div>
@@ -260,7 +385,7 @@ const SystemConfiguration = () => {
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Timezone</label>
               <select
-                value={config?.general?.timezone}
+                value={config?.general?.timezone || ''}
                 onChange={(e) => updateConfig('general', 'timezone', e?.target?.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               >
@@ -273,8 +398,8 @@ const SystemConfiguration = () => {
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Date Format</label>
               <select
-                value={config?.general?.dateFormat}
-                onChange={(e) => updateConfig('general', 'dateFormat', e?.target?.value)}
+                value={config?.general?.date_format || ''}
+                onChange={(e) => updateConfig('general', 'date_format', e?.target?.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               >
                 {dateFormats?.map(format => (
@@ -282,11 +407,23 @@ const SystemConfiguration = () => {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Time Format</label>
+              <select
+                value={config?.general?.time_format || ''}
+                onChange={(e) => updateConfig('general', 'time_format', e?.target?.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+              >
+                <option value="12">12 Hour</option>
+                <option value="24">24 Hour</option>
+              </select>
+            </div>
             
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Currency</label>
               <select
-                value={config?.general?.currency}
+                value={config?.general?.currency || ''}
                 onChange={(e) => updateConfig('general', 'currency', e?.target?.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               >
@@ -297,16 +434,18 @@ const SystemConfiguration = () => {
                 ))}
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Language</label>
               <select
-                value={config?.general?.language}
+                value={config?.general?.language || ''}
                 onChange={(e) => updateConfig('general', 'language', e?.target?.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               >
                 {languages?.map(lang => (
-                  <option key={lang?.code} value={lang?.code}>{lang?.name}</option>
+                  <option key={lang?.code} value={lang?.code}>
+                    {lang?.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -324,14 +463,14 @@ const SystemConfiguration = () => {
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Default Pipeline Stage</label>
               <select
-                value={config?.sales?.defaultPipelineStage}
-                onChange={(e) => updateConfig('sales', 'defaultPipelineStage', e?.target?.value)}
+                value={config?.sales?.default_pipeline_stage || ''}
+                onChange={(e) => updateConfig('sales', 'default_pipeline_stage', e?.target?.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               >
-                <option value="Prospecting">Prospecting</option>
-                <option value="Qualification">Qualification</option>
-                <option value="Proposal">Proposal</option>
-                <option value="Negotiation">Negotiation</option>
+                <option value="prospecting">Prospecting</option>
+                <option value="qualification">Qualification</option>
+                <option value="proposal">Proposal</option>
+                <option value="negotiation">Negotiation</option>
               </select>
             </div>
             
@@ -339,8 +478,8 @@ const SystemConfiguration = () => {
               <label className="block text-sm font-medium text-text-primary mb-1">Deal Inactivity Warning (Days)</label>
               <input
                 type="number"
-                value={config?.sales?.dealInactivityDays}
-                onChange={(e) => updateConfig('sales', 'dealInactivityDays', parseInt(e?.target?.value))}
+                value={config?.sales?.deal_inactivity_warning_days || ''}
+                onChange={(e) => updateConfig('sales', 'deal_inactivity_warning_days', parseInt(e?.target?.value))}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                 min="1"
                 max="365"
@@ -351,8 +490,8 @@ const SystemConfiguration = () => {
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={config?.sales?.requireDealValue}
-                  onChange={(e) => updateConfig('sales', 'requireDealValue', e?.target?.checked)}
+                  checked={config?.sales?.require_deal_value || false}
+                  onChange={(e) => updateConfig('sales', 'require_deal_value', e?.target?.checked)}
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-text-primary">Require deal value</span>
@@ -361,11 +500,21 @@ const SystemConfiguration = () => {
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={config?.sales?.autoProgressDeals}
-                  onChange={(e) => updateConfig('sales', 'autoProgressDeals', e?.target?.checked)}
+                  checked={config?.sales?.auto_progress_deals || false}
+                  onChange={(e) => updateConfig('sales', 'auto_progress_deals', e?.target?.checked)}
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-text-primary">Auto-progress deals based on activities</span>
+              </label>
+
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={config?.sales?.lead_scoring_enabled || false}
+                  onChange={(e) => updateConfig('sales', 'lead_scoring_enabled', e?.target?.checked)}
+                  className="rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text-primary">Enable lead scoring</span>
               </label>
             </div>
           </div>
@@ -382,8 +531,8 @@ const SystemConfiguration = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                checked={config?.notifications?.emailNotifications}
-                onChange={(e) => updateConfig('notifications', 'emailNotifications', e?.target?.checked)}
+                checked={config?.notifications?.email_notifications || false}
+                onChange={(e) => updateConfig('notifications', 'email_notifications', e?.target?.checked)}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm text-text-primary">Email notifications</span>
@@ -392,8 +541,8 @@ const SystemConfiguration = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                checked={config?.notifications?.dealUpdateNotifications}
-                onChange={(e) => updateConfig('notifications', 'dealUpdateNotifications', e?.target?.checked)}
+                checked={config?.notifications?.deal_update_notifications || false}
+                onChange={(e) => updateConfig('notifications', 'deal_update_notifications', e?.target?.checked)}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm text-text-primary">Deal update notifications</span>
@@ -402,8 +551,8 @@ const SystemConfiguration = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                checked={config?.notifications?.taskReminders}
-                onChange={(e) => updateConfig('notifications', 'taskReminders', e?.target?.checked)}
+                checked={config?.notifications?.task_reminders || false}
+                onChange={(e) => updateConfig('notifications', 'task_reminders', e?.target?.checked)}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm text-text-primary">Task reminders</span>
@@ -412,8 +561,8 @@ const SystemConfiguration = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                checked={config?.notifications?.weeklyReports}
-                onChange={(e) => updateConfig('notifications', 'weeklyReports', e?.target?.checked)}
+                checked={config?.notifications?.weekly_reports || false}
+                onChange={(e) => updateConfig('notifications', 'weekly_reports', e?.target?.checked)}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm text-text-primary">Weekly reports</span>
@@ -422,8 +571,8 @@ const SystemConfiguration = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                checked={config?.notifications?.systemAlerts}
-                onChange={(e) => updateConfig('notifications', 'systemAlerts', e?.target?.checked)}
+                checked={config?.notifications?.system_alerts || false}
+                onChange={(e) => updateConfig('notifications', 'system_alerts', e?.target?.checked)}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm text-text-primary">System alerts</span>
@@ -443,8 +592,8 @@ const SystemConfiguration = () => {
               <label className="block text-sm font-medium text-text-primary mb-1">Session Timeout (minutes)</label>
               <input
                 type="number"
-                value={config?.security?.sessionTimeout}
-                onChange={(e) => updateConfig('security', 'sessionTimeout', parseInt(e?.target?.value))}
+                value={config?.security?.session_timeout_minutes || ''}
+                onChange={(e) => updateConfig('security', 'session_timeout_minutes', parseInt(e?.target?.value))}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                 min="30"
                 max="1440"
@@ -455,8 +604,8 @@ const SystemConfiguration = () => {
               <label className="block text-sm font-medium text-text-primary mb-1">Max Login Attempts</label>
               <input
                 type="number"
-                value={config?.security?.loginAttempts}
-                onChange={(e) => updateConfig('security', 'loginAttempts', parseInt(e?.target?.value))}
+                value={config?.security?.max_login_attempts || ''}
+                onChange={(e) => updateConfig('security', 'max_login_attempts', parseInt(e?.target?.value))}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                 min="3"
                 max="10"
@@ -467,8 +616,8 @@ const SystemConfiguration = () => {
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={config?.security?.passwordComplexity}
-                  onChange={(e) => updateConfig('security', 'passwordComplexity', e?.target?.checked)}
+                  checked={config?.security?.password_complexity || false}
+                  onChange={(e) => updateConfig('security', 'password_complexity', e?.target?.checked)}
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-text-primary">Require password complexity</span>
@@ -477,8 +626,8 @@ const SystemConfiguration = () => {
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={config?.security?.twoFactorAuth}
-                  onChange={(e) => updateConfig('security', 'twoFactorAuth', e?.target?.checked)}
+                  checked={config?.security?.two_factor_auth || false}
+                  onChange={(e) => updateConfig('security', 'two_factor_auth', e?.target?.checked)}
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-text-primary">Enable two-factor authentication</span>
@@ -487,8 +636,8 @@ const SystemConfiguration = () => {
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={config?.security?.dataEncryption}
-                  onChange={(e) => updateConfig('security', 'dataEncryption', e?.target?.checked)}
+                  checked={config?.security?.data_encryption_at_rest || false}
+                  onChange={(e) => updateConfig('security', 'data_encryption_at_rest', e?.target?.checked)}
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-text-primary">Data encryption at rest</span>
@@ -508,8 +657,8 @@ const SystemConfiguration = () => {
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Backup Frequency</label>
             <select
-              value={config?.backup?.backupFrequency}
-              onChange={(e) => updateConfig('backup', 'backupFrequency', e?.target?.value)}
+              value={config?.backup?.backup_frequency || ''}
+              onChange={(e) => updateConfig('backup', 'backup_frequency', e?.target?.value)}
               className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
             >
               <option value="hourly">Hourly</option>
@@ -523,8 +672,8 @@ const SystemConfiguration = () => {
             <label className="block text-sm font-medium text-text-primary mb-1">Retention Period (Days)</label>
             <input
               type="number"
-              value={config?.backup?.retentionDays}
-              onChange={(e) => updateConfig('backup', 'retentionDays', parseInt(e?.target?.value))}
+              value={config?.backup?.backup_retention_days || ''}
+              onChange={(e) => updateConfig('backup', 'backup_retention_days', parseInt(e?.target?.value))}
               className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               min="7"
               max="365"
@@ -546,8 +695,8 @@ const SystemConfiguration = () => {
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
-              checked={config?.backup?.autoBackup}
-              onChange={(e) => updateConfig('backup', 'autoBackup', e?.target?.checked)}
+              checked={config?.backup?.enable_automatic_backups || false}
+              onChange={(e) => updateConfig('backup', 'enable_automatic_backups', e?.target?.checked)}
               className="rounded border-border text-primary focus:ring-primary"
             />
             <span className="text-sm text-text-primary">Enable automatic backups</span>

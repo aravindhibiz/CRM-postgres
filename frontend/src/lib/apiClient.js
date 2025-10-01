@@ -172,9 +172,29 @@ class ApiClient {
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
+      let message = 'An error occurred';
+      
+      // Handle FastAPI validation errors (422)
+      if (error.response.status === 422 && error.response.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          // FastAPI validation errors format
+          message = error.response.data.detail.map(err => {
+            const location = err.loc ? err.loc.join('.') : '';
+            return location ? `${location}: ${err.msg}` : err.msg;
+          }).join(', ');
+        } else {
+          message = error.response.data.detail;
+        }
+      } else if (error.response.data?.detail) {
+        message = error.response.data.detail;
+      } else if (error.response.data?.message) {
+        message = error.response.data.message;
+      }
+      
       return {
-        message: error.response.data?.detail || error.response.data?.message || 'An error occurred',
+        message: message,
         status: error.response.status,
+        detail: error.response.data?.detail || null
       };
     } else if (error.request) {
       // The request was made but no response was received
