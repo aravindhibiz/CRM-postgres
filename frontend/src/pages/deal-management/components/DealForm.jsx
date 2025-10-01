@@ -3,6 +3,8 @@ import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
 import { contactsService } from '../../../services/contactsService';
 import { companiesService } from '../../../services/companiesService';
+import { CustomFieldsGroup } from '../../../components/CustomFieldInput';
+import { customFieldsAPI } from '../../../services/customFieldsAPI';
 
 const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onSubmit, onCancel, isSaving = false }) => {
   const { user } = useAuth();

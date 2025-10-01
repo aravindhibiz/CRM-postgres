@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import emailService from '../../../services/emailService';
+import emailTemplateService from '../../../services/emailTemplateService';
 import geminiService from '../../../services/geminiService';
 
 const ComposeEmailModal = ({ contact, onClose, onSend }) => {
@@ -11,11 +12,27 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
     cc: '',
     bcc: ''
   });
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [showCcBcc, setShowCcBcc] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Load templates on mount
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      const response = await emailTemplateService.getTemplates({ status: 'active' });
+      setTemplates(response.templates || []);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e?.target;
@@ -23,6 +40,37 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
       ...emailData,
       [name]: value
     });
+  };
+
+  const handleTemplateChange = async (templateId) => {
+    setSelectedTemplate(templateId);
+    
+    if (!templateId) {
+      return;
+    }
+
+    try {
+      const mergeData = {
+        first_name: contact?.first_name || '',
+        last_name: contact?.last_name || '',
+        full_name: `${contact?.first_name || ''} ${contact?.last_name || ''}`.trim(),
+        email: contact?.email || '',
+        phone: contact?.phone || '',
+        company_name: contact?.company?.name || '',
+        position: contact?.position || ''
+      };
+
+      const preview = await emailTemplateService.previewTemplate(templateId, mergeData);
+      
+      setEmailData(prev => ({
+        ...prev,
+        subject: preview.subject,
+        body: preview.content
+      }));
+    } catch (error) {
+      console.error('Failed to load template:', error);
+      alert('Failed to load template');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -33,19 +81,32 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
         to: emailData?.to,
         subject: emailData?.subject,
         body: emailData?.body,
-        cc: emailData?.cc,
-        bcc: emailData?.bcc,
+        cc: emailData?.cc ? emailData.cc.split(',').map(email => email.trim()) : undefined,
+        bcc: emailData?.bcc ? emailData.bcc.split(',').map(email => email.trim()) : undefined,
+        template_id: selectedTemplate || undefined,
         contactId: contact?.id
       });
       
-      const response = await emailService.sendEmail({
-        to: emailData?.to,
-        subject: emailData?.subject,
-        body: emailData?.body,
-        cc: emailData?.cc,
-        bcc: emailData?.bcc,
-        contactId: contact?.id
-      });
+      // Use the email template service for sending
+      const emailPayload = {
+        to: emailData.to,
+        subject: emailData.subject,
+        content: emailData.body,
+        cc: emailData.cc ? emailData.cc.split(',').map(email => email.trim()) : undefined,
+        bcc: emailData.bcc ? emailData.bcc.split(',').map(email => email.trim()) : undefined,
+        template_id: selectedTemplate || undefined,
+        merge_data: {
+          first_name: contact?.first_name || '',
+          last_name: contact?.last_name || '',
+          full_name: `${contact?.first_name || ''} ${contact?.last_name || ''}`.trim(),
+          email: contact?.email || '',
+          phone: contact?.phone || '',
+          company_name: contact?.company?.name || '',
+          position: contact?.position || ''
+        }
+      };
+
+      const response = await emailTemplateService.sendEmail(emailPayload);
       
       console.log('Email response:', response);
       
@@ -53,15 +114,15 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
         ...emailData,
         timestamp: new Date()?.toISOString(),
         contactId: contact?.id,
-        status: response?.status || 'sent'
+        status: response?.success ? 'sent' : 'failed'
       });
       onClose();
     } catch (error) {
       console.error('Email sending failed:', error);
       
       let errorMessage = 'Failed to send email. Please try again.';
-      if (error.response?.data?.error) {
-        errorMessage = `Failed to send email: ${error.response.data.error}`;
+      if (error.response?.data?.detail) {
+        errorMessage = `Failed to send email: ${error.response.data.detail}`;
       } else if (error.message) {
         errorMessage = `Failed to send email: ${error.message}`;
       }
@@ -149,6 +210,30 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
                       readOnly
                     />
                   </div>
+                </div>
+
+                {/* Template Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">
+                    Email Template (Optional)
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => handleTemplateChange(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Select a template...</option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedTemplate && (
+                    <p className="text-xs text-text-tertiary mt-1">
+                      Template content will be merged with contact information
+                    </p>
+                  )}
                 </div>
                 
                 {showCcBcc && (

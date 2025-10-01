@@ -1,8 +1,13 @@
 // src/pages/settings-administration/components/CustomFields.jsx
-import React, { useState } from 'react';
-import Icon from '../../../components/AppIcon';
+import React from 'react';
+import CustomFieldsManager from '../../../components/CustomFieldsManager';
 
 const CustomFields = () => {
+  return <CustomFieldsManager />;
+};
+
+// Old implementation - replaced with CustomFieldsManager
+const OldCustomFields = () => {
   const [fields, setFields] = useState([
     {
       id: 1,
@@ -421,3 +426,4 @@ const CustomFields = () => {
 };
 
 export default CustomFields;
+// export default OldCustomFields;

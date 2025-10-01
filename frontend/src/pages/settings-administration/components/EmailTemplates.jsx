@@ -1,41 +1,13 @@
 // src/pages/settings-administration/components/EmailTemplates.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
+import emailTemplateService from '../../../services/emailTemplateService';
 
 const EmailTemplates = () => {
-  const [templates, setTemplates] = useState([
-    {
-      id: 1,
-      name: 'Welcome Email',
-      subject: 'Welcome to {{company_name}}!',
-      category: 'onboarding',
-      status: 'active',
-      lastModified: '2024-01-15',
-      usage: 45,
-      content: 'Hello {{first_name}},\n\nWelcome to {{company_name}}! We\'re excited to have you on board.\n\nBest regards,\n{{sender_name}}'
-    },
-    {
-      id: 2,
-      name: 'Follow-up After Meeting',
-      subject: 'Great meeting with you today!',
-      category: 'followup',
-      status: 'active',
-      lastModified: '2024-01-12',
-      usage: 78,
-      content: 'Hi {{first_name}},\n\nThank you for taking the time to meet with us today. As discussed, I\'m attaching the proposal for your review.\n\nPlease let me know if you have any questions.\n\nBest regards,\n{{sender_name}}'
-    },
-    {
-      id: 3,
-      name: 'Deal Closed Won',
-      subject: 'Congratulations! Welcome aboard!',
-      category: 'closing',
-      status: 'draft',
-      lastModified: '2024-01-10',
-      usage: 12,
-      content: 'Dear {{first_name}},\n\nCongratulations! We\'re thrilled to welcome you as our newest client.\n\nNext steps:\n- You\'ll receive your welcome packet within 24 hours\n- Our onboarding team will contact you shortly\n\nThank you for choosing {{company_name}}!\n\n{{sender_name}}'
-    }
-  ]);
-
+  const [templates, setTemplates] = useState([]);
+  const [mergeFields, setMergeFields] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -44,31 +16,40 @@ const EmailTemplates = () => {
     name: '',
     subject: '',
     category: 'general',
-    content: ''
+    content: '',
+    status: 'draft'
   });
 
-  const categories = [
-    { value: 'general', label: 'General' },
-    { value: 'onboarding', label: 'Onboarding' },
-    { value: 'followup', label: 'Follow-up' },
-    { value: 'closing', label: 'Deal Closing' },
-    { value: 'nurturing', label: 'Lead Nurturing' },
-    { value: 'reminder', label: 'Reminders' }
-  ];
+  const categories = emailTemplateService.getCategories();
+  const statuses = emailTemplateService.getStatuses();
 
-  const mergeFields = [
-    { field: '{{first_name}}', description: 'Contact first name' },
-    { field: '{{last_name}}', description: 'Contact last name' },
-    { field: '{{full_name}}', description: 'Contact full name' },
-    { field: '{{email}}', description: 'Contact email address' },
-    { field: '{{company_name}}', description: 'Contact company name' },
-    { field: '{{phone}}', description: 'Contact phone number' },
-    { field: '{{deal_name}}', description: 'Deal title' },
-    { field: '{{deal_value}}', description: 'Deal value' },
-    { field: '{{sender_name}}', description: 'Your name' },
-    { field: '{{sender_email}}', description: 'Your email' },
-    { field: '{{current_date}}', description: 'Current date' }
-  ];
+  // Load templates and merge fields on component mount
+  useEffect(() => {
+    loadTemplates();
+    loadMergeFields();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const response = await emailTemplateService.getTemplates();
+      setTemplates(response.templates || []);
+    } catch (err) {
+      setError('Failed to load email templates');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMergeFields = async () => {
+    try {
+      const response = await emailTemplateService.getMergeFields();
+      setMergeFields(response.fields || []);
+    } catch (err) {
+      console.error('Failed to load merge fields:', err);
+    }
+  };
 
   const handleCreateTemplate = () => {
     setEditingTemplate(null);
@@ -76,7 +57,8 @@ const EmailTemplates = () => {
       name: '',
       subject: '',
       category: 'general',
-      content: ''
+      content: '',
+      status: 'draft'
     });
     setShowTemplateModal(true);
   };
@@ -84,47 +66,45 @@ const EmailTemplates = () => {
   const handleEditTemplate = (template) => {
     setEditingTemplate(template);
     setTemplateForm({
-      name: template?.name,
-      subject: template?.subject,
-      category: template?.category,
-      content: template?.content
+      name: template.name,
+      subject: template.subject,
+      category: template.category,
+      content: template.content,
+      status: template.status
     });
     setShowTemplateModal(true);
   };
 
-  const handleDeleteTemplate = (templateId) => {
-    setTemplates(prev => prev?.filter(template => template?.id !== templateId));
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) {
+      return;
+    }
+
+    try {
+      await emailTemplateService.deleteTemplate(templateId);
+      await loadTemplates(); // Reload templates
+    } catch (err) {
+      alert('Failed to delete template');
+      console.error(err);
+    }
   };
 
-  const handleSaveTemplate = (e) => {
-    e?.preventDefault();
+  const handleSaveTemplate = async (e) => {
+    e.preventDefault();
     
-    if (editingTemplate) {
-      setTemplates(prev =>
-        prev?.map(template =>
-          template?.id === editingTemplate?.id
-            ? { 
-                ...template, 
-                ...templateForm, 
-                lastModified: new Date()?.toISOString()?.split('T')?.[0],
-                status: template?.status === 'draft' ? 'draft' : 'active'
-              }
-            : template
-        )
-      );
-    } else {
-      const newTemplate = {
-        id: Date.now(),
-        ...templateForm,
-        status: 'draft',
-        lastModified: new Date()?.toISOString()?.split('T')?.[0],
-        usage: 0
-      };
-      setTemplates(prev => [...prev, newTemplate]);
+    try {
+      if (editingTemplate) {
+        await emailTemplateService.updateTemplate(editingTemplate.id, templateForm);
+      } else {
+        await emailTemplateService.createTemplate(templateForm);
+      }
+      
+      setShowTemplateModal(false);
+      await loadTemplates(); // Reload templates
+    } catch (err) {
+      alert('Failed to save template: ' + (err.response?.data?.detail || err.message));
+      console.error(err);
     }
-    
-    setShowTemplateModal(false);
-    setEditingTemplate(null);
   };
 
   const handlePreviewTemplate = (template) => {
@@ -190,65 +170,94 @@ const EmailTemplates = () => {
         </button>
       </div>
       {/* Templates List */}
-      <div className="bg-surface rounded-lg border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-background border-b border-border">
-              <tr>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Template Name</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Subject</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Category</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Usage</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Modified</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {templates?.map((template) => (
-                <tr key={template?.id} className="border-b border-border hover:bg-surface-hover">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      <Icon name="Mail" size={16} className="text-text-tertiary" />
-                      <span className="font-medium text-text-primary">{template?.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-text-secondary max-w-xs truncate">{template?.subject}</td>
-                  <td className="py-3 px-4">{getCategoryBadge(template?.category)}</td>
-                  <td className="py-3 px-4">{getStatusBadge(template?.status)}</td>
-                  <td className="py-3 px-4 text-sm text-text-secondary">{template?.usage} times</td>
-                  <td className="py-3 px-4 text-sm text-text-secondary">{template?.lastModified}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handlePreviewTemplate(template)}
-                        className="p-1 text-text-secondary hover:text-primary transition-colors duration-150"
-                        title="Preview"
-                      >
-                        <Icon name="Eye" size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleEditTemplate(template)}
-                        className="p-1 text-text-secondary hover:text-primary transition-colors duration-150"
-                        title="Edit"
-                      >
-                        <Icon name="Edit3" size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTemplate(template?.id)}
-                        className="p-1 text-text-secondary hover:text-error transition-colors duration-150"
-                        title="Delete"
-                      >
-                        <Icon name="Trash2" size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {loading ? (
+        <div className="bg-surface rounded-lg border border-border p-8 text-center">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span className="text-text-secondary">Loading templates...</span>
+          </div>
         </div>
-      </div>
+      ) : error ? (
+        <div className="bg-surface rounded-lg border border-border p-8 text-center">
+          <div className="text-error">{error}</div>
+          <button 
+            onClick={loadTemplates}
+            className="mt-2 text-primary hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : (
+        <div className="bg-surface rounded-lg border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-background border-b border-border">
+                <tr>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Template Name</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Subject</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Category</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Usage</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Modified</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {templates.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 px-4 text-center text-text-secondary">
+                      No email templates found. Create your first template to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  templates.map((template) => (
+                    <tr key={template.id} className="border-b border-border hover:bg-surface-hover">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2">
+                          <Icon name="Mail" size={16} className="text-text-tertiary" />
+                          <span className="font-medium text-text-primary">{template.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-text-secondary max-w-xs truncate">{template.subject}</td>
+                      <td className="py-3 px-4">{getCategoryBadge(template.category)}</td>
+                      <td className="py-3 px-4">{getStatusBadge(template.status)}</td>
+                      <td className="py-3 px-4 text-sm text-text-secondary">{template.usage_count} times</td>
+                      <td className="py-3 px-4 text-sm text-text-secondary">
+                        {new Date(template.updated_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handlePreviewTemplate(template)}
+                            className="p-1 text-text-secondary hover:text-primary transition-colors duration-150"
+                            title="Preview"
+                          >
+                            <Icon name="Eye" size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEditTemplate(template)}
+                            className="p-1 text-text-secondary hover:text-primary transition-colors duration-150"
+                            title="Edit"
+                          >
+                            <Icon name="Edit3" size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTemplate(template.id)}
+                            className="p-1 text-text-secondary hover:text-error transition-colors duration-150"
+                            title="Delete"
+                          >
+                            <Icon name="Trash2" size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {/* Create/Edit Template Modal */}
       {showTemplateModal && (
         <div className="fixed inset-0 z-1200 overflow-y-auto">
@@ -269,7 +278,7 @@ const EmailTemplates = () => {
                 </div>
                 
                 <form onSubmit={handleSaveTemplate} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-text-primary mb-1">Template Name</label>
                       <input
@@ -291,6 +300,19 @@ const EmailTemplates = () => {
                       >
                         {categories?.map(category => (
                           <option key={category?.value} value={category?.value}>{category?.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary mb-1">Status</label>
+                      <select
+                        value={templateForm?.status}
+                        onChange={(e) => setTemplateForm(prev => ({ ...prev, status: e?.target?.value }))}
+                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+                      >
+                        {statuses?.map(status => (
+                          <option key={status?.value} value={status?.value}>{status?.label}</option>
                         ))}
                       </select>
                     </div>

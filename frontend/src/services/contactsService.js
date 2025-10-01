@@ -37,6 +37,7 @@ export const contactsService = {
       social_linkedin: contactData.social_linkedin || null,
       social_twitter: contactData.social_twitter || null,
       company_id: contactData.company_id || null,
+      custom_fields: contactData.custom_fields || undefined
     };
 
     const { data, error } = await apiClient.post('/api/v1/contacts', cleanContactData);

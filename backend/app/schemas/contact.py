@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 import uuid
 from .user import UserResponse
@@ -22,6 +22,7 @@ class ContactBase(BaseModel):
 class ContactCreate(ContactBase):
     company_id: Optional[uuid.UUID] = None
     owner_id: Optional[uuid.UUID] = None
+    custom_fields: Optional[Dict[str, Any]] = None
 
 
 class ContactUpdate(BaseModel):
@@ -36,6 +37,7 @@ class ContactUpdate(BaseModel):
     social_linkedin: Optional[str] = None
     social_twitter: Optional[str] = None
     company_id: Optional[uuid.UUID] = None
+    custom_fields: Optional[Dict[str, Any]] = None
 
 
 class ContactResponse(ContactBase):
@@ -44,6 +46,7 @@ class ContactResponse(ContactBase):
     owner_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    custom_fields: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

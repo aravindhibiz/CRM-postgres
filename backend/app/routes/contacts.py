@@ -12,7 +12,9 @@ from ..core.auth import (
 from ..models.user import UserProfile
 from ..models.contact import Contact
 from ..models.company import Company
+from ..models.custom_field import CustomFieldValue, EntityType
 from ..schemas.contact import ContactCreate, ContactUpdate, ContactResponse, ContactWithRelations
+from ..services.custom_field_service import CustomFieldService
 
 router = APIRouter()
 
@@ -99,7 +101,36 @@ async def get_contact_by_id(
             detail="Contact not found"
         )
 
-    return contact
+    # Get custom fields data
+    custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+        db=db,
+        entity_id=str(contact.id),
+        entity_type=EntityType.CONTACT
+    )
+
+    # Build response with custom fields and relations
+    response_data = {
+        "id": contact.id,
+        "first_name": contact.first_name,
+        "last_name": contact.last_name,
+        "email": contact.email,
+        "phone": contact.phone,
+        "mobile": contact.mobile,
+        "position": contact.position,
+        "status": contact.status,
+        "notes": contact.notes,
+        "social_linkedin": contact.social_linkedin,
+        "social_twitter": contact.social_twitter,
+        "company_id": contact.company_id,
+        "owner_id": contact.owner_id,
+        "created_at": contact.created_at,
+        "updated_at": contact.updated_at,
+        "custom_fields": custom_fields_dict if custom_fields_dict else None,
+        "owner": contact.owner,
+        "company": contact.company
+    }
+
+    return response_data
 
 
 @router.post("/", response_model=ContactResponse)
@@ -108,17 +139,70 @@ async def create_contact(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    # Create contact with current user as owner
-    db_contact = Contact(
-        **contact_data.dict(exclude={'owner_id'}),
-        owner_id=current_user.id
-    )
+    try:
+        # Extract custom fields before creating contact
+        custom_fields_data = contact_data.custom_fields or {}
 
-    db.add(db_contact)
-    db.commit()
-    db.refresh(db_contact)
+        # Create contact with current user as owner
+        contact_dict = contact_data.model_dump(
+            exclude={'owner_id', 'custom_fields'})
+        db_contact = Contact(
+            **contact_dict,
+            owner_id=current_user.id
+        )
 
-    return db_contact
+        db.add(db_contact)
+        db.commit()
+        db.refresh(db_contact)
+
+        # Save custom field values if provided
+        if custom_fields_data:
+            print(f"DEBUG: Saving custom fields: {custom_fields_data}")
+            result = CustomFieldService.save_custom_field_values(
+                db=db,
+                entity_id=str(db_contact.id),
+                entity_type=EntityType.CONTACT,
+                field_values=custom_fields_data
+            )
+            print(f"DEBUG: Save result: {result}")
+            db.commit()  # Commit custom field values
+
+        # Get custom fields for response
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=db,
+            entity_id=str(db_contact.id),
+            entity_type=EntityType.CONTACT
+        )
+
+        # Build response with custom fields
+        response_data = {
+            "id": db_contact.id,
+            "first_name": db_contact.first_name,
+            "last_name": db_contact.last_name,
+            "email": db_contact.email,
+            "phone": db_contact.phone,
+            "mobile": db_contact.mobile,
+            "position": db_contact.position,
+            "status": db_contact.status,
+            "notes": db_contact.notes,
+            "social_linkedin": db_contact.social_linkedin,
+            "social_twitter": db_contact.social_twitter,
+            "company_id": db_contact.company_id,
+            "owner_id": db_contact.owner_id,
+            "created_at": db_contact.created_at,
+            "updated_at": db_contact.updated_at,
+            "custom_fields": custom_fields_dict if custom_fields_dict else None
+        }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating contact: {str(e)}")  # For debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create contact: {str(e)}"
+        )
 
 
 @router.put("/{contact_id}", response_model=ContactResponse)
@@ -139,15 +223,64 @@ async def update_contact(
             detail="Contact not found"
         )
 
-    # Update contact fields
-    update_data = contact_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(contact, field, value)
+    try:
+        # Extract custom fields before updating contact
+        update_data = contact_data.model_dump(exclude_unset=True)
+        custom_fields_data = update_data.pop('custom_fields', None)
 
-    db.commit()
-    db.refresh(contact)
+        # Update contact fields
+        for field, value in update_data.items():
+            setattr(contact, field, value)
 
-    return contact
+        db.commit()
+        db.refresh(contact)
+
+        # Update custom field values if provided
+        if custom_fields_data is not None:
+            CustomFieldService.save_custom_field_values(
+                db=db,
+                entity_id=str(contact.id),
+                entity_type=EntityType.CONTACT,
+                field_values=custom_fields_data
+            )
+            db.commit()  # Commit custom field values
+
+        # Get custom fields for response
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=db,
+            entity_id=str(contact.id),
+            entity_type=EntityType.CONTACT
+        )
+
+        # Build response with custom fields
+        response_data = {
+            "id": contact.id,
+            "first_name": contact.first_name,
+            "last_name": contact.last_name,
+            "email": contact.email,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "position": contact.position,
+            "status": contact.status,
+            "notes": contact.notes,
+            "social_linkedin": contact.social_linkedin,
+            "social_twitter": contact.social_twitter,
+            "company_id": contact.company_id,
+            "owner_id": contact.owner_id,
+            "created_at": contact.created_at,
+            "updated_at": contact.updated_at,
+            "custom_fields": custom_fields_dict if custom_fields_dict else None
+        }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating contact: {str(e)}")  # For debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update contact: {str(e)}"
+        )
 
 
 @router.delete("/{contact_id}")

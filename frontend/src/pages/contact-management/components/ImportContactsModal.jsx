@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Icon from 'components/AppIcon';
+import Papa from 'papaparse';
 
 const ImportContactsModal = ({ onImport, onClose }) => {
   const [step, setStep] = useState(1);
@@ -14,57 +15,87 @@ const ImportContactsModal = ({ onImport, onClose }) => {
   });
   const [preview, setPreview] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [fileHeaders, setFileHeaders] = useState([]);
+  const [parseError, setParseError] = useState(null);
 
   const handleFileChange = (e) => {
     const selectedFile = e?.target?.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      
-      // Mock CSV parsing
-      setTimeout(() => {
-        // This would normally parse the CSV file
-        const mockPreview = [
-          {
-            firstName: 'John',
-            lastName: 'Doe',
-            email: 'john.doe@example.com',
-            phone: '+1 (555) 123-4567',
-            company: 'Example Corp',
-            position: 'Sales Manager'
-          },
-          {
-            firstName: 'Jane',
-            lastName: 'Smith',
-            email: 'jane.smith@example.com',
-            phone: '+1 (555) 987-6543',
-            company: 'Sample Inc',
-            position: 'Marketing Director'
-          },
-          {
-            firstName: 'Robert',
-            lastName: 'Johnson',
-            email: 'robert.johnson@example.com',
-            phone: '+1 (555) 456-7890',
-            company: 'Test LLC',
-            position: 'CEO'
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setParseError(null);
+    setIsLoading(true);
+
+    // Parse CSV file
+    Papa.parse(selectedFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        try {
+          if (results.errors && results.errors.length > 0) {
+            console.error('CSV parsing errors:', results.errors);
+            setParseError('Error parsing file. Please check the format.');
+            setIsLoading(false);
+            return;
           }
-        ];
-        
-        setPreview(mockPreview);
-        
-        // Auto-map columns based on headers
-        setMappings({
-          firstName: 'firstName',
-          lastName: 'lastName',
-          email: 'email',
-          phone: 'phone',
-          company: 'company',
-          position: 'position'
-        });
-        
-        setStep(2);
-      }, 500);
-    }
+
+          if (!results.data || results.data.length === 0) {
+            setParseError('The file is empty or has no valid data.');
+            setIsLoading(false);
+            return;
+          }
+
+          // Get headers from the first row keys
+          const headers = Object.keys(results.data[0] || {});
+          setFileHeaders(headers);
+
+          // Store preview data
+          setPreview(results.data);
+
+          // Auto-map columns based on common header names
+          const autoMappings = {
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            company: '',
+            position: ''
+          };
+
+          // Try to auto-detect column mappings
+          headers.forEach(header => {
+            const lowerHeader = header.toLowerCase().trim();
+
+            if (lowerHeader.includes('first') && lowerHeader.includes('name')) {
+              autoMappings.firstName = header;
+            } else if (lowerHeader.includes('last') && lowerHeader.includes('name')) {
+              autoMappings.lastName = header;
+            } else if (lowerHeader.includes('email')) {
+              autoMappings.email = header;
+            } else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile')) {
+              autoMappings.phone = header;
+            } else if (lowerHeader.includes('company') || lowerHeader.includes('organization')) {
+              autoMappings.company = header;
+            } else if (lowerHeader.includes('position') || lowerHeader.includes('title') || lowerHeader.includes('job')) {
+              autoMappings.position = header;
+            }
+          });
+
+          setMappings(autoMappings);
+          setStep(2);
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Error processing file:', error);
+          setParseError('Failed to process the file. Please try again.');
+          setIsLoading(false);
+        }
+      },
+      error: (error) => {
+        console.error('Papa Parse error:', error);
+        setParseError('Failed to parse the file. Please ensure it\'s a valid CSV file.');
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleMappingChange = (field, value) => {
@@ -76,36 +107,39 @@ const ImportContactsModal = ({ onImport, onClose }) => {
 
   const handleImport = () => {
     setIsLoading(true);
-    
-    // Simulate import process
-    setTimeout(() => {
-      // In a real app, this would process the file with the mappings
-      const importedContacts = preview?.map((item, index) => ({
-        id: Date.now() + index,
-        firstName: item?.[mappings?.firstName] || '',
-        lastName: item?.[mappings?.lastName] || '',
-        email: item?.[mappings?.email] || '',
-        phone: item?.[mappings?.phone] || '',
-        company: item?.[mappings?.company] || '',
-        position: item?.[mappings?.position] || '',
-        avatar: `https://randomuser.me/api/portraits/${index % 2 === 0 ? 'men' : 'women'}/${Math.floor(Math.random() * 100)}.jpg`,
-        lastContactDate: new Date()?.toISOString(),
-        status: 'active',
-        tags: [],
-        deals: [],
-        notes: '',
-        socialProfiles: {},
-        activities: [],
-        customFields: {
-          preferredContactMethod: '',
-          decisionTimeframe: '',
-          budgetRange: ''
-        }
-      }));
-      
+    setParseError(null);
+
+    try {
+      // Transform the data to match the backend schema
+      const importedContacts = preview
+        .filter(item => {
+          // Ensure required fields are present
+          const firstName = item?.[mappings?.firstName];
+          const lastName = item?.[mappings?.lastName];
+          return firstName && lastName && firstName.trim() && lastName.trim();
+        })
+        .map(item => ({
+          first_name: (item?.[mappings?.firstName] || '').trim(),
+          last_name: (item?.[mappings?.lastName] || '').trim(),
+          email: (item?.[mappings?.email] || '').trim() || null,
+          phone: (item?.[mappings?.phone] || '').trim() || null,
+          company_name: (item?.[mappings?.company] || '').trim() || null,
+          position: (item?.[mappings?.position] || '').trim() || null,
+          status: 'active'
+        }));
+
+      if (importedContacts.length === 0) {
+        setParseError('No valid contacts found. Please ensure firstName and lastName are provided for all contacts.');
+        setIsLoading(false);
+        return;
+      }
+
       onImport(importedContacts);
+    } catch (error) {
+      console.error('Error preparing import data:', error);
+      setParseError('Failed to prepare import data. Please try again.');
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -138,29 +172,50 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                   </div>
                   <h4 className="text-lg font-medium text-text-primary mb-2">Upload Contact File</h4>
                   <p className="text-text-secondary mb-4">
-                    Upload a CSV or Excel file with your contacts data.
+                    Upload a CSV file with your contacts data.
                   </p>
                 </div>
+
+                {/* Error Message */}
+                {parseError && (
+                  <div className="mb-4 p-3 bg-error-50 border border-error-200 rounded-lg text-error text-sm">
+                    {parseError}
+                  </div>
+                )}
+
+                {/* Loading Message */}
+                {isLoading && (
+                  <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg text-primary text-sm flex items-center justify-center">
+                    <Icon name="Loader" size={16} className="animate-spin mr-2" />
+                    Parsing file...
+                  </div>
+                )}
                 
                 <div className="border-2 border-dashed border-border rounded-lg p-8 mb-6">
                   <input
                     type="file"
                     id="contactFile"
-                    accept=".csv,.xlsx,.xls"
+                    accept=".csv"
                     onChange={handleFileChange}
                     className="hidden"
+                    disabled={isLoading}
                   />
                   <label
                     htmlFor="contactFile"
-                    className="cursor-pointer flex flex-col items-center justify-center"
+                    className={`cursor-pointer flex flex-col items-center justify-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Icon name="FileText" size={36} className="text-text-tertiary mb-3" />
                     <span className="text-text-primary font-medium mb-1">
                       Drag and drop your file here or click to browse
                     </span>
                     <span className="text-sm text-text-tertiary">
-                      Supports CSV, Excel (.xlsx, .xls)
+                      Supports CSV files
                     </span>
+                    {file && !isLoading && (
+                      <span className="text-sm text-primary mt-2">
+                        Selected: {file.name}
+                      </span>
+                    )}
                   </label>
                 </div>
                 
@@ -192,7 +247,7 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-text-secondary mb-1">
-                        First Name*
+                        First Name* (Required)
                       </label>
                       <select
                         value={mappings?.firstName}
@@ -200,15 +255,15 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                         className="input-field"
                       >
                         <option value="">Select column</option>
-                        <option value="firstName">firstName</option>
-                        <option value="first_name">first_name</option>
-                        <option value="FirstName">FirstName</option>
+                        {fileHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-text-secondary mb-1">
-                        Last Name*
+                        Last Name* (Required)
                       </label>
                       <select
                         value={mappings?.lastName}
@@ -216,15 +271,15 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                         className="input-field"
                       >
                         <option value="">Select column</option>
-                        <option value="lastName">lastName</option>
-                        <option value="last_name">last_name</option>
-                        <option value="LastName">LastName</option>
+                        {fileHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-text-secondary mb-1">
-                        Email*
+                        Email (Optional)
                       </label>
                       <select
                         value={mappings?.email}
@@ -232,15 +287,15 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                         className="input-field"
                       >
                         <option value="">Select column</option>
-                        <option value="email">email</option>
-                        <option value="email_address">email_address</option>
-                        <option value="Email">Email</option>
+                        {fileHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-text-secondary mb-1">
-                        Phone
+                        Phone (Optional)
                       </label>
                       <select
                         value={mappings?.phone}
@@ -248,15 +303,15 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                         className="input-field"
                       >
                         <option value="">Select column</option>
-                        <option value="phone">phone</option>
-                        <option value="phone_number">phone_number</option>
-                        <option value="Phone">Phone</option>
+                        {fileHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-text-secondary mb-1">
-                        Company*
+                        Company (Optional)
                       </label>
                       <select
                         value={mappings?.company}
@@ -264,15 +319,15 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                         className="input-field"
                       >
                         <option value="">Select column</option>
-                        <option value="company">company</option>
-                        <option value="company_name">company_name</option>
-                        <option value="Company">Company</option>
+                        {fileHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-text-secondary mb-1">
-                        Position
+                        Position (Optional)
                       </label>
                       <select
                         value={mappings?.position}
@@ -280,10 +335,9 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                         className="input-field"
                       >
                         <option value="">Select column</option>
-                        <option value="position">position</option>
-                        <option value="title">title</option>
-                        <option value="job_title">job_title</option>
-                        <option value="Position">Position</option>
+                        {fileHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -364,9 +418,9 @@ const ImportContactsModal = ({ onImport, onClose }) => {
             ) : (
               <button
                 onClick={handleImport}
-                disabled={isLoading || !mappings?.firstName || !mappings?.lastName || !mappings?.email || !mappings?.company}
+                disabled={isLoading || !mappings?.firstName || !mappings?.lastName}
                 className={`btn-primary inline-flex items-center ${
-                  isLoading || !mappings?.firstName || !mappings?.lastName || !mappings?.email || !mappings?.company
+                  isLoading || !mappings?.firstName || !mappings?.lastName
                     ? 'opacity-50 cursor-not-allowed' :''
                 }`}
               >

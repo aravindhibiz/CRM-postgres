@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
 import { companiesService } from '../../../services/companiesService';
+import { CustomFieldsGroup } from '../../../components/CustomFieldInput';
+import { customFieldsAPI } from '../../../services/customFieldsAPI';
+
+
 
 const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState({});
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -28,10 +35,30 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [newTag, setNewTag] = useState('');
 
-  // Load companies and populate form
+
+
+  // Load companies and custom fields
   useEffect(() => {
     loadCompanies();
-    
+
+    // TEMPORARILY DISABLED: Custom fields causing issues
+    // TODO: Re-enable after debugging backend custom field issues
+    console.log('Custom fields temporarily disabled');
+    setCustomFields([]);
+    setCustomFieldsLoading(false);
+
+    // Load custom fields asynchronously (non-blocking)
+    // const loadFieldsAsync = async () => {
+    //   try {
+    //     await loadCustomFields();
+    //   } catch (err) {
+    //     console.error('Failed to load custom fields, continuing without them:', err);
+    //     setCustomFields([]);
+    //     setCustomFieldsLoading(false);
+    //   }
+    // };
+    // setTimeout(loadFieldsAsync, 100);
+
     if (contact) {
       setFormData({
         first_name: contact?.first_name || '',
@@ -66,6 +93,41 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
     }
   };
 
+  const loadCustomFields = async () => {
+    setCustomFieldsLoading(true);
+    try {
+      console.log('Loading custom fields...');
+      const fields = await customFieldsAPI.getAllFields({
+        entity_type: 'contact',
+        is_active: true,
+        placement: 'form'
+      });
+      console.log('Custom fields loaded:', fields);
+      setCustomFields(Array.isArray(fields) ? fields : []);
+      
+      // If editing an existing contact, load custom field values
+      if (contact?.id && contact?.custom_fields) {
+        const fieldValues = {};
+        Object.entries(contact.custom_fields).forEach(([key, data]) => {
+          if (data && typeof data === 'object' && data.value !== undefined) {
+            fieldValues[key] = data.value;
+          }
+        });
+        setCustomFieldValues(fieldValues);
+      }
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+      setCustomFields([]); // Fallback to empty array
+      // Don't re-throw - allow form to render without custom fields
+    } finally {
+      setCustomFieldsLoading(false);
+    }
+  };
+
+
+
+
+
   const handleSubmit = async (e) => {
     e?.preventDefault();
     setLoading(true);
@@ -93,8 +155,11 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         return;
       }
 
-      // Prepare data for submission - include companyName for potential company creation
-      const submitData = { ...formData };
+      // Prepare data for submission - CUSTOM FIELDS DISABLED FOR NOW
+      const submitData = {
+        ...formData
+        // custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined
+      };
 
       // Pass data to parent component for API call
       console.log('Submitting contact form data to parent component:', submitData);
@@ -117,6 +182,24 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors?.[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCustomFieldChange = (fieldKey, value) => {
+    if (!fieldKey) return;
+    
+    setCustomFieldValues(prev => ({ 
+      ...prev, 
+      [fieldKey]: value 
+    }));
+    
+    // Clear field error when user changes value
+    if (errors?.[fieldKey]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldKey];
         return newErrors;
       });
     }
@@ -421,6 +504,34 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           placeholder="Additional notes about this contact..."
         />
       </div>
+
+      {/* Custom Fields - TEMPORARILY DISABLED */}
+      {/* {customFieldsLoading && (
+        <div className="pt-6 border-t border-border">
+          <div className="text-center py-4 text-gray-500">
+            Loading custom fields...
+          </div>
+        </div>
+      )}
+
+      {!customFieldsLoading && Array.isArray(customFields) && customFields.length > 0 && (
+        <div className="pt-6 border-t border-border">
+          <CustomFieldsGroup
+            fields={customFields}
+            values={customFieldValues || {}}
+            onChange={handleCustomFieldChange}
+            errors={errors || {}}
+          />
+        </div>
+      )}
+
+      {!customFieldsLoading && Array.isArray(customFields) && customFields.length === 0 && (
+        <div className="pt-6 border-t border-border">
+          <div className="text-center py-4 text-gray-400 text-sm">
+            No custom fields configured for contacts
+          </div>
+        </div>
+      )} */}
 
       {/* Form Actions */}
       <div className="flex justify-end space-x-3 pt-4 border-t border-border">
