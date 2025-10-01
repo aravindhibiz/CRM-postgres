@@ -1,8 +1,38 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import Icon from 'components/AppIcon';
+import { configService } from '../../../services/configService';
 
 const PerformanceMetrics = ({ data }) => {
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    return configService.formatCurrency(value);
+  };
+
+  // Format currency for short display (e.g., €2.1M)
+  const formatCurrencyShort = (value) => {
+    const currency = configService.getCurrency();
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
+    
+    if (value >= 1000000) {
+      return formatter.format(value / 1000000).replace(/\.0/, '') + 'M';
+    } else if (value >= 1000) {
+      return formatter.format(value / 1000).replace(/\.0/, '') + 'K';
+    } else {
+      return formatter.format(value);
+    }
+  };
+
   const quotaData = [
     { name: 'Achieved', value: data?.achieved, color: '#10B981' },
     { name: 'Remaining', value: data?.quota - data?.achieved, color: '#E5E7EB' }
@@ -77,19 +107,19 @@ const PerformanceMetrics = ({ data }) => {
               <div>
                 <p className="text-sm text-text-secondary">Quota</p>
                 <p className="text-lg font-semibold text-text-primary">
-                  ${(data?.quota / 1000000)?.toFixed(1)}M
+                  {formatCurrencyShort(data?.quota)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-text-secondary">Achieved</p>
                 <p className="text-lg font-semibold text-success">
-                  ${(data?.achieved / 1000000)?.toFixed(1)}M
+                  {formatCurrencyShort(data?.achieved)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-text-secondary">Remaining</p>
                 <p className="text-lg font-semibold text-text-primary">
-                  ${((data?.quota - data?.achieved) / 1000000)?.toFixed(1)}M
+                  {formatCurrencyShort(data?.quota - data?.achieved)}
                 </p>
               </div>
             </div>
@@ -149,7 +179,7 @@ const PerformanceMetrics = ({ data }) => {
           </div>
           <p className="text-sm text-text-secondary">Avg Deal Size</p>
           <p className="text-lg font-semibold text-text-primary">
-            ${(data?.avgDealSize / 1000)?.toFixed(0)}K
+            {formatCurrencyShort(data?.avgDealSize)}
           </p>
         </div>
         
@@ -185,9 +215,13 @@ const PerformanceMetrics = ({ data }) => {
             <BarChart data={monthlyPerformance}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis dataKey="month" stroke="#6B7280" />
-              <YAxis stroke="#6B7280" tickFormatter={(value) => `$${value / 1000}K`} />
+              <YAxis stroke="#6B7280" tickFormatter={(value) => {
+                const currency = configService.getCurrency();
+                const symbol = new Intl.NumberFormat('en-US', { style: 'currency', currency }).formatToParts(0).find(part => part.type === 'currency').value;
+                return `${symbol}${value / 1000}K`;
+              }} />
               <Tooltip 
-                formatter={(value) => [`$${value?.toLocaleString()}`, '']}
+                formatter={(value) => [formatCurrency(value), '']}
                 labelStyle={{ color: '#1F2937' }}
               />
               <Bar dataKey="target" fill="#E5E7EB" name="Target" />

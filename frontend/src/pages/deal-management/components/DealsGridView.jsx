@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Icon from 'components/AppIcon';
+import { configService } from '../../../services/configService';
 
 const DealsGridView = ({ deals, stages, onEditDeal }) => {
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    return configService.formatCurrency(value);
+  };
+
   if (deals.length === 0) {
     return (
       <div className="text-center py-12">
@@ -40,7 +51,7 @@ const DealsGridView = ({ deals, stages, onEditDeal }) => {
             {/* Deal Value */}
             <div className="mb-4">
               <div className="text-2xl font-bold text-text-primary">
-                ${(deal.value || 0).toLocaleString()}
+                {formatCurrency(deal.value || 0)}
               </div>
               <div className="text-sm text-text-secondary">
                 {deal.probability || 0}% probability

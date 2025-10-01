@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
+import { configService } from '../../../services/configService';
 
 const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
 
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    return configService.formatCurrency(value);
+  };
 
   const handleSelectionChange = (e) => {
     e.stopPropagation();
@@ -143,7 +152,7 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
                     </span>
                     {activity?.deal?.value && (
                       <span className="px-3 py-1 bg-success-50 text-success rounded-full text-xs font-medium whitespace-nowrap">
-                        ${activity.deal.value.toLocaleString()}
+                        {formatCurrency(activity.deal.value)}
                       </span>
                     )}
                   </div>

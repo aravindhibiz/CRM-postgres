@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { activitiesService } from '../../../services/activitiesService';
 import { contactsService } from '../../../services/contactsService';
 import { dealsService } from '../../../services/dealsService';
+import { configService } from '../../../services/configService';
 
 const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated, prefilledData = {}, templateData = null, editingActivity = null }) => {
   const { user } = useAuth();
@@ -12,6 +13,16 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
   const [deals, setDeals] = useState([]);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
+
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    return configService.formatCurrency(value);
+  };
 
   const initialFormState = useCallback(() => ({
     type: 'note',
@@ -45,7 +56,7 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
     // Deal variables
     if (selectedDeal) {
       substituted = substituted.replace(/{deal_title}/g, selectedDeal.title || '[Deal Title]');
-      substituted = substituted.replace(/{deal_value}/g, selectedDeal.value ? `$${selectedDeal.value.toLocaleString()}` : '[Deal Value]');
+      substituted = substituted.replace(/{deal_value}/g, selectedDeal.value ? formatCurrency(selectedDeal.value) : '[Deal Value]');
     }
     
     // Date variables

@@ -1,9 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
+import { configService } from '../../../services/configService';
 
 const PipelineStage = ({ stage, totalValue, weightedValue }) => {
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency for short display (e.g., €12K)
+  const formatCurrencyShort = (value) => {
+    const currency = configService.getCurrency();
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+    
+    if (value >= 1000000) {
+      return formatter.format(value / 1000000).replace(/\.0/, '') + 'M';
+    } else if (value >= 1000) {
+      return formatter.format(value / 1000).replace(/\.0/, '') + 'K';
+    } else {
+      return formatter.format(value);
+    }
+  };
+
   const getStageColor = (stageId) => {
     const colors = {
       'lead': 'bg-surface border-border',
@@ -43,13 +68,13 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
         <div className="flex justify-between text-xs">
           <span className="text-text-secondary">Total:</span>
           <span className="font-medium text-text-primary">
-            ${(totalValue / 1000)?.toFixed(0)}K
+            {formatCurrencyShort(totalValue)}
           </span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-text-secondary">Weighted:</span>
           <span className="font-medium text-text-primary">
-            ${(weightedValue / 1000)?.toFixed(0)}K
+            {formatCurrencyShort(weightedValue)}
           </span>
         </div>
       </div>
@@ -85,7 +110,7 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
                     {/* Deal Value */}
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-lg font-semibold text-text-primary">
-                        ${(deal?.value / 1000)?.toFixed(0)}K
+                        {formatCurrencyShort(deal?.value)}
                       </span>
                       <span className="text-xs px-2 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-400 rounded-full">
                         {deal?.probability}%

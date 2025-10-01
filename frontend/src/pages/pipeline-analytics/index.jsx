@@ -4,6 +4,7 @@ import Breadcrumb from 'components/ui/Breadcrumb';
 import Icon from 'components/AppIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
 import dealsService from '../../services/dealsService'; // Import dealsService
+import { configService } from '../../services/configService';
 import { Loader2 } from 'lucide-react'; // Assuming lucide-react for icons
 
 const PipelineAnalytics = () => {
@@ -30,8 +31,26 @@ const PipelineAnalytics = () => {
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  // Load system configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        await configService.loadConfiguration();
+        setConfigLoaded(true);
+      } catch (error) {
+        console.error('Failed to load configuration:', error);
+        setConfigLoaded(true); // Continue with fallback
+      }
+    };
+    loadConfig();
+  }, []);
 
   useEffect(() => {
+    // Only fetch data after configuration is loaded
+    if (!configLoaded) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -85,10 +104,10 @@ const PipelineAnalytics = () => {
         setVelocityMetrics([
           { 
             metric: 'Avg Deal Size', 
-            value: `$${performance.avgDealSize.toLocaleString()}`, 
+            value: performance.avgDealSize, // Store raw value
             change: '+12%',
             trend: 'up',
-            previousValue: `$${Math.round(performance.avgDealSize * 0.88).toLocaleString()}`
+            previousValue: Math.round(performance.avgDealSize * 0.88) // Store raw value
           },
           { 
             metric: 'Win Rate', 
@@ -106,10 +125,10 @@ const PipelineAnalytics = () => {
           },
           { 
             metric: 'Pipeline Velocity', 
-            value: `$${Math.round(performance.achieved / 30).toLocaleString()}/day`, 
+            value: Math.round(performance.achieved / 30), // Store raw value
             change: '+18%',
             trend: 'up',
-            previousValue: `$${Math.round(performance.achieved / 30 * 0.82).toLocaleString()}/day`
+            previousValue: Math.round(performance.achieved / 30 * 0.82) // Store raw value
           },
         ]);
 
@@ -147,7 +166,7 @@ const PipelineAnalytics = () => {
     };
 
     fetchData();
-  }, [selectedDateRange, compareMode, compareDateRange]); // Re-fetch when date ranges change
+  }, [selectedDateRange, compareMode, compareDateRange, configLoaded]); // Re-fetch when date ranges change or config loads
 
   // Auto-refresh functionality
   useEffect(() => {
@@ -232,16 +251,40 @@ const PipelineAnalytics = () => {
   ];
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    })?.format(value);
+    try {
+      return configService.formatCurrency(value);
+    } catch (error) {
+      // Fallback to USD if config not loaded yet
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    }
   };
 
   const formatPercentage = (value) => {
     return `${value?.toFixed(1)}%`;
+  };
+
+  // Helper function to format metric display values
+  const formatMetricValue = (metric) => {
+    if (metric.metric === 'Avg Deal Size') {
+      return formatCurrency(metric.value);
+    } else if (metric.metric === 'Pipeline Velocity') {
+      return `${formatCurrency(metric.value)}/day`;
+    }
+    return metric.value;
+  };
+
+  const formatMetricPreviousValue = (metric) => {
+    if (metric.metric === 'Avg Deal Size') {
+      return formatCurrency(metric.previousValue);
+    } else if (metric.metric === 'Pipeline Velocity') {
+      return `${formatCurrency(metric.previousValue)}/day`;
+    }
+    return metric.previousValue;
   };
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -475,10 +518,10 @@ const PipelineAnalytics = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <p className="text-2xl font-bold text-text-primary">{metric?.value}</p>
+                        <p className="text-2xl font-bold text-text-primary">{formatMetricValue(metric)}</p>
                         {compareMode && metric?.previousValue && (
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-text-tertiary">Previous: {metric?.previousValue}</span>
+                            <span className="text-text-tertiary">Previous: {formatMetricPreviousValue(metric)}</span>
                             <span className={`px-2 py-1 rounded-full ${
                               metric?.trend === 'up' ? 'bg-success-50 text-success' : 'bg-error-50 text-error'
                             }`}>

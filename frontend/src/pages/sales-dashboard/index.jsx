@@ -5,6 +5,7 @@ import Header from 'components/ui/Header';
 import Breadcrumb from 'components/ui/Breadcrumb';
 import Icon from 'components/AppIcon';
 import { useAuth } from '../../contexts/AuthContext';
+import configService from '../../services/configService';
 
 import RecentActivity from './components/RecentActivity';
 import QuickActions from './components/QuickActions';
@@ -28,6 +29,61 @@ const SalesDashboard = () => {
   const [performanceData, setPerformanceData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    try {
+      return configService.formatCurrency(value);
+    } catch (error) {
+      // Fallback to USD if config service fails
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(value);
+    }
+  };
+
+  // Format currency for short display (e.g., $2.1M)
+  const formatCurrencyShort = (value) => {
+    try {
+      const currency = configService.getCurrency();
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      });
+      
+      if (value >= 1000000) {
+        return formatter.format(value / 1000000).replace(/\.0/, '') + 'M';
+      } else if (value >= 1000) {
+        return formatter.format(value / 1000).replace(/\.0/, '') + 'K';
+      } else {
+        return formatter.format(value);
+      }
+    } catch (error) {
+      // Fallback to USD if config service fails
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      });
+      
+      if (value >= 1000000) {
+        return formatter.format(value / 1000000).replace(/\.0/, '') + 'M';
+      } else if (value >= 1000) {
+        return formatter.format(value / 1000).replace(/\.0/, '') + 'K';
+      } else {
+        return formatter.format(value);
+      }
+    }
+  };
 
   // Load dashboard data
   const loadDashboardData = async () => {
@@ -208,7 +264,7 @@ const SalesDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-text-secondary text-sm">Total Pipeline</p>
-                      <p className="text-2xl font-normal text-text-primary">$2.1M</p>
+                      <p className="text-2xl font-normal text-text-primary">{formatCurrencyShort(2100000)}</p>
                     </div>
                     <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
                       <Icon name="TrendingUp" size={24} className="text-primary" />
@@ -220,7 +276,7 @@ const SalesDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-text-secondary text-sm">Weighted Pipeline</p>
-                      <p className="text-2xl font-normal text-text-primary">$1.2M</p>
+                      <p className="text-2xl font-normal text-text-primary">{formatCurrencyShort(1200000)}</p>
                     </div>
                     <div className="w-12 h-12 bg-success-50 rounded-lg flex items-center justify-center">
                       <Icon name="Target" size={24} className="text-success" />
@@ -351,7 +407,7 @@ const SalesDashboard = () => {
                     <div>
                       <p className="text-text-secondary text-sm font-normal">Total Pipeline</p>
                       <p className="text-2xl font-normal text-text-primary">
-                        ${(totalPipelineValue / 1000000)?.toFixed(1)}M
+                        {formatCurrencyShort(totalPipelineValue)}
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
@@ -365,7 +421,7 @@ const SalesDashboard = () => {
                     <div>
                       <p className="text-text-secondary text-sm font-normal">Weighted Pipeline</p>
                       <p className="text-2xl font-normal text-text-primary">
-                        ${(weightedPipelineValue / 1000000)?.toFixed(1)}M
+                        {formatCurrencyShort(weightedPipelineValue)}
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-success-50 rounded-lg flex items-center justify-center">
@@ -434,9 +490,13 @@ const SalesDashboard = () => {
                         <BarChart data={revenueData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                           <XAxis dataKey="month" stroke="#6B7280" />
-                          <YAxis stroke="#6B7280" tickFormatter={(value) => `$${value / 1000}K`} />
+                          <YAxis stroke="#6B7280" tickFormatter={(value) => {
+                            const currency = configService.getCurrency();
+                            const symbol = new Intl.NumberFormat('en-US', { style: 'currency', currency }).formatToParts(0).find(part => part.type === 'currency').value;
+                            return `${symbol}${value / 1000}K`;
+                          }} />
                           <Tooltip 
-                            formatter={(value) => [`$${value?.toLocaleString()}`, '']}
+                            formatter={(value) => [formatCurrency(value), '']}
                             labelStyle={{ color: '#1F2937' }}
                           />
                           <Bar dataKey="forecast" fill="var(--color-primary)" name="Forecast" />

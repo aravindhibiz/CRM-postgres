@@ -6,6 +6,7 @@ import Header from 'components/ui/Header';
 import Breadcrumb from 'components/ui/Breadcrumb';
 import Icon from 'components/AppIcon';
 import Pagination from 'components/Pagination';
+import { configService } from '../../services/configService';
 
 import DealForm from './components/DealForm';
 import ActivityTimeline from './components/ActivityTimeline';
@@ -50,6 +51,16 @@ const DealManagement = () => {
   // Filter state
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
   
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    return configService.formatCurrency(value);
+  };
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -869,7 +880,7 @@ const DealManagement = () => {
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                                ${(deal.value || 0).toLocaleString()}
+                                {formatCurrency(deal.value || 0)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
                                 {deal.probability || 0}%

@@ -5,6 +5,7 @@ import Breadcrumb from '../../components/ui/Breadcrumb';
 import Icon from '../../components/AppIcon';
 import Pagination from '../../components/Pagination';
 import { dealsService } from '../../services/dealsService';
+import { configService } from '../../services/configService';
 
 const DealsPage = () => {
   const { user } = useAuth();
@@ -20,6 +21,24 @@ const DealsPage = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Load system configuration on component mount
+  useEffect(() => {
+    configService.loadConfiguration();
+  }, []);
+
+  // Format currency using dynamic configuration
+  const formatCurrency = (value) => {
+    try {
+      return configService.formatCurrency(value);
+    } catch (error) {
+      // Fallback to USD if config service fails
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(value);
+    }
+  };
 
   // Deal stages configuration
   const stages = [
@@ -235,7 +254,7 @@ const DealsPage = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                            ${(deal.value || 0).toLocaleString()}
+                            {formatCurrency(deal.value || 0)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
                             {deal.probability || 0}%
