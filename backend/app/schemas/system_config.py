@@ -40,7 +40,7 @@ class SystemConfigBulkUpdateItem(BaseModel):
 
 class SystemConfigBulkUpdateRequest(BaseModel):
     configurations: List[SystemConfigBulkUpdateItem] = Field(
-        ..., 
+        ...,
         description="List of configuration updates"
     )
 

@@ -10,7 +10,6 @@ import ContactForm from './components/ContactForm';
 import ImportContactsModal from './components/ImportContactsModal';
 import ExportContactsModal from './components/ExportContactsModal';
 import MergeDuplicatesModal from './components/MergeDuplicatesModal';
-import FilterPanel from './components/FilterPanel';
 import { contactsService } from '../../services/contactsService';
 import { companiesService } from '../../services/companiesService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,7 +22,6 @@ const ContactManagement = () => {
   const [selectedContact, setSelectedContact] = useState(null);
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -32,12 +30,6 @@ const ContactManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [filters, setFilters] = useState({
-    company: [],
-    dealStage: [],
-    lastContactDate: null,
-    tags: []
-  });
 
   // Load contacts data from Supabase
   const loadContacts = async () => {
@@ -49,29 +41,7 @@ const ContactManagement = () => {
       if (searchQuery) {
         contactsData = await contactsService?.searchContacts(searchQuery);
       } else {
-        const filterParams = {};
-        
-        if (filters?.company?.length > 0) {
-          filterParams.companies = filters?.company;
-        }
-        
-        if (filters?.dealStage?.length > 0) {
-          filterParams.dealStages = filters?.dealStage;
-        }
-        
-        if (filters?.tags?.length > 0) {
-          filterParams.tags = filters?.tags;
-        }
-        
-        if (filters?.lastContactDate) {
-          filterParams.dateRange = filters?.lastContactDate;
-        }
-        
-        if (Object.keys(filterParams)?.length > 0) {
-          contactsData = await contactsService?.filterContacts(filterParams);
-        } else {
-          contactsData = await contactsService?.getUserContacts();
-        }
+        contactsData = await contactsService?.getUserContacts();
       }
 
       setContacts(contactsData || []);
@@ -97,7 +67,7 @@ const ContactManagement = () => {
     if (user) {
       loadContacts();
     }
-  }, [user, searchQuery, filters, activeTab]);
+  }, [user, searchQuery, activeTab]);
 
   // Auto-clear messages
   useEffect(() => {
@@ -429,22 +399,6 @@ const ContactManagement = () => {
                     <span>Import</span>
                   </button>
                 )}
-                
-                <button 
-                  onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                  className={`inline-flex items-center space-x-2 px-4 py-2 border rounded-lg transition-all duration-150 ease-out ${
-                    Object.values(filters)?.some(f => Array.isArray(f) ? f?.length > 0 : f !== null) || isFilterPanelOpen
-                      ? 'border-primary-500 bg-primary-50 text-primary' :'border-border text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }`}
-                >
-                  <Icon name="Filter" size={18} />
-                  <span>Filter</span>
-                  {Object.values(filters)?.some(f => Array.isArray(f) ? f?.length > 0 : f !== null) && (
-                    <span className="w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center">
-                      {Object.values(filters)?.reduce((count, f) => count + (Array.isArray(f) ? f?.length : (f !== null ? 1 : 0)), 0)}
-                    </span>
-                  )}
-                </button>
               </div>
             </div>
             
@@ -472,15 +426,6 @@ const ContactManagement = () => {
                   <Icon name="X" size={16} />
                 </button>
               </div>
-            )}
-            
-            {/* Filter Panel */}
-            {isFilterPanelOpen && (
-              <FilterPanel 
-                filters={filters} 
-                setFilters={setFilters} 
-                onClose={() => setIsFilterPanelOpen(false)} 
-              />
             )}
             
             {/* Search and Tabs */}

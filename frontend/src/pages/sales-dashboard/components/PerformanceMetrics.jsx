@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import Icon from 'components/AppIcon';
 import { configService } from '../../../services/configService';
 
-const PerformanceMetrics = ({ data }) => {
+const PerformanceMetrics = ({ data, revenueData = [] }) => {
   // Load system configuration on component mount
   useEffect(() => {
     configService.loadConfiguration();
@@ -43,7 +43,12 @@ const PerformanceMetrics = ({ data }) => {
     { name: 'Lost', value: data?.dealsLost, color: '#EF4444' }
   ];
 
-  const monthlyPerformance = [
+  // Use real revenue data if available, otherwise fallback to dummy data
+  const monthlyPerformance = revenueData.length > 0 ? revenueData.map(item => ({
+    month: item.month,
+    target: item.target,
+    actual: item.actual
+  })) : [
     { month: 'Jan', target: 400000, actual: 420000 },
     { month: 'Feb', target: 450000, actual: 485000 },
     { month: 'Mar', target: 500000, actual: 562000 },

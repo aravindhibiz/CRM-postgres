@@ -1,8 +1,10 @@
 from sqlalchemy import Column, String, Boolean, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 from ..core.database import Base
+
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -17,4 +19,8 @@ class UserProfile(Base):
     phone = Column(String)
     avatar_url = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True),
+                        server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    integrations = relationship("Integration", back_populates="user")

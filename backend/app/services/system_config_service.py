@@ -11,7 +11,7 @@ from ..core.database import SessionLocal
 
 class SystemConfigManager:
     """Service for managing system configurations"""
-    
+
     DEFAULT_CONFIGURATIONS = {
         # General Settings
         "general.company_name": {
@@ -21,7 +21,7 @@ class SystemConfigManager:
         },
         "general.company_email": {
             "value": "admin@salesflowpro.com",
-            "category": "general", 
+            "category": "general",
             "description": "Primary company email address"
         },
         "general.company_phone": {
@@ -59,7 +59,7 @@ class SystemConfigManager:
             "category": "general",
             "description": "Default application language"
         },
-        
+
         # Sales Settings
         "sales.default_pipeline_stage": {
             "value": "prospecting",
@@ -96,7 +96,7 @@ class SystemConfigManager:
             "category": "sales",
             "description": "Auto-close opportunities after X days of inactivity"
         },
-        
+
         # Notification Settings
         "notifications.email_notifications": {
             "value": True,
@@ -133,7 +133,7 @@ class SystemConfigManager:
             "category": "notifications",
             "description": "Send alerts when quotas are achieved"
         },
-        
+
         # Security Settings
         "security.password_complexity": {
             "value": True,
@@ -175,7 +175,7 @@ class SystemConfigManager:
             "category": "security",
             "description": "Number of days to retain audit logs"
         },
-        
+
         # Backup Settings
         "backup.enable_automatic_backups": {
             "value": True,
@@ -202,7 +202,7 @@ class SystemConfigManager:
             "category": "backup",
             "description": "Compress backup files"
         },
-        
+
         # Integration Settings
         "integrations.email_service_provider": {
             "value": "sendgrid",
@@ -224,7 +224,7 @@ class SystemConfigManager:
             "category": "integrations",
             "description": "API requests per hour limit"
         },
-        
+
         # Performance Settings
         "performance.enable_caching": {
             "value": True,
@@ -247,7 +247,7 @@ class SystemConfigManager:
             "description": "Database query timeout in seconds"
         }
     }
-    
+
     @classmethod
     def initialize_default_configurations(cls, db: Session = None) -> bool:
         """Initialize system with default configurations"""
@@ -256,17 +256,17 @@ class SystemConfigManager:
             close_db = True
         else:
             close_db = False
-            
+
         try:
             created_count = 0
             updated_count = 0
-            
+
             for key, config_data in cls.DEFAULT_CONFIGURATIONS.items():
                 # Check if configuration already exists
                 existing_config = db.query(SystemConfiguration).filter(
                     SystemConfiguration.key == key
                 ).first()
-                
+
                 if existing_config:
                     # Update description if changed
                     if existing_config.description != config_data["description"]:
@@ -282,11 +282,12 @@ class SystemConfigManager:
                     )
                     db.add(new_config)
                     created_count += 1
-            
+
             db.commit()
-            print(f"✅ System configuration initialized: {created_count} created, {updated_count} updated")
+            print(
+                f"✅ System configuration initialized: {created_count} created, {updated_count} updated")
             return True
-            
+
         except Exception as e:
             print(f"❌ Error initializing system configuration: {e}")
             db.rollback()
@@ -294,7 +295,7 @@ class SystemConfigManager:
         finally:
             if close_db:
                 db.close()
-    
+
     @classmethod
     def get_configuration_value(cls, key: str, db: Session = None) -> Any:
         """Get a configuration value by key"""
@@ -304,22 +305,22 @@ class SystemConfigManager:
             close_db = True
         else:
             close_db = False
-            
+
         try:
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == key,
                 SystemConfiguration.is_active == True
             ).first()
-            
+
             if config:
                 return config.value
-            
+
             # Fallback to default value
             if key in cls.DEFAULT_CONFIGURATIONS:
                 return cls.DEFAULT_CONFIGURATIONS[key]["value"]
-                
+
             return None
-            
+
         except Exception as e:
             print(f"Error getting configuration {key}: {e}")
             return None
@@ -338,7 +339,7 @@ class SystemConfigManager:
                     "icon": "Settings"
                 },
                 "sales": {
-                    "label": "Sales Settings", 
+                    "label": "Sales Settings",
                     "description": "Sales process and pipeline configuration",
                     "icon": "Target"
                 },
@@ -381,24 +382,24 @@ class SystemConfigManager:
                 }
             }
         }
-    
+
     @classmethod
     def validate_configuration(cls, key: str, value: Any) -> bool:
         """Validate a configuration value"""
         if key not in cls.DEFAULT_CONFIGURATIONS:
             return False
-            
+
         # Add specific validation rules here
         if key.endswith("_days") or key.endswith("_minutes") or key.endswith("_seconds"):
             return isinstance(value, int) and value > 0
-            
+
         if key.endswith("_enabled") or key.startswith("enable_"):
             return isinstance(value, bool)
-            
+
         # Only validate email format for keys that are actually email addresses
         if (key.endswith("_email") or key.endswith(".email")) and isinstance(value, str):
             import re
             email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             return re.match(email_pattern, value) is not None
-            
+
         return True

@@ -1,17 +1,17 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Header from 'components/ui/Header';
 import Breadcrumb from 'components/ui/Breadcrumb';
 import Icon from 'components/AppIcon';
+import ExportMenu from '../../components/ExportMenu';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
 import dealsService from '../../services/dealsService'; // Import dealsService
 import { configService } from '../../services/configService';
 import { Loader2 } from 'lucide-react'; // Assuming lucide-react for icons
 
 const PipelineAnalytics = () => {
-  const [selectedDateRange, setSelectedDateRange] = useState('last30days');
+  const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [compareMode, setCompareMode] = useState(false);
   const [compareDateRange, setCompareDateRange] = useState('previous30days');
-  const [selectedTerritory, setSelectedTerritory] = useState('all');
   const [selectedRep, setSelectedRep] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
@@ -32,12 +32,76 @@ const PipelineAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [filterOptions, setFilterOptions] = useState({
+    reps: [],
+    dateRanges: []
+  });
 
-  // Load system configuration on component mount
+  // Chart refs for export functionality
+  const revenueChartRef = useRef(null);
+  const pipelineChartRef = useRef(null);
+  const performanceChartRef = useRef(null);
+
+  // Memoize filter options to prevent unnecessary recalculations
+  const dateRangeOptions = useMemo(() => [
+    { value: 'all', label: 'All Time' },
+    { value: 'last7days', label: 'Lacompast 7 Days' },
+    { value: 'last30days', label: 'Last 30 Days' },
+    { value: 'last90days', label: 'Last 90 Days' },
+    { value: 'thisquarter', label: 'This Quarter' },
+    { value: 'lastyear', label: 'Last Year' }
+  ], []);
+
+  const repOptions = useMemo(() => [
+    { value: 'all', label: 'All Representatives' },
+    ...(filterOptions.reps || [])
+  ], [filterOptions.reps]);
+
+  // Prepare comprehensive analytics data for export
+  const exportAnalyticsData = useMemo(() => {
+    return {
+      velocityMetrics,
+      revenueTrendData,
+      pipelineFunnelData,
+      winRateData,
+      forecastData,
+      repPerformanceData,
+      territoryData
+    };
+  }, [velocityMetrics, revenueTrendData, pipelineFunnelData, winRateData, forecastData, repPerformanceData, territoryData]);
+
+  // Prepare filter information for export
+  const exportFilters = useMemo(() => {
+    const selectedRepOption = repOptions.find(rep => rep.value === selectedRep);
+    const selectedDateOption = dateRangeOptions.find(date => date.value === selectedDateRange);
+    
+    return {
+      dateRange: selectedDateRange,
+      dateRangeLabel: selectedDateOption?.label || selectedDateRange,
+      repId: selectedRep,
+      repName: selectedRepOption?.label || selectedRep,
+      appliedAt: new Date().toISOString(),
+      compareMode,
+      compareDateRange: compareMode ? compareDateRange : null
+    };
+  }, [selectedDateRange, selectedRep, repOptions, dateRangeOptions, compareMode, compareDateRange]);
+
+  const chartRefs = {
+    revenue: revenueChartRef,
+    pipeline: pipelineChartRef,
+    performance: performanceChartRef
+  };
+
+  // Load system configuration and filter options on component mount
   useEffect(() => {
     const loadConfig = async () => {
       try {
         await configService.loadConfiguration();
+        
+        // Load filter options
+        const options = await dealsService.getFilterOptions();
+        setFilterOptions(options);
+        
         setConfigLoaded(true);
       } catch (error) {
         console.error('Failed to load configuration:', error);
@@ -56,65 +120,73 @@ const PipelineAnalytics = () => {
         setLoading(true);
         setLastRefreshTime(new Date());
         
-        // Fetch all analytics data from Supabase - no mock/stale data
+        // Prepare filters for API calls
+        const filters = {
+          dateRange: selectedDateRange !== 'all' ? selectedDateRange : undefined,
+          ownerId: selectedRep !== 'all' ? selectedRep : undefined
+        };
+        
+        // Fetch all analytics data with filters
         const [pipeline, revenue, performance, winRate] = await Promise.all([
-          dealsService.getPipelineDeals(),
-          dealsService.getRevenueData(),
-          dealsService.getPerformanceMetrics(),
+          dealsService.getPipelineDeals(filters),
+          dealsService.getRevenueData(filters),
+          dealsService.getPerformanceMetrics(filters),
           dealsService.getWinRateData(),
         ]);
 
-        // Transform pipeline data for funnel chart
-        const transformedPipeline = Object.values(pipeline).map(stage => ({
-          name: stage.title,
-          value: stage.deals.reduce((sum, deal) => sum + deal.value, 0),
-          count: stage.deals.length,
-          deals: stage.deals, // Keep deals for drill-down
-          fill: stage.id === 'lead' ? '#3B82F6' :
-                stage.id === 'qualified' ? '#6366F1' :
-                stage.id === 'proposal' ? '#8B5CF6' :
-                stage.id === 'negotiation' ? '#A855F7' :
-                stage.id === 'closed_won' ? '#10B981' : '#EF4444' // closed_lost
-        }));
+        // Transform pipeline data for funnel chart with safety checks
+        const transformedPipeline = pipeline && typeof pipeline === 'object' 
+          ? Object.values(pipeline).map(stage => ({
+              name: stage?.title || 'Unknown Stage',
+              value: (stage?.deals || []).reduce((sum, deal) => sum + (deal?.value || 0), 0),
+              count: (stage?.deals || []).length,
+              deals: stage?.deals || [], // Keep deals for drill-down
+              fill: stage?.id === 'lead' ? '#3B82F6' :
+                    stage?.id === 'qualified' ? '#6366F1' :
+                    stage?.id === 'proposal' ? '#8B5CF6' :
+                    stage?.id === 'negotiation' ? '#A855F7' :
+                    stage?.id === 'closed_won' ? '#10B981' : '#EF4444' // closed_lost
+            }))
+          : []; // Fallback to empty array
 
         setPipelineFunnelData(transformedPipeline);
-        setRevenueTrendData(revenue);
-        setWinRateData(winRate);
+        setRevenueTrendData(Array.isArray(revenue) ? revenue : []);
+        setWinRateData(Array.isArray(winRate) ? winRate : []);
 
         // Enhanced forecast data with AI predictions
-        const enhancedForecastData = revenue.map((dataPoint, index) => ({
+        const enhancedForecastData = Array.isArray(revenue) ? revenue.map((dataPoint, index) => ({
           ...dataPoint,
-          aiPrediction: dataPoint.forecast * (1 + (Math.random() - 0.5) * 0.1), // Add AI variance
+          aiPrediction: (dataPoint?.forecast || 0) * (1 + (Math.random() - 0.5) * 0.1), // Add AI variance
           confidence: Math.random() * 20 + 75 // 75-95% confidence
-        }));
+        })) : [];
         setForecastData(enhancedForecastData);
 
         // Compare data if comparison mode is enabled
-        if (compareMode) {
+        if (compareMode && Array.isArray(revenue)) {
           // Simulate previous period data for comparison
           const compareData = revenue.map(item => ({
             ...item,
-            actual: item.actual * (0.8 + Math.random() * 0.4), // Previous period variance
-            forecast: item.forecast * (0.85 + Math.random() * 0.3)
+            actual: (item?.actual || 0) * (0.8 + Math.random() * 0.4), // Previous period variance
+            forecast: (item?.forecast || 0) * (0.85 + Math.random() * 0.3)
           }));
           setCompareRevenueTrendData(compareData);
         }
 
-        // Enhanced velocity metrics with more insights
+        // Enhanced velocity metrics with more insights and safety checks
         setVelocityMetrics([
           { 
             metric: 'Avg Deal Size', 
-            value: performance.avgDealSize, // Store raw value
+            value: performance?.avgDealSize || 0, // Store raw value with fallback
             change: '+12%',
             trend: 'up',
-            previousValue: Math.round(performance.avgDealSize * 0.88) // Store raw value
+            previousValue: Math.round((performance?.avgDealSize || 0) * 0.88) // Store raw value
           },
           { 
             metric: 'Win Rate', 
-            value: `${performance.conversionRate}%`, 
+            value: `${performance?.conversionRate || 0}%`, 
             change: '+3.2%',
             trend: 'up',
-            previousValue: `${Math.round(performance.conversionRate - 3.2)}%`
+            previousValue: `${Math.round((performance?.conversionRate || 0) - 3.2)}%`
           },
           { 
             metric: 'Sales Cycle', 
@@ -125,10 +197,10 @@ const PipelineAnalytics = () => {
           },
           { 
             metric: 'Pipeline Velocity', 
-            value: Math.round(performance.achieved / 30), // Store raw value
+            value: Math.round((performance?.achieved || 0) / 30), // Store raw value with fallback
             change: '+18%',
             trend: 'up',
-            previousValue: Math.round(performance.achieved / 30 * 0.82) // Store raw value
+            previousValue: Math.round(((performance?.achieved || 0) / 30) * 0.82) // Store raw value
           },
         ]);
 
@@ -166,7 +238,7 @@ const PipelineAnalytics = () => {
     };
 
     fetchData();
-  }, [selectedDateRange, compareMode, compareDateRange, configLoaded]); // Re-fetch when date ranges change or config loads
+  }, [selectedDateRange, compareMode, compareDateRange, selectedRep, configLoaded]); // Re-fetch when filters change
 
   // Auto-refresh functionality
   useEffect(() => {
@@ -210,44 +282,11 @@ const PipelineAnalytics = () => {
     );
   }
 
-  const dateRangeOptions = [
-    { value: 'last7days', label: 'Last 7 Days' },
-    { value: 'last30days', label: 'Last 30 Days' },
-    { value: 'last90days', label: 'Last 90 Days' },
-    { value: 'thisquarter', label: 'This Quarter' },
-    { value: 'lastyear', label: 'Last Year' },
-    { value: 'custom', label: 'Custom Range' }
-  ];
-
-  const territoryOptions = [
-    { value: 'all', label: 'All Territories' },
-    { value: 'north-america', label: 'North America' },
-    { value: 'europe', label: 'Europe' },
-    { value: 'asia-pacific', label: 'Asia Pacific' },
-    { value: 'latin-america', label: 'Latin America' }
-  ];
-
-  const repOptions = [
-    { value: 'all', label: 'All Representatives' },
-    { value: 'sarah-johnson', label: 'Sarah Johnson' },
-    { value: 'michael-chen', label: 'Michael Chen' },
-    { value: 'david-rodriguez', label: 'David Rodriguez' },
-    { value: 'emily-davis', label: 'Emily Davis' },
-    { value: 'james-wilson', label: 'James Wilson' }
-  ];
-
   const tabOptions = [
     { id: 'overview', label: 'Overview', icon: 'BarChart3' },
     { id: 'pipeline', label: 'Pipeline', icon: 'TrendingUp' },
     { id: 'performance', label: 'Performance', icon: 'Target' },
     { id: 'forecasting', label: 'Forecasting', icon: 'Calendar' }
-  ];
-
-  const exportOptions = [
-    { label: 'Export as PDF', icon: 'FileText' },
-    { label: 'Export as Excel', icon: 'Download' },
-    { label: 'Schedule Email Report', icon: 'Mail' },
-    { label: 'Create Dashboard Widget', icon: 'Plus' }
   ];
 
   const formatCurrency = (value) => {
@@ -362,56 +401,35 @@ const PipelineAnalytics = () => {
                   </div>
                 </div>
 
-                {/* Compare Mode Toggle */}
-                <label className="flex items-center space-x-2 text-sm text-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={compareMode}
-                    onChange={(e) => setCompareMode(e.target.checked)}
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                  <span>Compare periods</span>
-                </label>
+              
 
-                {/* Export Menu */}
+                {/* Enhanced Export Menu */}
                 <div className="relative">
                   <button
                     onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                    className="btn-primary flex items-center space-x-2"
+                    className="btn-primary flex items-center space-x-2 relative"
                   >
                     <Icon name="Download" size={16} />
                     <span>Export</span>
-                    <Icon name="ChevronDown" size={14} />
+                    <Icon name="ChevronDown" size={14} className={`transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
-                  {isExportMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-surface rounded-lg shadow-lg border border-border z-50">
-                      <div className="py-2">
-                        {exportOptions?.map((option) => (
-                          <button
-                            key={option?.label}
-                            className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150"
-                            onClick={() => setIsExportMenuOpen(false)}
-                          >
-                            <Icon name={option?.icon} size={16} />
-                            <span>{option?.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <ExportMenu
+                    analyticsData={exportAnalyticsData}
+                    filters={exportFilters}
+                    chartRefs={chartRefs}
+                    isOpen={isExportMenuOpen}
+                    onClose={() => setIsExportMenuOpen(false)}
+                  />
                 </div>
                 
-                <button className="px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 flex items-center space-x-2">
-                  <Icon name="Settings" size={16} />
-                  <span>Customize</span>
-                </button>
+                
               </div>
             </div>
 
             {/* Filters */}
             <div className="card p-6 mb-8">
-              <div className={`grid gap-4 ${compareMode ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
+              <div className={`grid gap-4 ${compareMode ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
                 <div>
                   <label className="block text-sm font-normal text-text-primary mb-2">Date Range</label>
                   <select
@@ -444,21 +462,6 @@ const PipelineAnalytics = () => {
                 )}
                 
                 <div>
-                  <label className="block text-sm font-normal text-text-primary mb-2">Territory</label>
-                  <select
-                    value={selectedTerritory}
-                    onChange={(e) => setSelectedTerritory(e?.target?.value)}
-                    className="input-field"
-                  >
-                    {territoryOptions?.map((option) => (
-                      <option key={option?.value} value={option?.value}>
-                        {option?.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
                   <label className="block text-sm font-normal text-text-primary mb-2">Sales Rep</label>
                   <select
                     value={selectedRep}
@@ -474,10 +477,9 @@ const PipelineAnalytics = () => {
                 </div>
                 
                 <div className="flex items-end">
-                  <button className="btn-secondary w-full flex items-center justify-center space-x-2">
-                    <Icon name="Search" size={16} />
-                    <span>Apply Filters</span>
-                  </button>
+                  <div className="w-full text-center text-sm text-text-secondary">
+                    Filters applied automatically
+                  </div>
                 </div>
               </div>
             </div>
@@ -548,7 +550,7 @@ const PipelineAnalytics = () => {
                         <span>Drill down</span>
                       </button>
                     </div>
-                    <div className="h-80">
+                    <div className="h-80" ref={pipelineChartRef}>
                       <ResponsiveContainer width="100%" height="100%">
                         <FunnelChart>
                           <Tooltip content={<CustomTooltip />} />
@@ -591,7 +593,7 @@ const PipelineAnalytics = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="h-80">
+                    <div className="h-80" ref={revenueChartRef}>
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={revenueTrendData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
@@ -635,7 +637,7 @@ const PipelineAnalytics = () => {
                   {/* Pipeline Value by Stage */}
                   <div className="lg:col-span-2 card p-6">
                     <h3 className="text-lg font-normal text-text-primary mb-6">Pipeline Value by Stage</h3>
-                    <div className="h-80">
+                    <div className="h-80" ref={performanceChartRef}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={pipelineFunnelData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />

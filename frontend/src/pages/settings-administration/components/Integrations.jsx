@@ -1,68 +1,95 @@
 // src/pages/settings-administration/components/Integrations.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import Icon from '../../../components/AppIcon';
+import { integrationsService } from '../../../services/integrationsService';
 
 const Integrations = () => {
-  const [integrations, setIntegrations] = useState([
+  const [searchParams] = useSearchParams();
+  const [integrations, setIntegrations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [connectingProvider, setConnectingProvider] = useState(null);
+  const [connecting, setConnecting] = useState({});
+  const [testResults, setTestResults] = useState({});
+  const [selectedIntegration, setSelectedIntegration] = useState(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+
+  // Available providers configuration
+  const availableProviders = [
     {
       id: 'gmail',
       name: 'Gmail',
       description: 'Sync emails and contacts with Gmail',
-      status: 'connected',
-      lastSync: '2024-01-15 14:30',
       icon: 'Mail',
-      config: {
-        syncFrequency: '15 minutes',
-        autoSync: true,
-        syncContacts: true,
-        syncEmails: true
-      }
+      color: 'text-red-600',
+      features: ['Email sync', 'Contact sync', 'Email templates', 'Auto-logging']
     },
     {
-      id: 'google-calendar',
-      name: 'Google Calendar',
+      id: 'google_calendar',
+      name: 'Google Calendar', 
       description: 'Schedule meetings and sync calendar events',
-      status: 'connected',
-      lastSync: '2024-01-15 14:25',
       icon: 'Calendar',
-      config: {
-        syncFrequency: '5 minutes',
-        autoSync: true,
-        createMeetings: true,
-        syncEvents: true
-      }
-    },
-    {
-      id: 'twilio',
-      name: 'Twilio',
-      description: 'Send SMS and make calls through Twilio',
-      status: 'disconnected',
-      lastSync: null,
-      icon: 'Phone',
-      config: {
-        smsEnabled: false,
-        callEnabled: false,
-        webhookUrl: ''
-      }
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Get notifications and updates in Slack',
-      status: 'error',
-      lastSync: '2024-01-10 09:15',
-      icon: 'MessageSquare',
-      config: {
-        channel: '#sales',
-        notifications: true,
-        dealUpdates: true
-      }
+      color: 'text-blue-600',
+      features: ['Meeting scheduling', 'Event sync', 'Activity tracking', 'Reminders']
     }
-  ]);
+  ];
 
-  const [selectedIntegration, setSelectedIntegration] = useState(null);
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [testResults, setTestResults] = useState({});
+  // Load integrations on component mount
+  useEffect(() => {
+    loadIntegrations();
+    
+    // Handle OAuth callback if present in URL
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
+    
+    if (code) {
+      handleOAuthCallback();
+    } else if (error) {
+      toast.error(`OAuth error: ${error}`);
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams]);
+
+  const loadIntegrations = async () => {
+    try {
+      setLoading(true);
+      const data = await integrationsService.getUserIntegrations();
+      setIntegrations(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading integrations:', err);
+      setError('Failed to load integrations');
+      toast.error('Failed to load integrations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOAuthCallback = async () => {
+    try {
+      console.log('🔄 Starting OAuth callback processing...');
+      console.log('🔍 URL params:', window.location.search);
+      
+      const result = await integrationsService.handleOAuthCallbackFromUrl();
+      console.log('✅ OAuth callback result:', result);
+      
+      toast.success(`Successfully connected ${result.provider || 'integration'}!`);
+      
+      // Reload integrations to reflect new connection
+      await loadIntegrations();
+      
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      console.error('💥 OAuth callback error:', err);
+      toast.error(`Failed to connect: ${err.message}`);
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusStyles = {
@@ -91,41 +118,69 @@ const Integrations = () => {
     return <Icon name={icon?.name} size={20} className={icon?.color} />;
   };
 
-  const handleConnect = (integrationId) => {
-    console.log('Connecting to:', integrationId);
-    // Simulate connection process
-    setIntegrations(prev =>
-      prev?.map(integration =>
-        integration?.id === integrationId
-          ? { ...integration, status: 'connected', lastSync: new Date()?.toISOString()?.slice(0, 16)?.replace('T', ' ') }
-          : integration
-      )
-    );
+  const handleConnect = async (provider) => {
+    try {
+      console.log('🔌 Connecting to provider:', provider);
+      setConnecting(prev => ({ ...prev, [provider]: true }));
+      
+      // Store provider for OAuth callback
+      localStorage.setItem('oauth_provider', provider);
+      
+      // Get OAuth URL and redirect to Google
+      console.log('📞 Calling integrationsService.getOAuthUrl...');
+      const response = await integrationsService.getOAuthUrl(provider);
+      console.log('📬 OAuth response:', response);
+      
+      if (response) {
+        console.log('🚀 Redirecting to:', response);
+        window.location.href = response;
+      } else {
+        console.error('❌ No OAuth URL received');
+        toast.error('No OAuth URL received');
+      }
+    } catch (error) {
+      console.error('💥 Connection error:', error);
+      toast.error(`Failed to connect to ${provider}: ${error.message || 'Unknown error'}`);
+    } finally {
+      setConnecting(prev => ({ ...prev, [provider]: false }));
+    }
   };
 
-  const handleDisconnect = (integrationId) => {
-    console.log('Disconnecting from:', integrationId);
-    setIntegrations(prev =>
-      prev?.map(integration =>
-        integration?.id === integrationId
-          ? { ...integration, status: 'disconnected', lastSync: null }
-          : integration
-      )
-    );
+  const handleDisconnect = async (integrationId) => {
+    try {
+      await integrationsService.disconnectIntegration(integrationId);
+      toast.success('Integration disconnected successfully');
+      await loadIntegrations(); // Reload to get updated status
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      toast.error('Failed to disconnect integration');
+    }
   };
 
   const handleTestConnection = async (integrationId) => {
-    console.log('Testing connection for:', integrationId);
-    setTestResults(prev => ({ ...prev, [integrationId]: 'testing' }));
-    
-    // Simulate test
-    setTimeout(() => {
-      const success = Math.random() > 0.3; // 70% success rate
+    try {
+      setTestResults(prev => ({ ...prev, [integrationId]: 'testing' }));
+      
+      const result = await integrationsService.testIntegration(integrationId);
+      
       setTestResults(prev => ({ 
         ...prev, 
-        [integrationId]: success ? 'success' : 'error' 
+        [integrationId]: result.success ? 'success' : 'error' 
       }));
-    }, 2000);
+      
+      if (result.success) {
+        toast.success('Integration test successful');
+      } else {
+        toast.error(`Integration test failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Test error:', error);
+      setTestResults(prev => ({ 
+        ...prev, 
+        [integrationId]: 'error' 
+      }));
+      toast.error('Failed to test integration');
+    }
   };
 
   const handleConfigure = (integration) => {
@@ -145,102 +200,155 @@ const Integrations = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-text-primary">Integrations</h2>
-          <p className="text-text-secondary mt-1">Manage API connections and third-party services</p>
+          <p className="text-text-secondary mt-1">Connect your CRM with Gmail and Google Calendar</p>
         </div>
-        <button className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2">
-          <Icon name="Plus" size={16} />
-          <span>Add Integration</span>
-        </button>
       </div>
-      {/* Integrations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {integrations?.map((integration) => (
-          <div key={integration?.id} className="bg-surface rounded-lg border border-border p-6 hover:shadow-md transition-shadow duration-150">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
-                  <Icon name={integration?.icon} size={20} className="text-primary" />
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-text-secondary">Loading integrations...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <Icon name="AlertCircle" size={20} className="text-error-600" />
+            <span className="text-error-600 font-medium">Failed to load integrations</span>
+          </div>
+          <p className="text-error-600 text-sm mt-1">{error}</p>
+        </div>
+      )}
+
+      {/* Content */}
+      {!loading && !error && (
+        <>
+          {/* Integrations Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {availableProviders.map((provider) => {
+          // Find connected integration for this provider
+          const connectedIntegration = integrations.find(int => int.provider === provider.id && int.status === 'connected');
+          const isConnected = !!connectedIntegration;
+          const isConnecting = connecting[provider.id];
+          
+          return (
+            <div key={provider.id} className="bg-surface rounded-lg border border-border p-6 hover:shadow-md transition-shadow duration-150">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-10 h-10 ${isConnected ? 'bg-success-50' : 'bg-primary-50'} rounded-lg flex items-center justify-center`}>
+                    <Icon name={provider.icon} size={20} className={isConnected ? 'text-success' : provider.color} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-text-primary">{provider.name}</h3>
+                    <p className="text-sm text-text-secondary mt-1">{provider.description}</p>
+                  </div>
                 </div>
+                {getStatusIcon(isConnected ? 'connected' : 'disconnected')}
+              </div>
+
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-secondary">Status:</span>
+                  {getStatusBadge(isConnected ? 'connected' : 'disconnected')}
+                </div>
+                
+                {connectedIntegration?.last_sync && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">Last Sync:</span>
+                    <span className="text-sm text-text-primary">
+                      {new Date(connectedIntegration.last_sync).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                
+                {testResults?.[connectedIntegration?.id] && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">Test Result:</span>
+                    <span className={`text-sm ${
+                      testResults?.[connectedIntegration?.id] === 'testing' ? 'text-text-secondary' :
+                      testResults?.[connectedIntegration?.id] === 'success' ? 'text-success' : 'text-error'
+                    }`}>
+                      {testResults?.[connectedIntegration?.id] === 'testing' ? 'Testing...' :
+                       testResults?.[connectedIntegration?.id] === 'success' ? 'Success' : 'Failed'}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Features list */}
                 <div>
-                  <h3 className="font-semibold text-text-primary">{integration?.name}</h3>
-                  <p className="text-sm text-text-secondary mt-1">{integration?.description}</p>
+                  <span className="text-sm text-text-secondary">Features:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {provider.features.map((feature, index) => (
+                      <span key={index} className="text-xs px-2 py-1 bg-background rounded text-text-secondary">
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-              {getStatusIcon(integration?.status)}
-            </div>
 
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Status:</span>
-                {getStatusBadge(integration?.status)}
-              </div>
-              
-              {integration?.lastSync && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Last Sync:</span>
-                  <span className="text-sm text-text-primary">{integration?.lastSync}</span>
-                </div>
-              )}
-              
-              {testResults?.[integration?.id] && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Test Result:</span>
-                  <span className={`text-sm ${
-                    testResults?.[integration?.id] === 'testing' ? 'text-text-secondary' :
-                    testResults?.[integration?.id] === 'success' ? 'text-success' : 'text-error'
-                  }`}>
-                    {testResults?.[integration?.id] === 'testing' ? 'Testing...' :
-                     testResults?.[integration?.id] === 'success' ? 'Success' : 'Failed'}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              {integration?.status === 'connected' ? (
-                <div className="flex space-x-2">
+              <div className="space-y-2">
+                {isConnected ? (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleTestConnection(connectedIntegration.id)}
+                      disabled={testResults?.[connectedIntegration.id] === 'testing'}
+                      className="flex-1 px-3 py-2 text-sm bg-background text-text-primary rounded hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {testResults?.[connectedIntegration.id] === 'testing' ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin"></div>
+                          <span>Testing</span>
+                        </div>
+                      ) : (
+                        'Test Connection'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleConfigure(connectedIntegration)}
+                      className="flex-1 px-3 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 transition-colors duration-150"
+                    >
+                      Configure
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={() => handleTestConnection(integration?.id)}
-                    disabled={testResults?.[integration?.id] === 'testing'}
-                    className="flex-1 px-3 py-2 text-sm bg-background text-text-primary rounded hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => handleConnect(provider.id)}
+                    disabled={isConnecting}
+                    className="w-full px-3 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {testResults?.[integration?.id] === 'testing' ? (
+                    {isConnecting ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin"></div>
-                        <span>Testing</span>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Connecting...</span>
                       </div>
                     ) : (
-                      'Test Connection'
+                      'Connect'
                     )}
                   </button>
+                )}
+                
+                {isConnected && (
                   <button
-                    onClick={() => handleConfigure(integration)}
-                    className="flex-1 px-3 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 transition-colors duration-150"
+                    onClick={() => handleDisconnect(connectedIntegration.id)}
+                    className="w-full px-3 py-2 text-sm text-error hover:bg-error-50 rounded transition-colors duration-150"
                   >
-                    Configure
+                    Disconnect
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleConnect(integration?.id)}
-                  className="w-full px-3 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 transition-colors duration-150"
-                >
-                  Connect
-                </button>
-              )}
-              
-              {integration?.status === 'connected' && (
-                <button
-                  onClick={() => handleDisconnect(integration?.id)}
-                  className="w-full px-3 py-2 text-sm text-error hover:bg-error-50 rounded transition-colors duration-150"
-                >
-                  Disconnect
-                </button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+        </>
+      )}
+      
       {/* Configuration Modal */}
       {showConfigModal && selectedIntegration && (
         <div className="fixed inset-0 z-1200 overflow-y-auto">
@@ -261,7 +369,7 @@ const Integrations = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {selectedIntegration?.id === 'gmail' && (
+                  {selectedIntegration?.provider === 'gmail' && (
                     <>
                       <div className="flex items-center justify-between">
                         <label className="text-sm font-medium text-text-primary">Auto Sync</label>
@@ -287,31 +395,36 @@ const Integrations = () => {
                     </>
                   )}
                   
-                  {selectedIntegration?.id === 'twilio' && (
+                  {selectedIntegration?.provider === 'google_calendar' && (
                     <>
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1">Account SID</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1">Auth Token</label>
-                        <input
-                          type="password"
-                          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-                          placeholder="Enter auth token"
-                        />
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-text-primary">Auto Sync Events</label>
+                        <input type="checkbox" defaultChecked className="rounded border-border text-primary focus:ring-primary" />
                       </div>
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-text-primary">Enable SMS</label>
-                        <input type="checkbox" className="rounded border-border text-primary focus:ring-primary" />
+                        <label className="text-sm font-medium text-text-primary">Create CRM Activities</label>
+                        <input type="checkbox" defaultChecked className="rounded border-border text-primary focus:ring-primary" />
                       </div>
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-text-primary">Enable Calls</label>
+                        <label className="text-sm font-medium text-text-primary">Sync Meeting Notes</label>
                         <input type="checkbox" className="rounded border-border text-primary focus:ring-primary" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-text-primary mb-1">Default Calendar</label>
+                        <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary">
+                          <option value="primary">Primary Calendar</option>
+                          <option value="work">Work Calendar</option>
+                          <option value="crm">CRM Events</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-text-primary mb-1">Sync Frequency</label>
+                        <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary">
+                          <option value="5">Every 5 minutes</option>
+                          <option value="15" selected>Every 15 minutes</option>
+                          <option value="30">Every 30 minutes</option>
+                          <option value="60">Every hour</option>
+                        </select>
                       </div>
                     </>
                   )}
@@ -336,6 +449,7 @@ const Integrations = () => {
           </div>
         </div>
       )}
+
       {/* Integration Status Summary */}
       <div className="bg-background border border-border rounded-lg p-4">
         <div className="flex items-start space-x-3">
@@ -343,8 +457,8 @@ const Integrations = () => {
           <div className="flex-1">
             <h4 className="font-medium text-text-primary text-sm">Integration Health</h4>
             <p className="text-text-secondary text-sm mt-1">
-              {integrations?.filter(i => i?.status === 'connected')?.length} of {integrations?.length} integrations are connected and working properly.
-              Regular testing ensures optimal performance.
+              {integrations?.length} of {availableProviders?.length} integrations are connected and working properly.
+              Connect your Google services to enhance your CRM capabilities.
             </p>
           </div>
         </div>

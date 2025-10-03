@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 import uuid
 from ..core.database import Base
 
+
 class Contact(Base):
     __tablename__ = "contacts"
 
@@ -25,7 +26,8 @@ class Contact(Base):
     owner_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id"))
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True),
+                        server_default=func.now(), onupdate=func.now())
 
     # Relationships
     company = relationship("Company", back_populates="contacts")
@@ -33,3 +35,4 @@ class Contact(Base):
     deals = relationship("Deal", back_populates="contact")
     activities = relationship("Activity", back_populates="contact")
     tasks = relationship("Task", back_populates="contact")
+    contact_notes = relationship("Note", back_populates="contact")

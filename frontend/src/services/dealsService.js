@@ -2,9 +2,30 @@ import apiClient from '../lib/apiClient';
 
 export const dealsService = {
   // Get all deals for the current user
-  async getUserDeals() {
+  async getUserDeals(filters = {}) {
     try {
-      const { data, error } = await apiClient.get('/api/v1/deals');
+      const params = new URLSearchParams();
+      
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
+      }
+      
+      if (filters.probabilityRange) {
+        params.append('probability_range', filters.probabilityRange);
+      }
+      
+      if (filters.ownerId) {
+        params.append('owner_id', filters.ownerId);
+      }
+
+      if (filters.stage) {
+        params.append('stage', filters.stage);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/api/v1/deals?${queryString}` : '/api/v1/deals';
+
+      const { data, error } = await apiClient.get(endpoint);
 
       if (error) throw error;
       return data || [];
@@ -15,9 +36,26 @@ export const dealsService = {
   },
 
   // Get deals grouped by pipeline stage
-  async getPipelineDeals() {
+  async getPipelineDeals(filters = {}) {
     try {
-      const { data, error } = await apiClient.get('/api/v1/deals/pipeline');
+      const params = new URLSearchParams();
+      
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
+      }
+      
+      if (filters.probabilityRange) {
+        params.append('probability_range', filters.probabilityRange);
+      }
+      
+      if (filters.ownerId) {
+        params.append('owner_id', filters.ownerId);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/api/v1/deals/pipeline?${queryString}` : '/api/v1/deals/pipeline';
+
+      const { data, error } = await apiClient.get(endpoint);
 
       if (error) throw error;
       return data;
@@ -312,9 +350,22 @@ export const dealsService = {
   },
 
   // Get revenue data for analytics dashboard
-  async getRevenueData() {
+  async getRevenueData(filters = {}) {
     try {
-      const { data, error } = await apiClient.get('/api/v1/deals/analytics/revenue');
+      const params = new URLSearchParams();
+      
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
+      }
+      
+      if (filters.ownerId) {
+        params.append('owner_id', filters.ownerId);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/api/v1/deals/analytics/revenue?${queryString}` : '/api/v1/deals/analytics/revenue';
+
+      const { data, error } = await apiClient.get(endpoint);
 
       if (error) {
         // Fallback: generate revenue data from existing deals
@@ -364,9 +415,22 @@ export const dealsService = {
   },
 
   // Get performance metrics for analytics dashboard
-  async getPerformanceMetrics() {
+  async getPerformanceMetrics(filters = {}) {
     try {
-      const { data, error } = await apiClient.get('/api/v1/deals/analytics/performance');
+      const params = new URLSearchParams();
+      
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
+      }
+      
+      if (filters.ownerId) {
+        params.append('owner_id', filters.ownerId);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/api/v1/deals/analytics/performance?${queryString}` : '/api/v1/deals/analytics/performance';
+
+      const { data, error } = await apiClient.get(endpoint);
 
       if (error) {
         // Fallback: calculate from existing deals
@@ -395,6 +459,32 @@ export const dealsService = {
       return data;
     } catch (err) {
       console.error('Error fetching performance metrics:', err);
+      throw err;
+    }
+  },
+
+  // Get filter options for analytics
+  async getFilterOptions() {
+    try {
+      const { data, error } = await apiClient.get('/api/v1/deals/analytics/filter-options');
+
+      if (error) {
+        // Fallback: return basic options
+        return {
+          reps: [{ value: 'all', label: 'All Representatives' }],
+          dateRanges: [
+            { value: 'last7days', label: 'Last 7 Days' },
+            { value: 'last30days', label: 'Last 30 Days' },
+            { value: 'last90days', label: 'Last 90 Days' },
+            { value: 'thisquarter', label: 'This Quarter' },
+            { value: 'lastyear', label: 'Last Year' }
+          ]
+        };
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Error fetching filter options:', err);
       throw err;
     }
   },

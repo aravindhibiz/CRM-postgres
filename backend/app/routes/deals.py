@@ -9,6 +9,7 @@ from ..core.auth import (
 )
 from ..models.user import UserProfile
 from ..models.deal import Deal
+from ..models.company import Company
 from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelations
 
 router = APIRouter()
@@ -16,6 +17,12 @@ router = APIRouter()
 
 @router.get("/", response_model=List[DealWithRelations])
 async def get_user_deals(
+    date_range: Optional[str] = Query(
+        None, description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"),
+    probability_range: Optional[str] = Query(
+        None, description="Probability range: high, medium, low"),
+    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
+    stage: Optional[str] = Query(None, description="Filter by deal stage"),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
@@ -36,12 +43,55 @@ async def get_user_deals(
         # Sales reps and users can only see their own deals
         query = query.filter(Deal.owner_id == current_user.id)
 
+    # Apply filters
+    from datetime import datetime, timedelta
+
+    # Date range filtering
+    if date_range:
+        now = datetime.now()
+        if date_range == "thisWeek":
+            start_date = now - timedelta(days=now.weekday())
+            query = query.filter(Deal.created_at >= start_date)
+        elif date_range == "thisMonth":
+            start_date = now.replace(day=1)
+            query = query.filter(Deal.created_at >= start_date)
+        elif date_range == "thisQuarter":
+            quarter_start_month = ((now.month - 1) // 3) * 3 + 1
+            start_date = now.replace(month=quarter_start_month, day=1)
+            query = query.filter(Deal.created_at >= start_date)
+        elif date_range == "thisYear":
+            start_date = now.replace(month=1, day=1)
+            query = query.filter(Deal.created_at >= start_date)
+
+    # Probability range filtering
+    if probability_range:
+        if probability_range == "high":
+            query = query.filter(Deal.probability > 70)
+        elif probability_range == "medium":
+            query = query.filter(Deal.probability >= 30,
+                                 Deal.probability <= 70)
+        elif probability_range == "low":
+            query = query.filter(Deal.probability < 30)
+
+    # Owner filtering (for managers/admins)
+    if owner_id and current_user.role in ['admin', 'sales_manager']:
+        query = query.filter(Deal.owner_id == owner_id)
+
+    # Stage filtering
+    if stage:
+        query = query.filter(Deal.stage == stage)
+
     deals = query.order_by(Deal.updated_at.desc()).all()
     return deals
 
 
 @router.get("/pipeline", response_model=dict)
 async def get_pipeline_deals(
+    date_range: Optional[str] = Query(
+        None, description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"),
+    probability_range: Optional[str] = Query(
+        None, description="Probability range: high, medium, low"),
+    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
@@ -61,6 +111,40 @@ async def get_pipeline_deals(
     else:
         # Sales reps and users can only see their own deals
         query = query.filter(Deal.owner_id == current_user.id)
+
+    # Apply filters (same as main deals endpoint)
+    from datetime import datetime, timedelta
+
+    # Date range filtering
+    if date_range:
+        now = datetime.now()
+        if date_range == "thisWeek":
+            start_date = now - timedelta(days=now.weekday())
+            query = query.filter(Deal.created_at >= start_date)
+        elif date_range == "thisMonth":
+            start_date = now.replace(day=1)
+            query = query.filter(Deal.created_at >= start_date)
+        elif date_range == "thisQuarter":
+            quarter_start_month = ((now.month - 1) // 3) * 3 + 1
+            start_date = now.replace(month=quarter_start_month, day=1)
+            query = query.filter(Deal.created_at >= start_date)
+        elif date_range == "thisYear":
+            start_date = now.replace(month=1, day=1)
+            query = query.filter(Deal.created_at >= start_date)
+
+    # Probability range filtering
+    if probability_range:
+        if probability_range == "high":
+            query = query.filter(Deal.probability > 70)
+        elif probability_range == "medium":
+            query = query.filter(Deal.probability >= 30,
+                                 Deal.probability <= 70)
+        elif probability_range == "low":
+            query = query.filter(Deal.probability < 30)
+
+    # Owner filtering (for managers/admins)
+    if owner_id and current_user.role in ['admin', 'sales_manager']:
+        query = query.filter(Deal.owner_id == owner_id)
 
     deals = query.order_by(Deal.updated_at.desc()).all()
 
@@ -259,10 +343,15 @@ async def get_deals_stats(
 
 @router.get("/analytics/revenue")
 async def get_revenue_data(
+    date_range: Optional[str] = Query(
+        None, description="Date range filter: last7days, last30days, last90days, thisquarter, lastyear"),
+    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    query = db.query(Deal)
+    from sqlalchemy.orm import joinedload
+
+    query = db.query(Deal).options(joinedload(Deal.company))
 
     # Role-based filtering
     if current_user.role == 'admin':
@@ -274,6 +363,35 @@ async def get_revenue_data(
     else:
         # Sales reps and users can only see their own deals
         query = query.filter(Deal.owner_id == current_user.id)
+
+    # Apply additional filters
+    if owner_id and current_user.role in ['admin', 'sales_manager']:
+        query = query.filter(Deal.owner_id == owner_id)
+
+    # Apply date range filter
+    if date_range:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+
+        if date_range == 'last7days':
+            start_date = now - timedelta(days=7)
+            query = query.filter(Deal.actual_close_date >= start_date)
+        elif date_range == 'last30days':
+            start_date = now - timedelta(days=30)
+            query = query.filter(Deal.actual_close_date >= start_date)
+        elif date_range == 'last90days':
+            start_date = now - timedelta(days=90)
+            query = query.filter(Deal.actual_close_date >= start_date)
+        elif date_range == 'thisquarter':
+            current_quarter = (now.month - 1) // 3 + 1
+            quarter_start = datetime(
+                now.year, (current_quarter - 1) * 3 + 1, 1)
+            query = query.filter(Deal.actual_close_date >= quarter_start)
+        elif date_range == 'lastyear':
+            year_start = datetime(now.year - 1, 1, 1)
+            year_end = datetime(now.year, 1, 1)
+            query = query.filter(Deal.actual_close_date >=
+                                 year_start, Deal.actual_close_date < year_end)
 
     deals = query.all()
 
@@ -316,10 +434,15 @@ async def get_revenue_data(
 
 @router.get("/analytics/performance")
 async def get_performance_metrics(
+    date_range: Optional[str] = Query(
+        None, description="Date range filter: last7days, last30days, last90days, thisquarter, lastyear"),
+    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
-    query = db.query(Deal)
+    from sqlalchemy.orm import joinedload
+
+    query = db.query(Deal).options(joinedload(Deal.company))
 
     # Role-based filtering
     if current_user.role == 'admin':
@@ -331,6 +454,35 @@ async def get_performance_metrics(
     else:
         # Sales reps and users can only see their own deals
         query = query.filter(Deal.owner_id == current_user.id)
+
+    # Apply additional filters
+    if owner_id and current_user.role in ['admin', 'sales_manager']:
+        query = query.filter(Deal.owner_id == owner_id)
+
+    # Apply date range filter
+    if date_range:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+
+        if date_range == 'last7days':
+            start_date = now - timedelta(days=7)
+            query = query.filter(Deal.actual_close_date >= start_date)
+        elif date_range == 'last30days':
+            start_date = now - timedelta(days=30)
+            query = query.filter(Deal.actual_close_date >= start_date)
+        elif date_range == 'last90days':
+            start_date = now - timedelta(days=90)
+            query = query.filter(Deal.actual_close_date >= start_date)
+        elif date_range == 'thisquarter':
+            current_quarter = (now.month - 1) // 3 + 1
+            quarter_start = datetime(
+                now.year, (current_quarter - 1) * 3 + 1, 1)
+            query = query.filter(Deal.actual_close_date >= quarter_start)
+        elif date_range == 'lastyear':
+            year_start = datetime(now.year - 1, 1, 1)
+            year_end = datetime(now.year, 1, 1)
+            query = query.filter(Deal.actual_close_date >=
+                                 year_start, Deal.actual_close_date < year_end)
 
     deals = query.all()
 
@@ -399,3 +551,59 @@ async def get_win_rate_data(
         })
 
     return win_rate_data
+
+
+@router.get("/analytics/filter-options")
+async def get_filter_options(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """Get available filter options for analytics filters"""
+
+    # Get available sales reps (users who own deals)
+    if current_user.role in ['admin', 'sales_manager']:
+        # Admin and managers can see all users
+        users_query = db.query(UserProfile.id, UserProfile.first_name,
+                               UserProfile.last_name, UserProfile.role).distinct()
+        users = users_query.all()
+
+        reps = [
+            {
+                "value": str(user.id),
+                "label": f"{user.first_name} {user.last_name}",
+                "role": user.role
+            }
+            for user in users
+        ]
+    else:
+        # Regular users only see themselves
+        reps = [
+            {
+                "value": str(current_user.id),
+                "label": f"{current_user.first_name} {current_user.last_name}",
+                "role": current_user.role
+            }
+        ]
+
+    # Get available industries from companies
+    industries_query = db.query(Company.industry).filter(
+        Company.industry.isnot(None)).distinct()
+    industries = [industry[0]
+                  for industry in industries_query.all() if industry[0]]
+
+    industry_options = [
+        {"value": industry, "label": industry}
+        for industry in sorted(industries)
+    ]
+
+    return {
+        "reps": reps,
+        "industries": industry_options,
+        "dateRanges": [
+            {"value": "last7days", "label": "Last 7 Days"},
+            {"value": "last30days", "label": "Last 30 Days"},
+            {"value": "last90days", "label": "Last 90 Days"},
+            {"value": "thisquarter", "label": "This Quarter"},
+            {"value": "lastyear", "label": "Last Year"}
+        ]
+    }

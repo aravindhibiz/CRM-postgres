@@ -20,14 +20,15 @@ import { dashboardService } from '../../services/dashboardService';
 
 const SalesDashboard = () => {
   const { user, loading: authLoading } = useAuth();
-  const [selectedDateRange, setSelectedDateRange] = useState('thisMonth');
+  const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedProbability, setSelectedProbability] = useState('all');
-  const [selectedTerritory, setSelectedTerritory] = useState('all');
+  const [selectedOwner, setSelectedOwner] = useState('all');
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [pipelineData, setPipelineData] = useState({});
   const [revenueData, setRevenueData] = useState([]);
   const [performanceData, setPerformanceData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [filtersLoading, setFiltersLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Load system configuration on component mount
@@ -86,29 +87,38 @@ const SalesDashboard = () => {
   };
 
   // Load dashboard data
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (isFilterChange = false) => {
     if (!user) return;
 
     try {
-      setLoading(true);
+      if (isFilterChange) {
+        setFiltersLoading(true);
+      } else {
+        setLoading(true);
+      }
       setError('');
+
+      // Prepare filters
+      const filters = {
+        dateRange: selectedDateRange !== 'all' ? selectedDateRange : null,
+        probabilityRange: selectedProbability !== 'all' ? selectedProbability : null,
+        ownerId: selectedOwner !== 'all' ? selectedOwner : null
+      };
 
       // Load all dashboard data in parallel
       const [
-        dashboardOverview,
         pipelineDeals,
         revenueStats,
         performanceStats
       ] = await Promise.all([
-        dashboardService?.getDashboardOverview(),
-        dealsService?.getPipelineDeals(),
+        dealsService?.getPipelineDeals(filters),
         dealsService?.getRevenueData(),
         dealsService?.getPerformanceMetrics()
       ]);
 
-      setPipelineData(pipelineDeals);
-      setRevenueData(revenueStats);
-      setPerformanceData(performanceStats);
+      setPipelineData(pipelineDeals || {});
+      setRevenueData(revenueStats || []);
+      setPerformanceData(performanceStats || {});
       setLastUpdated(new Date());
 
     } catch (err) {
@@ -116,7 +126,38 @@ const SalesDashboard = () => {
       setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
+      setFiltersLoading(false);
     }
+  };
+
+  // Helper function to format filter display names
+  const getFilterDisplayName = (filterType, value) => {
+    if (filterType === 'dateRange') {
+      switch (value) {
+        case 'thisWeek': return 'This Week';
+        case 'thisMonth': return 'This Month';
+        case 'thisQuarter': return 'This Quarter';
+        case 'thisYear': return 'This Year';
+        case 'all': return 'All Time';
+        default: return value;
+      }
+    }
+    if (filterType === 'probability') {
+      switch (value) {
+        case 'high': return 'High Probability';
+        case 'medium': return 'Medium Probability';
+        case 'low': return 'Low Probability';
+        default: return value;
+      }
+    }
+    if (filterType === 'owner') {
+      switch (value) {
+        case 'me': return 'My Deals Only';
+        case 'all': return 'All Team Members';
+        default: return 'Team Member';
+      }
+    }
+    return value;
   };
 
   // Auto-refresh functionality
@@ -125,6 +166,13 @@ const SalesDashboard = () => {
       loadDashboardData();
     }
   }, [user]);
+
+  // Handle filter changes
+  useEffect(() => {
+    if (user) {
+      loadDashboardData(true); // true indicates this is a filter change
+    }
+  }, [selectedDateRange, selectedProbability, selectedOwner]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -350,6 +398,7 @@ const SalesDashboard = () => {
                 <option value="thisMonth">This Month</option>
                 <option value="thisQuarter">This Quarter</option>
                 <option value="thisYear">This Year</option>
+                <option value="all">All Time</option>
               </select>
               
               <select
@@ -363,18 +412,37 @@ const SalesDashboard = () => {
                 <option value="low">Low (&lt;30%)</option>
               </select>
               
-              <select
-                value={selectedTerritory}
-                onChange={(e) => setSelectedTerritory(e?.target?.value)}
-                className="input-field text-sm"
-              >
-                <option value="all">All Territories</option>
-                <option value="north">North America</option>
-                <option value="europe">Europe</option>
-                <option value="asia">Asia Pacific</option>
-              </select>
+              {/* Owner filter - only show for managers/admins */}
+              {(user?.role === 'admin' || user?.role === 'sales_manager') && (
+                <select
+                  value={selectedOwner}
+                  onChange={(e) => setSelectedOwner(e?.target?.value)}
+                  className="input-field text-sm"
+                >
+                  <option value="all">All Team Members</option>
+                  <option value="me">My Deals Only</option>
+                  {/* TODO: Load actual team members */}
+                </select>
+              )}
+
+              {/* Clear Filters Button */}
+              {(selectedDateRange !== 'all' || selectedProbability !== 'all' || selectedOwner !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSelectedDateRange('all');
+                    setSelectedProbability('all');
+                    setSelectedOwner('all');
+                  }}
+                  className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-surface-hover transition-colors"
+                  title="Clear all filters"
+                >
+                  <Icon name="X" size={16} />
+                </button>
+              )}
             </div>
           </div>
+
+         
 
           {/* Error Message */}
           {error && (
@@ -462,9 +530,17 @@ const SalesDashboard = () => {
                   <div className="card p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-normal text-text-primary">Sales Pipeline</h2>
-                      <div className="flex items-center space-x-2 text-sm text-text-secondary">
-                        <Icon name="RefreshCw" size={16} />
-                        <span>Drag deals to update stages</span>
+                      <div className="flex items-center space-x-4">
+                        {filtersLoading && (
+                          <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            <span>Applying filters...</span>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                          <Icon name="RefreshCw" size={16} />
+                          <span>Drag deals to update stages</span>
+                        </div>
                       </div>
                     </div>
                     
@@ -507,7 +583,7 @@ const SalesDashboard = () => {
                   </div>
 
                   {/* Performance Metrics */}
-                  <PerformanceMetrics data={performanceData} />
+                  <PerformanceMetrics data={performanceData} revenueData={revenueData} />
                 </div>
 
                 {/* Right Sidebar */}

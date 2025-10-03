@@ -8,7 +8,7 @@ from ..models.user import UserProfile
 from ..models.system_config import SystemConfiguration
 from ..schemas.system_config import (
     SystemConfigResponse, SystemConfigBulkUpdate, SystemConfigBulkUpdateRequest,
-    SystemConfigBulkUpdateItem, SystemConfigCreate, SystemConfigUpdate, 
+    SystemConfigBulkUpdateItem, SystemConfigCreate, SystemConfigUpdate,
     SystemConfigCategoryResponse, SystemConfigSchemaResponse, SystemConfigExportResponse,
     SystemConfigValidationResponse, SystemConfigBulkUpdateRequestNew
 )
@@ -24,12 +24,14 @@ async def get_all_configurations(
     current_user: UserProfile = Depends(require_admin())
 ):
     """Get all system configurations"""
-    query = db.query(SystemConfiguration).filter(SystemConfiguration.is_active == True)
+    query = db.query(SystemConfiguration).filter(
+        SystemConfiguration.is_active == True)
 
     if category:
         query = query.filter(SystemConfiguration.category == category)
 
-    configurations = query.order_by(SystemConfiguration.category, SystemConfiguration.key).all()
+    configurations = query.order_by(
+        SystemConfiguration.category, SystemConfiguration.key).all()
     return configurations
 
 
@@ -47,7 +49,7 @@ async def get_configurations_grouped(
     for config in configurations:
         if config.category not in grouped:
             grouped[config.category] = {}
-        
+
         # Convert key from dot notation to nested structure
         key_parts = config.key.split('.')
         if len(key_parts) == 2:
@@ -68,10 +70,10 @@ async def get_configurations_by_categories(
     configurations = db.query(SystemConfiguration).filter(
         SystemConfiguration.is_active == True
     ).order_by(SystemConfiguration.category, SystemConfiguration.key).all()
-    
+
     schema = SystemConfigManager.get_configuration_schema()
     categories = {}
-    
+
     for config in configurations:
         if config.category not in categories:
             category_info = schema["categories"].get(config.category, {})
@@ -83,7 +85,7 @@ async def get_configurations_by_categories(
                 "configurations": []
             }
         categories[config.category]["configurations"].append(config)
-    
+
     return list(categories.values())
 
 
@@ -106,25 +108,25 @@ async def create_configuration(
     existing = db.query(SystemConfiguration).filter(
         SystemConfiguration.key == config_data.key
     ).first()
-    
+
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Configuration with this key already exists"
         )
-    
+
     # Validate configuration value
     if not SystemConfigManager.validate_configuration(config_data.key, config_data.value):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid configuration value"
         )
-    
+
     config = SystemConfiguration(**config_data.model_dump())
     db.add(config)
     db.commit()
     db.refresh(config)
-    
+
     return config
 
 
@@ -166,52 +168,52 @@ async def update_configurations_bulk_raw(
         # Get raw JSON from request
         raw_data = await request.json()
         print(f"RAW ROUTE - Received data: {raw_data}")
-        
+
         configurations = raw_data.get('configurations', [])
         print(f"RAW ROUTE - Configurations count: {len(configurations)}")
-        
+
         updated_count = 0
         errors = []
-        
+
         for config_update in configurations:
             config_key = config_update.get('key')
             config_value = config_update.get('value')
-            
+
             if not config_key:
                 errors.append("Missing configuration key")
                 continue
-            
+
             # Validate configuration value
             if not SystemConfigManager.validate_configuration(config_key, config_value):
                 errors.append(f"Invalid value for configuration: {config_key}")
                 continue
-            
+
             # Find and update configuration
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == config_key
             ).first()
-            
+
             if config:
                 config.value = config_value
                 updated_count += 1
             else:
                 errors.append(f"Configuration not found: {config_key}")
-        
+
         if errors:
             return {
                 "success": False,
                 "errors": errors,
                 "updated_count": updated_count
             }
-        
+
         db.commit()
-        
+
         return {
             "success": True,
             "updated_count": updated_count,
             "message": f"Successfully updated {updated_count} configurations"
         }
-        
+
     except Exception as e:
         db.rollback()
         return {
@@ -229,50 +231,52 @@ async def update_configurations_bulk_new(
     """Update multiple configurations at once - new version"""
     print(f"NEW ROUTE - Raw request received - Type: {type(update_data)}")
     print(f"NEW ROUTE - Received bulk update request: {update_data}")
-    print(f"NEW ROUTE - Configurations count: {len(update_data.configurations)}")
-    
+    print(
+        f"NEW ROUTE - Configurations count: {len(update_data.configurations)}")
+
     updated_count = 0
     errors = []
-    
+
     try:
         for config_update in update_data.configurations:
             config_key = config_update.key
             config_value = config_update.value
-            
+
             if not config_key:
                 errors.append("Missing configuration key")
                 continue
-            
+
             # Validate configuration value
             if not SystemConfigManager.validate_configuration(config_key, config_value):
                 errors.append(f"Invalid value for configuration: {config_key}")
                 continue
-            
+
             # Find and update configuration
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == config_key
             ).first()
-            
+
             if config:
                 config.value = config_value
                 updated_count += 1
             else:
                 errors.append(f"Configuration not found: {config_key}")
-        
+
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"message": "Some configurations failed to update", "errors": errors}
+                detail={
+                    "message": "Some configurations failed to update", "errors": errors}
             )
-        
+
         db.commit()
-        
+
         return {
             "success": True,
             "updated_count": updated_count,
             "message": f"Successfully updated {updated_count} configurations"
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
@@ -291,50 +295,52 @@ async def update_configurations_bulk(
     print(f"BULK ROUTE - Raw request received - Type: {type(update_data)}")
     print(f"BULK ROUTE - Received bulk update request: {update_data}")
     print(f"BULK ROUTE - Model dump: {update_data.model_dump()}")
-    print(f"BULK ROUTE - Configurations count: {len(update_data.configurations)}")
-    
+    print(
+        f"BULK ROUTE - Configurations count: {len(update_data.configurations)}")
+
     updated_count = 0
     errors = []
-    
+
     try:
         for config_update in update_data.configurations:
             config_key = config_update.key
             config_value = config_update.value
-            
+
             if not config_key:
                 errors.append("Missing configuration key")
                 continue
-            
+
             # Validate configuration value
             if not SystemConfigManager.validate_configuration(config_key, config_value):
                 errors.append(f"Invalid value for configuration: {config_key}")
                 continue
-            
+
             # Find and update configuration
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == config_key
             ).first()
-            
+
             if config:
                 config.value = config_value
                 updated_count += 1
             else:
                 errors.append(f"Configuration not found: {config_key}")
-        
+
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"message": "Some configurations failed to update", "errors": errors}
+                detail={
+                    "message": "Some configurations failed to update", "errors": errors}
             )
-        
+
         db.commit()
-        
+
         return {
             "success": True,
             "updated_count": updated_count,
             "message": f"Successfully updated {updated_count} configurations"
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
@@ -351,29 +357,30 @@ async def update_configuration(
     current_user: UserProfile = Depends(require_admin())
 ):
     """Update a system configuration"""
-    config = db.query(SystemConfiguration).filter(SystemConfiguration.id == config_id).first()
-    
+    config = db.query(SystemConfiguration).filter(
+        SystemConfiguration.id == config_id).first()
+
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Configuration not found"
         )
-    
+
     # Validate configuration value
     if not SystemConfigManager.validate_configuration(config.key, config_data.value):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid configuration value"
         )
-    
+
     # Update configuration
     update_data = config_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(config, field, value)
-    
+
     db.commit()
     db.refresh(config)
-    
+
     return config
 
 
@@ -415,52 +422,52 @@ async def update_configurations_bulk_raw(
         # Get raw JSON from request
         raw_data = await request.json()
         print(f"RAW ROUTE - Received data: {raw_data}")
-        
+
         configurations = raw_data.get('configurations', [])
         print(f"RAW ROUTE - Configurations count: {len(configurations)}")
-        
+
         updated_count = 0
         errors = []
-        
+
         for config_update in configurations:
             config_key = config_update.get('key')
             config_value = config_update.get('value')
-            
+
             if not config_key:
                 errors.append("Missing configuration key")
                 continue
-            
+
             # Validate configuration value
             if not SystemConfigManager.validate_configuration(config_key, config_value):
                 errors.append(f"Invalid value for configuration: {config_key}")
                 continue
-            
+
             # Find and update configuration
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == config_key
             ).first()
-            
+
             if config:
                 config.value = config_value
                 updated_count += 1
             else:
                 errors.append(f"Configuration not found: {config_key}")
-        
+
         if errors:
             return {
                 "success": False,
                 "errors": errors,
                 "updated_count": updated_count
             }
-        
+
         db.commit()
-        
+
         return {
             "success": True,
             "updated_count": updated_count,
             "message": f"Successfully updated {updated_count} configurations"
         }
-        
+
     except Exception as e:
         db.rollback()
         return {
@@ -478,50 +485,52 @@ async def update_configurations_bulk_new(
     """Update multiple configurations at once - new version"""
     print(f"NEW ROUTE - Raw request received - Type: {type(update_data)}")
     print(f"NEW ROUTE - Received bulk update request: {update_data}")
-    print(f"NEW ROUTE - Configurations count: {len(update_data.configurations)}")
-    
+    print(
+        f"NEW ROUTE - Configurations count: {len(update_data.configurations)}")
+
     updated_count = 0
     errors = []
-    
+
     try:
         for config_update in update_data.configurations:
             config_key = config_update.key
             config_value = config_update.value
-            
+
             if not config_key:
                 errors.append("Missing configuration key")
                 continue
-            
+
             # Validate configuration value
             if not SystemConfigManager.validate_configuration(config_key, config_value):
                 errors.append(f"Invalid value for configuration: {config_key}")
                 continue
-            
+
             # Find and update configuration
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == config_key
             ).first()
-            
+
             if config:
                 config.value = config_value
                 updated_count += 1
             else:
                 errors.append(f"Configuration not found: {config_key}")
-        
+
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"message": "Some configurations failed to update", "errors": errors}
+                detail={
+                    "message": "Some configurations failed to update", "errors": errors}
             )
-        
+
         db.commit()
-        
+
         return {
             "success": True,
             "updated_count": updated_count,
             "message": f"Successfully updated {updated_count} configurations"
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
@@ -541,49 +550,50 @@ async def update_configurations_bulk(
     print(f"Received bulk update request: {update_data}")
     print(f"Model dump: {update_data.model_dump()}")
     print(f"Configurations count: {len(update_data.configurations)}")
-    
+
     updated_count = 0
     errors = []
-    
+
     try:
         for config_update in update_data.configurations:
             config_key = config_update.key
             config_value = config_update.value
-            
+
             if not config_key:
                 errors.append("Missing configuration key")
                 continue
-            
+
             # Validate configuration value
             if not SystemConfigManager.validate_configuration(config_key, config_value):
                 errors.append(f"Invalid value for configuration: {config_key}")
                 continue
-            
+
             # Find and update configuration
             config = db.query(SystemConfiguration).filter(
                 SystemConfiguration.key == config_key
             ).first()
-            
+
             if config:
                 config.value = config_value
                 updated_count += 1
             else:
                 errors.append(f"Configuration not found: {config_key}")
-        
+
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"message": "Some configurations failed to update", "errors": errors}
+                detail={
+                    "message": "Some configurations failed to update", "errors": errors}
             )
-        
+
         db.commit()
-        
+
         return {
             "success": True,
             "updated_count": updated_count,
             "message": f"Successfully updated {updated_count} configurations"
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
@@ -601,7 +611,7 @@ async def get_current_configuration(
     configurations = db.query(SystemConfiguration).filter(
         SystemConfiguration.is_active == True
     ).all()
-    
+
     current_config = {}
     for config in configurations:
         # Create nested structure like general.currency -> {general: {currency: "USD"}}
@@ -613,7 +623,7 @@ async def get_current_configuration(
             current_config[category][field] = config.value
         else:
             current_config[config.key] = config.value
-    
+
     return current_config
 
 
@@ -626,7 +636,7 @@ async def export_configuration(
     configurations = db.query(SystemConfiguration).filter(
         SystemConfiguration.is_active == True
     ).all()
-    
+
     export_data = {}
     for config in configurations:
         export_data[config.key] = {
@@ -634,7 +644,7 @@ async def export_configuration(
             "category": config.category,
             "description": config.description
         }
-    
+
     return {
         "export_date": datetime.utcnow(),
         "configurations": export_data,
@@ -654,22 +664,23 @@ async def validate_configurations(
     """Validate configuration values"""
     errors = []
     warnings = []
-    
+
     for config in configurations:
         key = config.get("key")
         value = config.get("value")
-        
+
         if not key:
             errors.append("Configuration key is required")
             continue
-            
+
         if not SystemConfigManager.validate_configuration(key, value):
             errors.append(f"Invalid value for configuration: {key}")
-        
+
         # Add specific warnings
         if key.endswith("_timeout_minutes") and isinstance(value, int) and value < 30:
-            warnings.append(f"Short timeout value for {key} may cause user issues")
-    
+            warnings.append(
+                f"Short timeout value for {key} may cause user issues")
+
     return {
         "valid": len(errors) == 0,
         "errors": errors,
@@ -684,7 +695,7 @@ async def initialize_default_configurations(
 ):
     """Initialize system with default configurations"""
     success = SystemConfigManager.initialize_default_configurations(db)
-    
+
     if success:
         return {"success": True, "message": "Default configurations initialized successfully"}
     else:
@@ -701,16 +712,17 @@ async def delete_configuration(
     current_user: UserProfile = Depends(require_admin())
 ):
     """Delete a system configuration (soft delete)"""
-    config = db.query(SystemConfiguration).filter(SystemConfiguration.id == config_id).first()
-    
+    config = db.query(SystemConfiguration).filter(
+        SystemConfiguration.id == config_id).first()
+
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Configuration not found"
         )
-    
+
     # Soft delete by setting is_active to False
     config.is_active = False
     db.commit()
-    
+
     return {"message": "Configuration deleted successfully"}

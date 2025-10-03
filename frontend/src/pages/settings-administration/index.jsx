@@ -1,5 +1,6 @@
 // src/pages/settings-administration/index.jsx
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import Breadcrumb from '../../components/ui/Breadcrumb';
 import SettingsNavigation from './components/SettingsNavigation';
@@ -14,11 +15,28 @@ import { permissionsService } from '../../services/permissionsService';
 
 const SettingsAdministration = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState('user-management');
 
-  // Set default active section based on user permissions
+  // Set default active section based on user permissions and URL params
   useEffect(() => {
     if (user) {
+      // Check if there's a section specified in URL params (for OAuth callback)
+      const sectionParam = searchParams.get('section');
+      const hasOAuthParams = searchParams.get('code') || searchParams.get('error');
+      
+      // If OAuth callback, force integrations section
+      if (hasOAuthParams) {
+        setActiveSection('integrations');
+        return;
+      }
+      
+      // If section specified in URL, use that
+      if (sectionParam) {
+        setActiveSection(sectionParam);
+        return;
+      }
+      
       // List of sections in priority order
       const sections = [
         { id: 'user-management', permission: 'settings.user_management' },
@@ -38,7 +56,7 @@ const SettingsAdministration = () => {
         }
       }
     }
-  }, [user]);
+  }, [user, searchParams]);
 
   const renderActiveSection = () => {
     switch (activeSection) {

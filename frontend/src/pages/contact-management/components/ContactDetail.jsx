@@ -4,6 +4,7 @@ import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
 import ActivityTimeline from './ActivityTimeline';
 import DealsList from './DealsList';
+import Notes from './Notes';
 import ComposeEmailModal from './ComposeEmailModal';
 import LogCallModal from './LogCallModal';
 import { activitiesService } from '../../../services/activitiesService';
@@ -17,6 +18,7 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [contactDeals, setContactDeals] = useState([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
+  const [notesCount, setNotesCount] = useState(0);
   
   if (!contact) return null;
 
@@ -255,7 +257,7 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
               activeTab === 'activity' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
             }`}
           >
-            Activity
+            Activity ({contactActivities.length})
           </button>
           <button
             onClick={() => setActiveTab('deals')}
@@ -271,7 +273,7 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
               activeTab === 'notes' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
             }`}
           >
-            Notes
+            Notes ({notesCount})
           </button>
         </nav>
       </div>
@@ -437,24 +439,7 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
         )}
         
         {activeTab === 'notes' && (
-          <div className="card p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">Notes</h3>
-              <button className="text-primary hover:text-primary-700 transition-colors duration-150 ease-out">
-                <Icon name="Edit" size={16} />
-              </button>
-            </div>
-            
-            {contact?.notes ? (
-              <p className="text-text-primary whitespace-pre-line">{contact?.notes}</p>
-            ) : (
-              <div className="text-center py-8">
-                <Icon name="FileText" size={32} className="text-text-tertiary mx-auto mb-3" />
-                <p className="text-text-secondary">No notes available</p>
-                <button className="mt-3 text-primary hover:underline">Add a note</button>
-              </div>
-            )}
-          </div>
+          <Notes contact={contact} onNotesCountChange={setNotesCount} />
         )}
       </div>
       {/* Modals */}

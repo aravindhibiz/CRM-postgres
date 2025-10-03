@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from .core.database import engine, Base
-from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users, roles, system_config, custom_fields, email_templates
+from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users, roles, system_config, custom_fields, email_templates, integrations, notes
 # Import all models to ensure SQLAlchemy relationships are set up properly
 from . import models
 import traceback
@@ -50,6 +50,9 @@ app.include_router(custom_fields.router,
                    prefix="/api/v1/custom-fields", tags=["custom-fields"])
 app.include_router(email_templates.router,
                    prefix="/api/v1/email-templates", tags=["email-templates"])
+app.include_router(integrations.router,
+                   prefix="/api/v1/integrations", tags=["integrations"])
+app.include_router(notes.router, prefix="/api/v1/notes", tags=["notes"])
 
 # Global exception handler to preserve CORS headers
 

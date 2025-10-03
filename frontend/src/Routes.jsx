@@ -14,6 +14,27 @@ import PipelineAnalytics from "pages/pipeline-analytics";
 import ActivityTimeline from "pages/activity-timeline";
 import SettingsAdministration from "pages/settings-administration";
 
+// OAuth Callback Component
+const OAuthCallback = () => {
+  React.useEffect(() => {
+    // Get current URL params and add section parameter
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set('section', 'integrations');
+    
+    // Redirect to settings page with integrations section and OAuth params
+    window.location.href = `/settings-administration?${currentParams.toString()}`;
+  }, []);
+  
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p>Processing OAuth callback...</p>
+      </div>
+    </div>
+  );
+};
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -23,6 +44,16 @@ const Routes = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<Login />} />
+          
+          {/* OAuth Callback Route */}
+          <Route 
+            path="/integrations/oauth/callback" 
+            element={
+              <ProtectedRoute requiredRoles={['admin', 'sales_manager']} requiredPermission="settings.view_own_profile">
+                <OAuthCallback />
+              </ProtectedRoute>
+            } 
+          />
 
           {/* Protected Routes */}
           <Route
