@@ -43,8 +43,8 @@ const CustomFieldInput = ({
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               error ? 'border-red-500' : 'border-gray-300'
             } ${disabled ? 'bg-gray-100' : ''}`}
-            maxLength={field_config.max_length}
-            minLength={field_config.min_length}
+            maxLength={field_config?.max_length}
+            minLength={field_config?.min_length}
           />
         );
 
@@ -59,8 +59,8 @@ const CustomFieldInput = ({
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               error ? 'border-red-500' : 'border-gray-300'
             } ${disabled ? 'bg-gray-100' : ''}`}
-            maxLength={field_config.max_length}
-            minLength={field_config.min_length}
+            maxLength={field_config?.max_length}
+            minLength={field_config?.min_length}
           />
         );
 
@@ -69,7 +69,7 @@ const CustomFieldInput = ({
       case 'percentage':
         return (
           <div className="relative">
-            {field_config.prefix && (
+            {field_config?.prefix && (
               <span className="absolute left-3 top-2 text-gray-500">
                 {field_config.prefix}
               </span>
@@ -83,13 +83,13 @@ const CustomFieldInput = ({
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 error ? 'border-red-500' : 'border-gray-300'
               } ${disabled ? 'bg-gray-100' : ''} ${
-                field_config.prefix ? 'pl-8' : ''
-              } ${field_config.suffix ? 'pr-8' : ''}`}
-              min={field_config.min_value}
-              max={field_config.max_value}
-              step={field_type === 'percentage' ? '0.01' : field_config.decimal_places ? `0.${'0'.repeat(field_config.decimal_places - 1)}1` : '0.01'}
+                field_config?.prefix ? 'pl-8' : ''
+              } ${field_config?.suffix ? 'pr-8' : ''}`}
+              min={field_config?.min_value}
+              max={field_config?.max_value}
+              step={field_type === 'percentage' ? '0.01' : field_config?.decimal_places ? `0.${'0'.repeat(field_config.decimal_places - 1)}1` : '0.01'}
             />
-            {field_config.suffix && (
+            {field_config?.suffix && (
               <span className="absolute right-3 top-2 text-gray-500">
                 {field_config.suffix}
               </span>
@@ -160,8 +160,8 @@ const CustomFieldInput = ({
               className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 error ? 'border-red-500' : 'border-gray-300'
               } ${disabled ? 'bg-gray-100' : ''}`}
-              min={field_config.min_date}
-              max={field_config.max_date}
+              min={field_config?.min_date}
+              max={field_config?.max_date}
             />
           </div>
         );
@@ -178,8 +178,8 @@ const CustomFieldInput = ({
               className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 error ? 'border-red-500' : 'border-gray-300'
               } ${disabled ? 'bg-gray-100' : ''}`}
-              min={field_config.min_date}
-              max={field_config.max_date}
+              min={field_config?.min_date}
+              max={field_config?.max_date}
             />
           </div>
         );

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from datetime import datetime
 import uuid
 from .user import UserResponse
@@ -37,6 +37,7 @@ class ActivityBase(BaseModel):
 class ActivityCreate(ActivityBase):
     contact_id: Optional[uuid.UUID] = None
     deal_id: Optional[uuid.UUID] = None
+    custom_fields: Optional[Dict[str, Any]] = None
 
 
 class ActivityUpdate(BaseModel):
@@ -47,6 +48,7 @@ class ActivityUpdate(BaseModel):
     outcome: Optional[str] = None
     contact_id: Optional[uuid.UUID] = None
     deal_id: Optional[uuid.UUID] = None
+    custom_fields: Optional[Dict[str, Any]] = None
 
 
 class ActivityResponse(ActivityBase):
@@ -56,6 +58,7 @@ class ActivityResponse(ActivityBase):
     user_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    custom_fields: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

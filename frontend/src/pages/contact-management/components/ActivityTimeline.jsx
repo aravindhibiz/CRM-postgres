@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import Icon from 'components/AppIcon';
-import AddActivityModal from './AddActivityModal';
+import AddActivityModal from '../../activity-timeline/components/AddActivityModal';
 import { activitiesService } from '../../../services/activitiesService';
 
 const ActivityTimeline = ({ activities, contact, onActivityAdded, onActivityUpdated, loading = false }) => {
@@ -74,9 +74,18 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded, onActivityUpda
     }
   };
 
-  const handleEditActivity = (activity) => {
-    setEditingActivity(activity);
-    setShowAddActivityModal(true);
+  const handleEditActivity = async (activity) => {
+    try {
+      // Fetch full activity data with custom fields
+      const fullActivity = await activitiesService.getActivityById(activity.id);
+      setEditingActivity(fullActivity);
+      setShowAddActivityModal(true);
+    } catch (err) {
+      console.error('Error fetching activity for editing:', err);
+      // Fallback to the activity object we have
+      setEditingActivity(activity);
+      setShowAddActivityModal(true);
+    }
   };
 
   const handleOpenAddModal = () => {
@@ -210,11 +219,12 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded, onActivityUpda
       {/* Add Activity Modal */}
       {showAddActivityModal && (
         <AddActivityModal
-          contact={contact}
+          isOpen={showAddActivityModal}
           onClose={handleCloseAddModal}
           onActivityAdded={handleAddActivity}
           onActivityUpdated={handleUpdateActivity}
           editingActivity={editingActivity}
+          prefilledData={contact ? { contact_id: contact.id } : {}}
         />
       )}
     </div>

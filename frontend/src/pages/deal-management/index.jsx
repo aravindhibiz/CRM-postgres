@@ -324,11 +324,20 @@ const DealManagement = () => {
   };
 
   // Handle editing existing deal
-  const handleEditDeal = (deal) => {
-    setSelectedDeal(deal);
+  const handleEditDeal = async (deal) => {
     setShowForm(true);
     setIsListView(false);
     navigate(`/deal-management/${deal.id}`);
+    
+    // Fetch full deal data including custom fields
+    try {
+      const fullDealData = await dealsService?.getDealById(deal.id);
+      setSelectedDeal(fullDealData);
+    } catch (err) {
+      console.error('Error loading full deal data:', err);
+      // Fallback to the deal from list if fetch fails
+      setSelectedDeal(deal);
+    }
   };
 
   // Handle going back to list view

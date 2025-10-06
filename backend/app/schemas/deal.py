@@ -1,10 +1,11 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from decimal import Decimal
 import uuid
 from .user import UserResponse
 from .contact import ContactResponse
+
 
 class DealBase(BaseModel):
     name: str
@@ -16,9 +17,12 @@ class DealBase(BaseModel):
     source: Optional[str] = None
     next_action: Optional[str] = None
 
+
 class DealCreate(DealBase):
     company_id: Optional[uuid.UUID] = None
     contact_id: Optional[uuid.UUID] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+
 
 class DealUpdate(BaseModel):
     name: Optional[str] = None
@@ -33,6 +37,8 @@ class DealUpdate(BaseModel):
     next_action: Optional[str] = None
     company_id: Optional[uuid.UUID] = None
     contact_id: Optional[uuid.UUID] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+
 
 class DealResponse(DealBase):
     id: uuid.UUID
@@ -43,9 +49,11 @@ class DealResponse(DealBase):
     lost_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    custom_fields: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True
+
 
 class DealWithRelations(DealResponse):
     owner: Optional[UserResponse] = None

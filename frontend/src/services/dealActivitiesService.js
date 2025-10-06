@@ -25,6 +25,7 @@ export const dealActivitiesService = {
         outcome: activityData.outcome || null,
         contact_id: activityData.contact_id || null,
         deal_id: dealId,
+        custom_fields: activityData.custom_fields || undefined
       };
 
       const { data, error } = await apiClient.post('/api/v1/activities', cleanActivityData);

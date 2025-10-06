@@ -78,6 +78,20 @@ export const activitiesService = {
     return data || [];
   },
 
+  // Get a single activity by ID (includes custom fields)
+  async getActivityById(activityId) {
+    console.log('Fetching activity by ID:', activityId);
+    const { data, error } = await apiClient.get(`/api/v1/activities/${activityId}`);
+
+    if (error) {
+      console.error('Error fetching activity:', error);
+      throw error;
+    }
+
+    console.log('Fetched activity data:', data);
+    return data;
+  },
+
   // Create a new activity
   async createActivity(activityData) {
     console.log('Creating activity with data:', activityData);
@@ -90,6 +104,7 @@ export const activitiesService = {
       outcome: activityData.outcome || null,
       contact_id: activityData.contact_id || null,
       deal_id: activityData.deal_id || null,
+      custom_fields: activityData.custom_fields || undefined,
     };
 
     console.log('Sending clean activity data:', cleanActivityData);
@@ -117,6 +132,7 @@ export const activitiesService = {
       outcome: updates.outcome || null,
       contact_id: updates.contact_id || null,
       deal_id: updates.deal_id || null,
+      custom_fields: updates.custom_fields || undefined,
     };
 
     console.log('Sending clean update data:', cleanActivityData);

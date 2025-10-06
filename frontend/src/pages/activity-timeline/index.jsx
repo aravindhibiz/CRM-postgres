@@ -77,9 +77,18 @@ const ActivityTimeline = () => {
     setActivities(prevActivities => [newActivity, ...prevActivities]);
   };
 
-  const handleEditActivity = (activity) => {
-    setEditingActivity(activity);
-    setIsAddModalOpen(true);
+  const handleEditActivity = async (activity) => {
+    try {
+      // Fetch full activity data with custom fields
+      const fullActivity = await activitiesService.getActivityById(activity.id);
+      setEditingActivity(fullActivity);
+      setIsAddModalOpen(true);
+    } catch (err) {
+      console.error('Error fetching activity for editing:', err);
+      // Fallback to the activity object we have
+      setEditingActivity(activity);
+      setIsAddModalOpen(true);
+    }
   };
 
   const handleActivityUpdated = (updatedActivity) => {

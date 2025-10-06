@@ -11,6 +11,9 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionRef = useRef(null);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState({});
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -32,6 +35,10 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
   // Populate form when deal prop changes
   useEffect(() => {
     console.log('DealForm useEffect triggered with deal:', deal);
+    
+    // Load custom fields
+    loadCustomFields();
+    
     if (deal) {
       console.log('Populating form with deal data:', deal);
       setFormData({
@@ -49,6 +56,23 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         tags: deal?.tags || [],
         owner_id: deal?.owner_id || user?.id || ''
       });
+
+      // Load custom field values from deal object or API
+      if (deal?.custom_fields) {
+        // Use custom_fields from deal object (already includes values)
+        console.log('Using custom fields from deal object:', deal.custom_fields);
+        const fieldValues = {};
+        Object.entries(deal.custom_fields).forEach(([key, fieldData]) => {
+          if (fieldData?.value !== null && fieldData?.value !== undefined) {
+            fieldValues[key] = fieldData.value;
+          }
+        });
+        console.log('Custom field values extracted:', fieldValues);
+        setCustomFieldValues(fieldValues);
+      } else if (deal?.id) {
+        // Fallback: Load from API
+        loadCustomFieldValues(deal.id);
+      }
     } else {
       // Reset form for new deal
       setFormData({
@@ -66,8 +90,53 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         tags: [],
         owner_id: user?.id || ''
       });
+      setCustomFieldValues({});
     }
   }, [deal, user?.id]);
+
+  const loadCustomFields = async () => {
+    setCustomFieldsLoading(true);
+    try {
+      console.log('Loading custom fields for deals...');
+      const fields = await customFieldsAPI.getAllFields({
+        entity_type: 'deal',
+        is_active: true
+      });
+      
+      // Filter fields that should appear in forms
+      const formFields = (fields || []).filter(field => 
+        field.placement === 'form' || field.placement === 'both'
+      );
+      
+      console.log('Custom fields loaded:', formFields);
+      setCustomFields(formFields);
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+      setCustomFields([]);
+    } finally {
+      setCustomFieldsLoading(false);
+    }
+  };
+
+  const loadCustomFieldValues = async (dealId) => {
+    try {
+      console.log('Loading custom field values for deal:', dealId);
+      const fieldsWithValues = await customFieldsAPI.getEntityCustomFields('deal', dealId);
+      
+      const fieldValues = {};
+      fieldsWithValues.forEach(field => {
+        if (field.current_value !== null && field.current_value !== undefined) {
+          fieldValues[field.field_key] = field.current_value;
+        }
+      });
+      
+      console.log('Custom field values loaded:', fieldValues);
+      setCustomFieldValues(fieldValues);
+    } catch (err) {
+      console.error('Error loading custom field values:', err);
+      setCustomFieldValues({});
+    }
+  };
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
@@ -124,7 +193,8 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         source: formData.source || null,
         next_action: formData.next_action || null,
         company_id: formData.company_id || null,
-        contact_id: formData.contact_id || null
+        contact_id: formData.contact_id || null,
+        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined
       };
 
       // Remove undefined values
@@ -190,6 +260,24 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors?.[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCustomFieldChange = (fieldKey, value) => {
+    if (!fieldKey) return;
+    
+    setCustomFieldValues(prev => ({ 
+      ...prev, 
+      [fieldKey]: value 
+    }));
+    
+    // Clear field error when user changes value
+    if (errors?.[fieldKey]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors?.[fieldKey];
         return newErrors;
       });
     }
@@ -518,6 +606,27 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           </button>
         </div>
       </div>
+
+      {/* Custom Fields */}
+      {customFieldsLoading && (
+        <div className="pt-6 border-t border-border">
+          <div className="text-center py-4 text-gray-500">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2">Loading custom fields...</p>
+          </div>
+        </div>
+      )}
+
+      {!customFieldsLoading && Array.isArray(customFields) && customFields.length > 0 && (
+        <div className="pt-6 border-t border-border">
+          <CustomFieldsGroup
+            fields={customFields}
+            values={customFieldValues || {}}
+            onChange={handleCustomFieldChange}
+            errors={errors || {}}
+          />
+        </div>
+      )}
 
     </form>
   );

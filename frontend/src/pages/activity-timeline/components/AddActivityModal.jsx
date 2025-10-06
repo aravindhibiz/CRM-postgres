@@ -5,12 +5,17 @@ import { activitiesService } from '../../../services/activitiesService';
 import { contactsService } from '../../../services/contactsService';
 import { dealsService } from '../../../services/dealsService';
 import { configService } from '../../../services/configService';
+import { CustomFieldsGroup } from '../../../components/CustomFieldInput';
+import { customFieldsAPI } from '../../../services/customFieldsAPI';
 
 const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated, prefilledData = {}, templateData = null, editingActivity = null }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [deals, setDeals] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState({});
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
 
@@ -72,6 +77,35 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
     return substituted;
   }, [user]);
 
+  const loadCustomFields = async () => {
+    setCustomFieldsLoading(true);
+    try {
+      const fields = await customFieldsAPI.getAllFields({
+        entity_type: 'activity',
+        is_active: true
+      });
+      
+      // Filter fields that should appear in forms
+      const formFields = (fields || []).filter(field => 
+        field.placement === 'form' || field.placement === 'both'
+      );
+      
+      setCustomFields(formFields);
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+      setCustomFields([]);
+    } finally {
+      setCustomFieldsLoading(false);
+    }
+  };
+
+  const handleCustomFieldChange = (fieldKey, value) => {
+    setCustomFieldValues(prev => ({
+      ...prev,
+      [fieldKey]: value
+    }));
+  };
+
   useEffect(() => {
     if (isOpen) {
       const loadData = async () => {
@@ -82,6 +116,9 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
           ]);
           setContacts(contactsData || []);
           setDeals(dealsData || []);
+          
+          // Load custom fields for activities
+          await loadCustomFields();
         } catch (err) {
           console.error("Error loading modal data:", err);
           setErrors({ submit: "Failed to load contacts and deals." });
@@ -102,6 +139,19 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
           user_id: editingActivity.user_id || user?.id || ''
         };
         setFormData(editFormData);
+        
+        // Load custom field values from activity object or API
+        if (editingActivity.custom_fields) {
+          const fieldValues = {};
+          Object.entries(editingActivity.custom_fields).forEach(([key, fieldData]) => {
+            if (fieldData?.value !== null && fieldData?.value !== undefined) {
+              fieldValues[key] = fieldData.value;
+            }
+          });
+          setCustomFieldValues(fieldValues);
+        } else {
+          setCustomFieldValues({});
+        }
       } else {
         const baseFormData = { ...initialFormState(), ...prefilledData };
 
@@ -118,9 +168,11 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
         }
 
         setFormData(baseFormData);
+        setCustomFieldValues({});
       }
     } else {
       setFormData({});
+      setCustomFieldValues({});
       setErrors({});
     }
   }, [isOpen, editingActivity]);
@@ -174,6 +226,7 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
         user_id: user?.id,
         contact_id: formData.contact_id && formData.contact_id !== '' ? formData.contact_id : null,
         deal_id: formData.deal_id && formData.deal_id !== '' ? formData.deal_id : null,
+        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined
       };
 
       console.log('Form data before submit:', formData);
@@ -352,6 +405,16 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
                     />
                   </div>
                 </div>
+              )}
+
+              {/* Custom Fields */}
+              {customFields.length > 0 && (
+                <CustomFieldsGroup
+                  fields={customFields}
+                  values={customFieldValues}
+                  onChange={handleCustomFieldChange}
+                  loading={customFieldsLoading}
+                />
               )}
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-border">

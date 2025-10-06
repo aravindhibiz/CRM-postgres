@@ -10,7 +10,9 @@ from ..core.auth import (
 from ..models.user import UserProfile
 from ..models.deal import Deal
 from ..models.company import Company
+from ..models.custom_field import EntityType
 from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelations
+from ..services.custom_field_service import CustomFieldService
 
 router = APIRouter()
 
@@ -208,7 +210,38 @@ async def get_deal_by_id(
             detail="Deal not found"
         )
 
-    return deal
+    # Get custom fields for the deal
+    custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+        db=db,
+        entity_id=str(deal.id),
+        entity_type=EntityType.DEAL
+    )
+
+    # Build response with custom fields
+    response_data = {
+        "id": deal.id,
+        "name": deal.name,
+        "value": deal.value,
+        "stage": deal.stage,
+        "probability": deal.probability,
+        "expected_close_date": deal.expected_close_date,
+        "description": deal.description,
+        "source": deal.source,
+        "next_action": deal.next_action,
+        "company_id": deal.company_id,
+        "contact_id": deal.contact_id,
+        "owner_id": deal.owner_id,
+        "actual_close_date": deal.actual_close_date,
+        "lost_reason": deal.lost_reason,
+        "created_at": deal.created_at,
+        "updated_at": deal.updated_at,
+        "custom_fields": custom_fields_dict if custom_fields_dict else None,
+        "owner": deal.owner,
+        "contact": deal.contact,
+        "company": deal.company
+    }
+
+    return response_data
 
 
 @router.post("/", response_model=DealResponse)
@@ -217,16 +250,71 @@ async def create_deal(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    db_deal = Deal(
-        **deal_data.dict(),
-        owner_id=current_user.id
-    )
+    try:
+        # Extract custom fields before creating deal
+        custom_fields_data = deal_data.custom_fields or {}
 
-    db.add(db_deal)
-    db.commit()
-    db.refresh(db_deal)
+        # Create deal with current user as owner
+        deal_dict = deal_data.dict(exclude={'owner_id', 'custom_fields'})
+        db_deal = Deal(
+            **deal_dict,
+            owner_id=current_user.id
+        )
 
-    return db_deal
+        db.add(db_deal)
+        db.commit()
+        db.refresh(db_deal)
+
+        # Save custom field values if provided
+        if custom_fields_data:
+            print(
+                f"DEBUG: Saving custom fields for deal: {custom_fields_data}")
+            result = CustomFieldService.save_custom_field_values(
+                db=db,
+                entity_id=str(db_deal.id),
+                entity_type=EntityType.DEAL,
+                field_values=custom_fields_data
+            )
+            print(f"DEBUG: Save result: {result}")
+            db.commit()  # Commit custom field values
+
+        # Get custom fields for response
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=db,
+            entity_id=str(db_deal.id),
+            entity_type=EntityType.DEAL
+        )
+
+        # Build response with custom fields
+        response_data = {
+            "id": db_deal.id,
+            "name": db_deal.name,
+            "value": db_deal.value,
+            "stage": db_deal.stage,
+            "probability": db_deal.probability,
+            "expected_close_date": db_deal.expected_close_date,
+            "description": db_deal.description,
+            "source": db_deal.source,
+            "next_action": db_deal.next_action,
+            "company_id": db_deal.company_id,
+            "contact_id": db_deal.contact_id,
+            "owner_id": db_deal.owner_id,
+            "actual_close_date": db_deal.actual_close_date,
+            "lost_reason": db_deal.lost_reason,
+            "created_at": db_deal.created_at,
+            "updated_at": db_deal.updated_at,
+            "custom_fields": custom_fields_dict if custom_fields_dict else None
+        }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating deal: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create deal: {str(e)}"
+        )
 
 
 @router.put("/{deal_id}", response_model=DealResponse)
@@ -257,15 +345,65 @@ async def update_deal(
             detail="Deal not found"
         )
 
-    # Update deal fields
-    update_data = deal_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(deal, field, value)
+    try:
+        # Extract custom fields before updating deal
+        update_data = deal_data.dict(exclude_unset=True)
+        custom_fields_data = update_data.pop('custom_fields', None)
 
-    db.commit()
-    db.refresh(deal)
+        # Update deal fields
+        for field, value in update_data.items():
+            setattr(deal, field, value)
 
-    return deal
+        db.commit()
+        db.refresh(deal)
+
+        # Update custom field values if provided
+        if custom_fields_data is not None:
+            CustomFieldService.save_custom_field_values(
+                db=db,
+                entity_id=str(deal.id),
+                entity_type=EntityType.DEAL,
+                field_values=custom_fields_data
+            )
+            db.commit()  # Commit custom field values
+
+        # Get custom fields for response
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=db,
+            entity_id=str(deal.id),
+            entity_type=EntityType.DEAL
+        )
+
+        # Build response with custom fields
+        response_data = {
+            "id": deal.id,
+            "name": deal.name,
+            "value": deal.value,
+            "stage": deal.stage,
+            "probability": deal.probability,
+            "expected_close_date": deal.expected_close_date,
+            "description": deal.description,
+            "source": deal.source,
+            "next_action": deal.next_action,
+            "company_id": deal.company_id,
+            "contact_id": deal.contact_id,
+            "owner_id": deal.owner_id,
+            "actual_close_date": deal.actual_close_date,
+            "lost_reason": deal.lost_reason,
+            "created_at": deal.created_at,
+            "updated_at": deal.updated_at,
+            "custom_fields": custom_fields_dict if custom_fields_dict else None
+        }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating deal: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update deal: {str(e)}"
+        )
 
 
 @router.delete("/{deal_id}")

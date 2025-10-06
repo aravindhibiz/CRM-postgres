@@ -136,9 +136,20 @@ const ContactManagement = () => {
     setIsEditingContact(false);
   };
 
-  const handleEditContact = () => {
+  const handleEditContact = async () => {
     setIsAddingContact(false);
     setIsEditingContact(true);
+    
+    // Fetch full contact data including custom fields
+    if (selectedContact?.id) {
+      try {
+        const fullContactData = await contactsService?.getContactById(selectedContact.id);
+        setSelectedContact(fullContactData);
+      } catch (err) {
+        console.error('Error loading full contact data:', err);
+        // Continue with current selectedContact if fetch fails
+      }
+    }
   };
 
   const handleSaveContact = async (contactData) => {

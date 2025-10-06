@@ -1,7 +1,8 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 import uuid
+
 
 class CompanyBase(BaseModel):
     name: str
@@ -18,8 +19,10 @@ class CompanyBase(BaseModel):
     description: Optional[str] = None
     revenue: Optional[int] = None
 
+
 class CompanyCreate(CompanyBase):
-    pass
+    custom_fields: Optional[Dict[str, Any]] = None
+
 
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
@@ -35,11 +38,14 @@ class CompanyUpdate(BaseModel):
     country: Optional[str] = None
     description: Optional[str] = None
     revenue: Optional[int] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+
 
 class CompanyResponse(CompanyBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    custom_fields: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

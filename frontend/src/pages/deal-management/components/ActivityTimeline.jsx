@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
+import { CustomFieldsGroup } from '../../../components/CustomFieldInput';
+import { customFieldsAPI } from '../../../services/customFieldsAPI';
 
 const ActivityTimeline = ({ 
   activities = [], 
@@ -9,6 +11,9 @@ const ActivityTimeline = ({
   onDeleteActivity 
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState({});
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [newActivity, setNewActivity] = useState({
     type: 'note',
     title: '',
@@ -24,6 +29,42 @@ const ActivityTimeline = ({
     { value: 'demo', label: 'Demo', icon: 'Play', color: 'text-indigo-600' }
   ];
 
+  // Load custom fields when modal opens
+  useEffect(() => {
+    if (showAddModal) {
+      loadCustomFields();
+    }
+  }, [showAddModal]);
+
+  const loadCustomFields = async () => {
+    setCustomFieldsLoading(true);
+    try {
+      const fields = await customFieldsAPI.getAllFields({
+        entity_type: 'activity',
+        is_active: true
+      });
+      
+      // Filter fields that should appear in forms
+      const formFields = (fields || []).filter(field => 
+        field.placement === 'form' || field.placement === 'both'
+      );
+      
+      setCustomFields(formFields);
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+      setCustomFields([]);
+    } finally {
+      setCustomFieldsLoading(false);
+    }
+  };
+
+  const handleCustomFieldChange = (fieldKey, value) => {
+    setCustomFieldValues(prev => ({
+      ...prev,
+      [fieldKey]: value
+    }));
+  };
+
   const getActivityTypeInfo = (type) => {
     return activityTypes?.find(t => t?.value === type) || activityTypes?.find(t => t?.value === 'note');
   };
@@ -32,8 +73,14 @@ const ActivityTimeline = ({
     if (!newActivity?.title?.trim()) return;
 
     try {
-      await onAddActivity?.(newActivity);
+      const activityData = {
+        ...newActivity,
+        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined
+      };
+      
+      await onAddActivity?.(activityData);
       setNewActivity({ type: 'note', title: '', description: '' });
+      setCustomFieldValues({});
       setShowAddModal(false);
     } catch (err) {
       console.error('Error adding activity:', err);
@@ -232,6 +279,16 @@ const ActivityTimeline = ({
                   placeholder="Add details..."
                 />
               </div>
+
+              {/* Custom Fields */}
+              {customFields.length > 0 && (
+                <CustomFieldsGroup
+                  fields={customFields}
+                  values={customFieldValues}
+                  onChange={handleCustomFieldChange}
+                  loading={customFieldsLoading}
+                />
+              )}
             </div>
             
             <div className="flex justify-end space-x-3 mt-6">
