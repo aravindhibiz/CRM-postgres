@@ -110,8 +110,27 @@ const UserManagement = () => {
   const handleBulkAction = async (action) => {
     try {
       setError('');
-      let updates = {};
       
+      // Filter out admin users and current user from bulk actions for deactivation
+      let targetUsers = selectedUsers;
+      if (action === 'deactivate') {
+        const protectedUserIds = users
+          ?.filter(u => u?.rawData?.role === 'admin' || u?.id === currentUser?.id)
+          ?.map(u => u?.id) || [];
+        
+        targetUsers = selectedUsers.filter(id => !protectedUserIds.includes(id));
+        
+        if (targetUsers.length === 0) {
+          setError('Cannot deactivate administrator accounts or your own account');
+          return;
+        }
+        
+        if (targetUsers.length < selectedUsers.length) {
+          setSuccess(`Deactivated ${targetUsers.length} user(s). Administrator accounts and your account were skipped.`);
+        }
+      }
+      
+      let updates = {};
       switch (action) {
         case 'activate':
           updates = { is_active: true };
@@ -119,13 +138,16 @@ const UserManagement = () => {
         case 'deactivate':
           updates = { is_active: false };
           break;
-        case 'delete':
-          updates = { is_active: false };
-          break;
+        // Delete action removed to prevent data integrity issues
+        // Users should be deactivated instead
       }
 
-      await userService?.bulkUpdateUsers(selectedUsers, updates);
-      setSuccess(`Successfully ${action}d ${selectedUsers?.length} user(s)`);
+      await userService?.bulkUpdateUsers(targetUsers, updates);
+      
+      if (action === 'activate' || targetUsers.length === selectedUsers.length) {
+        setSuccess(`Successfully ${action}d ${targetUsers.length} user(s)`);
+      }
+      
       setSelectedUsers([]);
       loadUsers();
     } catch (err) {
@@ -169,10 +191,8 @@ const UserManagement = () => {
           await userService?.deactivateUser(userId);
           setSuccess('User deactivated successfully');
           break;
-        case 'delete':
-          await userService?.deleteUser(userId);
-          setSuccess('User deleted successfully');
-          break;
+        // Delete action removed to prevent data integrity issues
+        // Users should be deactivated instead
       }
       
       loadUsers();
@@ -328,12 +348,6 @@ const UserManagement = () => {
               >
                 Deactivate
               </button>
-              <button
-                onClick={() => handleBulkAction('delete')}
-                className="px-3 py-1 text-xs bg-text-secondary text-white rounded hover:bg-text-primary transition-colors duration-150"
-              >
-                Delete
-              </button>
             </div>
           </div>
         </div>
@@ -377,14 +391,18 @@ const UserManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  users?.map((user) => (
+                  users?.map((user) => {
+                    const isProtected = user?.rawData?.role === 'admin' || user?.id === currentUser?.id;
+                    return (
                     <tr key={user?.id} className="border-b border-border hover:bg-surface-hover">
                       <td className="py-3 px-4">
                         <input
                           type="checkbox"
                           checked={selectedUsers?.includes(user?.id)}
                           onChange={() => handleSelectUser(user?.id)}
-                          className="rounded border-border text-primary focus:ring-primary"
+                          disabled={isProtected}
+                          className="rounded border-border text-primary focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={isProtected ? "Protected account cannot be bulk-modified" : ""}
                         />
                       </td>
                       <td className="py-3 px-4">
@@ -407,34 +425,37 @@ const UserManagement = () => {
                       <td className="py-3 px-4 text-sm text-text-secondary">{user?.lastLogin}</td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
-                          {user?.status === 'Active' ? (
-                            <button
-                              onClick={() => handleUserAction('deactivate', user?.id)}
-                              className="p-1 text-text-secondary hover:text-error transition-colors duration-150"
-                              title="Deactivate User"
-                            >
-                              <Icon name="UserX" size={16} />
-                            </button>
+                          {/* Don't show deactivate for current user or other admins */}
+                          {user?.rawData?.role === 'admin' || user?.id === currentUser?.id ? (
+                            <span className="text-xs text-text-tertiary px-2 py-1">
+                              {user?.id === currentUser?.id ? 'Current User' : 'Protected'}
+                            </span>
                           ) : (
-                            <button
-                              onClick={() => handleUserAction('activate', user?.id)}
-                              className="p-1 text-text-secondary hover:text-success transition-colors duration-150"
-                              title="Activate User"
-                            >
-                              <Icon name="UserCheck" size={16} />
-                            </button>
+                            <>
+                              {user?.status === 'Active' ? (
+                                <button
+                                  onClick={() => handleUserAction('deactivate', user?.id)}
+                                  className="p-1 text-text-secondary hover:text-error transition-colors duration-150"
+                                  title="Deactivate User"
+                                >
+                                  <Icon name="UserX" size={16} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleUserAction('activate', user?.id)}
+                                  className="p-1 text-text-secondary hover:text-success transition-colors duration-150"
+                                  title="Activate User"
+                                >
+                                  <Icon name="UserCheck" size={16} />
+                                </button>
+                              )}
+                            </>
                           )}
-                          <button
-                            onClick={() => handleUserAction('delete', user?.id)}
-                            className="p-1 text-text-secondary hover:text-error transition-colors duration-150"
-                            title="Delete User"
-                          >
-                            <Icon name="Trash2" size={16} />
-                          </button>
                         </div>
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>

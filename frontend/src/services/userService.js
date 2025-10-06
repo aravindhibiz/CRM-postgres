@@ -46,13 +46,10 @@ export const userService = {
     return data;
   },
 
-  // Delete user (admin only)
-  async deleteUser(userId) {
-    const { data, error } = await apiClient.delete(`/api/v1/users/${userId}`);
-
-    if (error) throw error;
-    return true;
-  },
+  // Delete user function removed to prevent data integrity issues
+  // Users should be deactivated instead of deleted to maintain
+  // referential integrity with related contacts, deals, etc.
+  // Use deactivateUser() instead
 
   // Get user statistics (admin only)
   async getUserStats() {
@@ -82,33 +79,6 @@ export const userService = {
   async getUsersByRole(role) {
     const { data, error } = await apiClient.get(`/api/v1/users?role=${encodeURIComponent(role)}`);
 
-    if (error) throw error;
-    return data || [];
-  },
-
-  // Additional methods for settings administration
-  async filterUsers(filters) {
-    const params = new URLSearchParams();
-
-    if (filters.status) {
-      params.append('status', filters.status);
-    }
-
-    if (filters.roles && filters.roles.length > 0) {
-      params.append('roles', filters.roles.join(','));
-    }
-
-    const queryString = params.toString();
-    const endpoint = queryString ? `/api/v1/users?${queryString}` : '/api/v1/users';
-
-    const { data, error } = await apiClient.get(endpoint);
-    if (error) throw error;
-    return data || [];
-  },
-
-  // Search users
-  async searchUsers(searchQuery) {
-    const { data, error } = await apiClient.get(`/api/v1/users?search=${encodeURIComponent(searchQuery)}`);
     if (error) throw error;
     return data || [];
   },
@@ -163,6 +133,24 @@ export const userService = {
   // Reactivate user
   async reactivateUser(userId) {
     return this.updateUser(userId, { is_active: true });
+  },
+
+  // Bulk update users (admin only)
+  async bulkUpdateUsers(userIds, updates) {
+    // Update each user individually
+    // In a production app, this could be optimized with a dedicated bulk endpoint
+    const promises = userIds.map(userId => this.updateUser(userId, updates));
+    
+    const results = await Promise.allSettled(promises);
+    
+    // Check if any failed
+    const failures = results.filter(r => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.error('Some updates failed:', failures);
+      throw new Error(`Failed to update ${failures.length} user(s)`);
+    }
+    
+    return results.map(r => r.value);
   }
 };
 

@@ -131,8 +131,25 @@ async def update_user(
             detail="User not found"
         )
 
-    # Update user fields
+    # Get the update data
     update_data = updates.dict(exclude_unset=True)
+
+    # Prevent admin from deactivating themselves
+    if 'is_active' in update_data and not update_data['is_active']:
+        if current_user.id == user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot deactivate your own account"
+            )
+
+        # Prevent deactivating other admin users
+        if user.role == 'admin':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Administrator accounts cannot be deactivated. Please contact system support if needed."
+            )
+
+    # Update user fields
     for field, value in update_data.items():
         if hasattr(user, field):
             setattr(user, field, value)
@@ -142,31 +159,10 @@ async def update_user(
     return user
 
 
-@router.delete("/{user_id}")
-async def delete_user(
-    user_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_admin())
-):
-    # Only admin users can delete users (handled by decorator)
-
-    # Don't allow deleting self
-    if current_user.id == user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete your own account"
-        )
-
-    user = db.query(UserProfile).filter(UserProfile.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-
-    db.delete(user)
-    db.commit()
-    return {"message": "User deleted successfully"}
+# Delete endpoint removed to prevent data integrity issues
+# Users should be deactivated instead of deleted to maintain
+# referential integrity with related contacts, deals, etc.
+# Use the deactivate endpoint instead: PUT /{user_id}/deactivate
 
 
 @router.get("/stats", response_model=UserStats)
