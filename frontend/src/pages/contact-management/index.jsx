@@ -309,6 +309,21 @@ const ContactManagement = () => {
   };
 
   const handleDeleteContact = async (contactId) => {
+    // Find the contact to get their name for the confirmation message
+    const contactToDelete = contacts?.find(c => c?.id === contactId);
+    const contactName = contactToDelete 
+      ? `${contactToDelete.first_name} ${contactToDelete.last_name}` 
+      : 'this contact';
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${contactName}?\n\nThis action cannot be undone`
+    );
+    
+    if (!confirmed) {
+      return; // User cancelled
+    }
+    
     try {
       setError('');
       await contactsService?.deleteContact(contactId);
@@ -330,6 +345,15 @@ const ContactManagement = () => {
   };
 
   const handleBulkDelete = async () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedContacts?.length} contact(s)?\n\nThis action cannot be undone and will permanently remove:\n• All contact information\n• All associated activities\n• All associated deals\n• All notes and tasks`
+    );
+    
+    if (!confirmed) {
+      return; // User cancelled
+    }
+    
     try {
       setError('');
       await contactsService?.deleteContacts(selectedContacts);

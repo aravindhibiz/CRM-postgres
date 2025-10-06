@@ -50,26 +50,28 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded, onActivityUpda
 
   const handleAddActivity = async (activityData) => {
     try {
-      const newActivity = await activitiesService.createActivity(activityData);
+      // Don't create the activity here - the modal already does it
+      // Just pass it to the parent callback
       if (onActivityAdded) {
-        onActivityAdded(newActivity);
+        onActivityAdded(activityData);
       }
-      return newActivity;
+      return activityData;
     } catch (error) {
-      console.error('Error creating activity:', error);
+      console.error('Error handling activity:', error);
       throw error;
     }
   };
 
   const handleUpdateActivity = async (activityData) => {
     try {
-      const updatedActivity = await activitiesService.updateActivity(editingActivity.id, activityData);
+      // Don't update the activity here - the modal already does it
+      // Just pass it to the parent callback
       if (onActivityUpdated) {
-        onActivityUpdated(updatedActivity);
+        onActivityUpdated(activityData);
       }
-      return updatedActivity;
+      return activityData;
     } catch (error) {
-      console.error('Error updating activity:', error);
+      console.error('Error handling activity update:', error);
       throw error;
     }
   };
