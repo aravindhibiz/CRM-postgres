@@ -105,7 +105,7 @@ const ImportContactsModal = ({ onImport, onClose }) => {
     });
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     setIsLoading(true);
     setParseError(null);
 
@@ -118,15 +118,30 @@ const ImportContactsModal = ({ onImport, onClose }) => {
           const lastName = item?.[mappings?.lastName];
           return firstName && lastName && firstName.trim() && lastName.trim();
         })
-        .map(item => ({
-          first_name: (item?.[mappings?.firstName] || '').trim(),
-          last_name: (item?.[mappings?.lastName] || '').trim(),
-          email: (item?.[mappings?.email] || '').trim() || null,
-          phone: (item?.[mappings?.phone] || '').trim() || null,
-          company_name: (item?.[mappings?.company] || '').trim() || null,
-          position: (item?.[mappings?.position] || '').trim() || null,
-          status: 'active'
-        }));
+        .map(item => {
+          const contact = {
+            first_name: (item?.[mappings?.firstName] || '').trim(),
+            last_name: (item?.[mappings?.lastName] || '').trim(),
+            status: 'active'
+          };
+          
+          // Only include optional fields if they have values
+          const email = (item?.[mappings?.email] || '').trim();
+          if (email) contact.email = email;
+          
+          const phone = (item?.[mappings?.phone] || '').trim();
+          if (phone) contact.phone = phone;
+          
+          const companyName = (item?.[mappings?.company] || '').trim();
+          if (companyName) contact.company_name = companyName;
+          
+          const position = (item?.[mappings?.position] || '').trim();
+          if (position) contact.position = position;
+          
+          return contact;
+        });
+
+      console.log('Importing contacts:', importedContacts);
 
       if (importedContacts.length === 0) {
         setParseError('No valid contacts found. Please ensure firstName and lastName are provided for all contacts.');
@@ -134,7 +149,9 @@ const ImportContactsModal = ({ onImport, onClose }) => {
         return;
       }
 
-      onImport(importedContacts);
+      await onImport(importedContacts);
+      setIsLoading(false);
+      onClose();
     } catch (error) {
       console.error('Error preparing import data:', error);
       setParseError('Failed to prepare import data. Please try again.');
@@ -242,6 +259,13 @@ const ImportContactsModal = ({ onImport, onClose }) => {
                     Match your file columns to the appropriate contact fields.
                   </p>
                 </div>
+
+                {/* Error Message */}
+                {parseError && (
+                  <div className="mb-4 p-3 bg-error-50 border border-error-200 rounded-lg text-error text-sm">
+                    {parseError}
+                  </div>
+                )}
                 
                 <div className="space-y-4 mb-6">
                   <div className="grid grid-cols-2 gap-4">

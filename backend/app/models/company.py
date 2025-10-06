@@ -1,9 +1,10 @@
-from sqlalchemy import Column, String, DateTime, Text, Integer
+from sqlalchemy import Column, String, DateTime, Text, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
 from ..core.database import Base
+
 
 class Company(Base):
     __tablename__ = "companies"
@@ -22,9 +23,15 @@ class Company(Base):
     country = Column(String)
     description = Column(Text)
     revenue = Column(Integer)
+
+    # Foreign Key for owner
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id"))
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True),
+                        server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    owner = relationship("UserProfile")
     contacts = relationship("Contact", back_populates="company")
     deals = relationship("Deal", back_populates="company")

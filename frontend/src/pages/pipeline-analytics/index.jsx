@@ -45,7 +45,7 @@ const PipelineAnalytics = () => {
   // Memoize filter options to prevent unnecessary recalculations
   const dateRangeOptions = useMemo(() => [
     { value: 'all', label: 'All Time' },
-    { value: 'last7days', label: 'Lacompast 7 Days' },
+    { value: 'last7days', label: 'Last 7 Days' },
     { value: 'last30days', label: 'Last 30 Days' },
     { value: 'last90days', label: 'Last 90 Days' },
     { value: 'thisquarter', label: 'This Quarter' },

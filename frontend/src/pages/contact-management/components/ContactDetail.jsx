@@ -213,29 +213,19 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
             </button>
             
             <div className="relative group">
-              <button className="inline-flex items-center space-x-2 px-3 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary transition-all duration-150 ease-out">
-                <Icon name="MoreHorizontal" size={16} />
-              </button>
               
-              <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-lg border border-border z-10 hidden group-hover:block">
+              
+              {/* <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-lg border border-border z-10 hidden group-hover:block"> */}
                 <div className="py-1">
                   <button
                     onClick={onDelete}
                     className="flex w-full items-center px-4 py-2 text-sm text-error hover:bg-surface-hover"
                   >
                     <Icon name="Trash2" size={16} className="mr-2" />
-                    Delete Contact
-                  </button>
-                  <button className="flex w-full items-center px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover">
-                    <Icon name="UserPlus" size={16} className="mr-2" />
-                    Add to Campaign
-                  </button>
-                  <button className="flex w-full items-center px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover">
-                    <Icon name="Tag" size={16} className="mr-2" />
-                    Manage Tags
+                    Delete
                   </button>
                 </div>
-              </div>
+              {/* </div> */}
             </div>
           </div>
         </div>

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
-import Image from 'components/AppImage';
 import { configService } from '../../../services/configService';
 
-const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false, onEdit }) => {
+const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Load system configuration on component mount
@@ -178,13 +177,25 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
                 </div>
               </div>
 
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out flex-shrink-0"
-                title={isExpanded ? "Show less" : "Show more"}
-              >
-                <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={16} />
-              </button>
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                <button
+                  onClick={() => onEdit && onEdit(activity)}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
+                  title="Edit activity"
+                >
+                  <Icon name="Edit" size={14} />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+
+                <button
+                  onClick={() => onDelete && onDelete(activity.id)}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-white hover:bg-error rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-error"
+                  title="Delete activity"
+                >
+                  <Icon name="Trash2" size={14} />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -224,12 +235,13 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
                   : `${activity?.description?.substring(0, 200)}${activity?.description?.length > 200 ? '...' : ''}`
                 }
               </p>
-              {activity?.description?.length > 200 && !isExpanded && (
+              {activity?.description?.length > 200 && (
                 <button
-                  onClick={() => setIsExpanded(true)}
-                  className="text-primary text-sm font-medium hover:text-primary-600 mt-2 transition-colors"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-primary text-sm font-medium hover:text-primary-600 mt-2 transition-colors flex items-center space-x-1"
                 >
-                  Read more
+                  <span>{isExpanded ? 'Show less' : 'Read more'}</span>
+                  <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={14} />
                 </button>
               )}
             </div>
@@ -299,52 +311,6 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
               )}
             </div>
           )}
-
-          {/* Action Buttons */}
-          <div className="px-6 py-4 bg-surface-50 border-t border-border rounded-b-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
-                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border">
-                  <Icon name="MessageSquare" size={14} />
-                  <span>Reply</span>
-                </button>
-                
-                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border">
-                  <Icon name="Plus" size={14} />
-                  <span>Follow-up</span>
-                </button>
-                
-                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border">
-                  <Icon name="Calendar" size={14} />
-                  <span>Schedule</span>
-                </button>
-              </div>
-
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => onEdit && onEdit(activity)}
-                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
-                  title="Edit activity"
-                >
-                  <Icon name="Edit" size={14} />
-                </button>
-
-                <button
-                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
-                  title="Share activity"
-                >
-                  <Icon name="Share" size={14} />
-                </button>
-
-                <button
-                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-white rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
-                  title="More options"
-                >
-                  <Icon name="MoreHorizontal" size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -97,6 +97,27 @@ const ActivityTimeline = () => {
     );
   };
 
+  const handleDeleteActivity = async (activityId) => {
+    if (!window.confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await activitiesService.deleteActivity(activityId);
+      setActivities(prevActivities => prevActivities.filter(activity => activity.id !== activityId));
+      // Clear from selection if it was selected
+      setSelectedActivities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(activityId);
+        setShowBulkActions(newSet.size > 0);
+        return newSet;
+      });
+    } catch (err) {
+      console.error('Error deleting activity:', err);
+      setError('Failed to delete activity. Please try again.');
+    }
+  };
+
   const handleBulkAction = async (action, activityIds) => {
     try {
       switch (action) {
@@ -478,6 +499,7 @@ const ActivityTimeline = () => {
                             onSelectionChange={(isSelected) => handleActivitySelection(activity.id, isSelected)}
                             showCheckbox={true}
                             onEdit={handleEditActivity}
+                            onDelete={handleDeleteActivity}
                           />
                         ))
                       ) : (

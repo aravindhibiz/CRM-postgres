@@ -366,13 +366,33 @@ const ContactManagement = () => {
   const handleImportContacts = async (importedContacts) => {
     try {
       setError('');
-      await contactsService?.importContacts(importedContacts);
-      setSuccess(`${importedContacts?.length} contact(s) imported successfully!`);
+      setLoading(true);
+      console.log('Calling import API with contacts:', importedContacts);
+      const result = await contactsService?.importContacts(importedContacts);
+      console.log('Import result:', result);
+      
+      // Check for errors
+      if (result?.error_count > 0 && result?.errors?.length > 0) {
+        console.error('Import errors:', result.errors);
+        setError(`Import failed with ${result.error_count} errors: ${result.errors.join(', ')}`);
+        setLoading(false);
+        return;
+      }
+      
+      // Close modal first
       setIsImportModalOpen(false);
-      loadContacts(); // Refresh the list
+      
+      // Force reload contacts
+      await loadContacts();
+      
+      // Show success message
+      setSuccess(`${result?.imported_count || importedContacts?.length} contact(s) imported successfully!`);
+      
+      setLoading(false);
     } catch (err) {
       console.error('Error importing contacts:', err);
-      setError('Failed to import contacts. Please try again.');
+      setError(err?.message || 'Failed to import contacts. Please try again.');
+      setLoading(false);
     }
   };
 

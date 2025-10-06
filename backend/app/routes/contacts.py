@@ -324,11 +324,17 @@ async def import_contacts(
     current_user: UserProfile = Depends(get_current_user)
 ):
     """Import multiple contacts"""
+    print(f"Import request received for {len(contacts_data)} contacts")
+    print(f"Current user: {current_user.email}")
+
     imported_contacts = []
     errors = []
 
     for i, contact_data in enumerate(contacts_data):
         try:
+            print(
+                f"Processing contact {i+1}: {contact_data.first_name} {contact_data.last_name}")
+
             # Create or find company if company_name is provided
             company_id = None
             if contact_data.company_name:
@@ -338,6 +344,7 @@ async def import_contacts(
 
                 if not company:
                     # Create new company
+                    print(f"Creating new company: {contact_data.company_name}")
                     company = Company(
                         name=contact_data.company_name,
                         owner_id=current_user.id
@@ -362,12 +369,47 @@ async def import_contacts(
 
             db.add(db_contact)
             imported_contacts.append(db_contact)
+            print(f"Contact {i+1} added to session")
 
         except Exception as e:
-            errors.append(f"Row {i + 1}: {str(e)}")
+            error_msg = f"Row {i + 1}: {str(e)}"
+            print(f"Error processing contact {i+1}: {str(e)}")
+            errors.append(error_msg)
 
     if imported_contacts:
-        db.commit()
+        try:
+            print(
+                f"Committing {len(imported_contacts)} contacts to database...")
+            db.commit()
+            print("Commit successful!")
+
+            # Refresh objects to ensure they have IDs
+            for contact in imported_contacts:
+                db.refresh(contact)
+                print(
+                    f"Refreshed contact: {contact.id} - {contact.first_name} {contact.last_name}")
+
+        except Exception as e:
+            print(f"Commit failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            db.rollback()
+            return {
+                "message": f"Failed to import contacts: {str(e)}",
+                "imported_count": 0,
+                "error_count": len(contacts_data),
+                "errors": [f"Database commit failed: {str(e)}"]
+            }
+
+    print(
+        f"Import complete: {len(imported_contacts)} imported, {len(errors)} errors")
+
+    # Verify the contacts were actually saved
+    if imported_contacts:
+        saved_count = db.query(Contact).filter(
+            Contact.id.in_([c.id for c in imported_contacts])
+        ).count()
+        print(f"Verification: {saved_count} contacts found in database")
 
     return {
         "message": f"Successfully imported {len(imported_contacts)} contacts",
