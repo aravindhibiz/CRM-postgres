@@ -19,11 +19,20 @@ async def get_user_activities(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    activities = db.query(Activity).options(
+    from ..core.auth_helpers import get_activities_query_filter
+
+    # Base query
+    base_query = db.query(Activity).options(
         joinedload(Activity.contact),
         joinedload(Activity.deal),
         joinedload(Activity.user)
-    ).order_by(Activity.created_at.desc()).limit(limit).all()
+    )
+
+    # Apply permission-based filtering (view_all vs view_own)
+    filtered_query = get_activities_query_filter(db, current_user, base_query)
+
+    activities = filtered_query.order_by(
+        Activity.created_at.desc()).limit(limit).all()
 
     return activities
 
@@ -81,6 +90,20 @@ async def create_activity(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
+    from ..core.auth import has_any_permission
+
+    # Check permission to create activities
+    can_create_all = has_any_permission(
+        db, current_user, ["activities.create_all"])
+    can_create_own = has_any_permission(
+        db, current_user, ["activities.create_own"])
+
+    if not can_create_all and not can_create_own:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. You don't have permission to create activities."
+        )
+
     try:
         # Extract custom fields before creating activity
         custom_fields_data = activity_data.custom_fields or {}
@@ -142,6 +165,8 @@ async def update_activity(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
+    from ..core.auth_helpers import check_activity_edit_permission
+
     activity = db.query(Activity).filter(
         Activity.id == activity_id
     ).first()
@@ -150,6 +175,13 @@ async def update_activity(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Activity not found"
+        )
+
+    # Check permission to edit this activity
+    if not check_activity_edit_permission(db, current_user, activity):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. You don't have permission to edit this activity."
         )
 
     try:
@@ -210,6 +242,8 @@ async def delete_activity(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
+    from ..core.auth_helpers import check_activity_delete_permission
+
     activity = db.query(Activity).filter(
         Activity.id == activity_id
     ).first()
@@ -218,6 +252,13 @@ async def delete_activity(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Activity not found"
+        )
+
+    # Check permission to delete this activity
+    if not check_activity_delete_permission(db, current_user, activity.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. You don't have permission to delete this activity."
         )
 
     db.delete(activity)

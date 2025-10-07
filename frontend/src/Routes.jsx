@@ -13,6 +13,7 @@ import ContactManagement from "pages/contact-management";
 import PipelineAnalytics from "pages/pipeline-analytics";
 import ActivityTimeline from "pages/activity-timeline";
 import SettingsAdministration from "pages/settings-administration";
+import PermissionDebug from "pages/PermissionDebug";
 
 // OAuth Callback Component
 const OAuthCallback = () => {
@@ -45,21 +46,24 @@ const Routes = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<Login />} />
           
+          {/* Debug Route - Remove in production */}
+          <Route path="/debug-permissions" element={<PermissionDebug />} />
+          
           {/* OAuth Callback Route */}
-          <Route 
-            path="/integrations/oauth/callback" 
+          <Route
+            path="/integrations/oauth/callback"
             element={
-              <ProtectedRoute requiredRoles={['admin', 'sales_manager']} requiredPermission="settings.view_own_profile">
+              <ProtectedRoute requiredPermission="settings.integrations">
                 <OAuthCallback />
               </ProtectedRoute>
-            } 
+            }
           />
 
           {/* Protected Routes */}
           <Route
             path="/sales-dashboard"
             element={
-              <ProtectedRoute requiredPermission="dashboard.view_personal">
+              <ProtectedRoute requiredPermissions={["dashboard.view_stats", "dashboard.pipeline_view"]}>
                 <SalesDashboard />
               </ProtectedRoute>
             }
@@ -115,7 +119,7 @@ const Routes = () => {
           <Route
             path="/settings-administration"
             element={
-              <ProtectedRoute requiredRoles={['admin', 'sales_manager']} requiredPermission="settings.view_own_profile">
+              <ProtectedRoute requiredPermission="settings.view_profile">
                 <SettingsAdministration />
               </ProtectedRoute>
             }

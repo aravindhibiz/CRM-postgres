@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import { configService } from '../../../services/configService';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const DealsGridView = ({ deals, stages, onEditDeal }) => {
+  const { hasAnyPermission } = useAuth();
   // Load system configuration on component mount
   useEffect(() => {
     configService.loadConfiguration();
@@ -97,18 +99,20 @@ const DealsGridView = ({ deals, stages, onEditDeal }) => {
             </div>
 
             {/* Action Button */}
-            <div className="mt-4 pt-4 border-t border-border">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditDeal(deal);
-                }}
-                className="w-full text-sm text-primary hover:text-primary-600 font-medium flex items-center justify-center space-x-1"
-              >
-                <Icon name="Edit" size={14} />
-                <span>Edit Deal</span>
-              </button>
-            </div>
+            {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditDeal(deal);
+                  }}
+                  className="w-full text-sm text-primary hover:text-primary-600 font-medium flex items-center justify-center space-x-1"
+                >
+                  <Icon name="Edit" size={14} />
+                  <span>Edit Deal</span>
+                </button>
+              </div>
+            )}
           </div>
         );
       })}

@@ -13,7 +13,7 @@ import BulkActionsBar from './components/BulkActionsBar';
 import ActivityTemplateModal from './components/ActivityTemplateModal';
 
 const ActivityTimeline = () => {
-  const { user } = useAuth();
+  const { user, hasAnyPermission } = useAuth();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -365,13 +365,15 @@ const ActivityTimeline = () => {
                   <span>Export</span>
                 </button>
                 
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="btn-primary flex items-center space-x-2"
-                >
-                  <Icon name="Plus" size={16} />
-                  <span>Add Activity</span>
-                </button>
+                {hasAnyPermission(['activities.create_all', 'activities.create_own']) && (
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <Icon name="Plus" size={16} />
+                    <span>Add Activity</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

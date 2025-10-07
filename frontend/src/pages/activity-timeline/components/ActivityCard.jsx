@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import { configService } from '../../../services/configService';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showCheckbox = false, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { hasAnyPermission } = useAuth();
 
   // Load system configuration on component mount
   useEffect(() => {
@@ -178,23 +180,27 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
               </div>
 
               <div className="flex items-center space-x-2 flex-shrink-0">
-                <button
-                  onClick={() => onEdit && onEdit(activity)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
-                  title="Edit activity"
-                >
-                  <Icon name="Edit" size={14} />
-                  <span className="hidden sm:inline">Edit</span>
-                </button>
+                {hasAnyPermission(['activities.edit_all', 'activities.edit_own']) && (
+                  <button
+                    onClick={() => onEdit && onEdit(activity)}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
+                    title="Edit activity"
+                  >
+                    <Icon name="Edit" size={14} />
+                    <span className="hidden sm:inline">Edit</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => onDelete && onDelete(activity.id)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-white hover:bg-error rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-error"
-                  title="Delete activity"
-                >
-                  <Icon name="Trash2" size={14} />
-                  <span className="hidden sm:inline">Delete</span>
-                </button>
+                {hasAnyPermission(['activities.delete_all', 'activities.delete_own']) && (
+                  <button
+                    onClick={() => onDelete && onDelete(activity.id)}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-white hover:bg-error rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-error"
+                    title="Delete activity"
+                  >
+                    <Icon name="Trash2" size={14} />
+                    <span className="hidden sm:inline">Delete</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

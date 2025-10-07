@@ -1,7 +1,68 @@
+import apiClient from '../lib/apiClient';
+
 // Role-based access control service
 export const permissionsService = {
-  // Define all available permissions by module
-  permissions: {
+  // Cache for user permissions
+  _cachedPermissions: null,
+  _permissionsByCategory: null,
+  _userRole: null,
+
+  // Fetch current user's permissions from backend
+  async fetchUserPermissions() {
+    try {
+      console.log('🔄 Fetching fresh permissions from backend...');
+      const { data, error } = await apiClient.get('/api/v1/auth/me/permissions');
+      if (error) {
+        console.error('❌ Error fetching permissions:', error);
+        return null;
+      }
+
+      console.log('✅ Fresh permissions received:', data.permissions);
+
+      // Cache the permissions in memory only (no localStorage)
+      this._cachedPermissions = data.permissions || [];
+      this._permissionsByCategory = data.permissions_by_category || {};
+      this._userRole = data.role;
+
+      return data;
+    } catch (err) {
+      console.error('❌ Failed to fetch user permissions:', err);
+      return null;
+    }
+  },
+
+  // Get cached permissions or fetch if not available
+  async getPermissions() {
+    // ALWAYS fetch fresh - don't use stale cache
+    await this.fetchUserPermissions();
+    return this._cachedPermissions || [];
+  },
+
+  // Clear cached permissions (call on logout)
+  clearCache() {
+    console.log('🧹 Clearing permission cache');
+    this._cachedPermissions = null;
+    this._permissionsByCategory = null;
+    this._userRole = null;
+  },
+
+  // Check if user has a specific permission
+  async hasPermissionAsync(permissionName) {
+    const permissions = await this.getPermissions();
+    return permissions.includes(permissionName);
+  },
+
+  // Synchronous permission check (requires permissions to be loaded first)
+  hasPermissionSync(permissionName) {
+    if (!this._cachedPermissions) {
+      console.warn('Permissions not loaded yet. Call fetchUserPermissions first.');
+      return false;
+    }
+    return this._cachedPermissions.includes(permissionName);
+  },
+
+  // Static permissions definition (kept for backward compatibility and UI reference)
+  staticPermissions: {
     dashboard: {
       view_personal: ['admin', 'sales_manager', 'sales_rep', 'user'],
       view_team: ['admin', 'sales_manager'],
@@ -63,12 +124,19 @@ export const permissionsService = {
     }
   },
 
-  // Check if user has specific permission
+  // Check if user has specific permission (updated to use dynamic permissions)
   hasPermission(userRole, module, action) {
-    if (!this.permissions[module] || !this.permissions[module][action]) {
+    // If permissions are loaded dynamically, use them
+    if (this._cachedPermissions) {
+      const permissionName = `${module}.${action}`;
+      return this._cachedPermissions.includes(permissionName);
+    }
+
+    // Fallback to static permissions for backward compatibility
+    if (!this.staticPermissions[module] || !this.staticPermissions[module][action]) {
       return false;
     }
-    return this.permissions[module][action].includes(userRole);
+    return this.staticPermissions[module][action].includes(userRole);
   },
 
   // Check if user can view data based on ownership

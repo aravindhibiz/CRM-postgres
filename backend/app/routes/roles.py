@@ -78,47 +78,7 @@ async def get_role_by_id(
     return role
 
 
-@router.put("/{role_id}/permissions", response_model=RoleResponse)
-async def update_role_permissions(
-    role_id: UUID,
-    permission_update: RolePermissionUpdate,
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
-):
-    # Only admin users can update role permissions
-    if current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
-
-    role = db.query(Role).filter(Role.id == role_id,
-                                 Role.is_active == True).first()
-    if not role:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role not found"
-        )
-
-    # Clear existing permissions
-    role.permissions.clear()
-
-    # Add new permissions based on the update
-    for permission_name, enabled in permission_update.permissions.items():
-        if enabled:
-            permission = db.query(Permission).filter(
-                Permission.name == permission_name,
-                Permission.is_active == True
-            ).first()
-            if permission:
-                role.permissions.append(permission)
-
-    db.commit()
-    db.refresh(role)
-    return role
-
-
-@router.get("/{role_name}/permissions")
+@router.get("/by-name/{role_name}/permissions")
 async def get_role_permissions(
     role_name: str,
     db: Session = Depends(get_db),
@@ -169,7 +129,7 @@ class PermissionUpdateRequest(BaseModel):
     permissions: Dict[str, bool]
 
 
-@router.put("/{role_name}/permissions")
+@router.put("/by-name/{role_name}/permissions")
 async def update_role_permissions_by_name(
     role_name: str,
     request_data: PermissionUpdateRequest,
@@ -245,4 +205,74 @@ async def update_role_permissions_by_name(
         "role_name": role.display_name,
         "permissions": updated_permissions,
         "message": f"Updated permissions for {role.display_name}"
+    }
+
+
+@router.post("/by-name/{role_name}/restore-defaults")
+async def restore_default_permissions(
+    role_name: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Restore default permissions for a role"""
+    # Only admin users can restore permissions
+    if current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+
+    # Import the default permissions function
+    from ..seeds.permissions_seed import get_default_role_permissions
+
+    # Handle role name mapping
+    role_name_map = {
+        'Admin': 'admin',
+        'Sales Manager': 'sales_manager',
+        'Sales Rep': 'sales_rep',
+        'User': 'user'
+    }
+
+    internal_name = role_name_map.get(role_name, role_name.lower().replace(' ', '_'))
+
+    # Find the role
+    role = db.query(Role).filter(
+        Role.name == internal_name,
+        Role.is_active == True
+    ).first()
+
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Role '{internal_name}' not found"
+        )
+
+    # Get default permissions for this role
+    default_permissions = get_default_role_permissions()
+    permission_names = default_permissions.get(internal_name, [])
+
+    # Clear existing permissions
+    role.permissions.clear()
+
+    # Add default permissions
+    for permission_name in permission_names:
+        permission = db.query(Permission).filter(
+            Permission.name == permission_name,
+            Permission.is_active == True
+        ).first()
+        if permission:
+            role.permissions.append(permission)
+
+    db.commit()
+    db.refresh(role)
+
+    # Return updated permissions as dictionary
+    restored_permissions = {}
+    for permission in role.permissions:
+        restored_permissions[permission.name] = True
+
+    return {
+        "role_name": role.display_name,
+        "permissions": restored_permissions,
+        "message": f"Restored default permissions for {role.display_name}"
     }

@@ -23,7 +23,7 @@ import { dealDocumentsService } from '../../services/dealDocumentsService';
 const DealManagement = () => {
   const { dealId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasPermission, hasAnyPermission } = useAuth();
   
   // State management
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -693,13 +693,17 @@ const DealManagement = () => {
               
               <div className="flex items-center space-x-3">
                 {isListView ? (
-                  <button
-                    onClick={handleCreateNewDeal}
-                    className="btn-primary flex items-center space-x-2"
-                  >
-                    <Icon name="Plus" size={16} />
-                    <span>Create Deal</span>
-                  </button>
+                  <>
+                    {hasPermission('deals.create') && (
+                      <button
+                        onClick={handleCreateNewDeal}
+                        className="btn-primary flex items-center space-x-2"
+                      >
+                        <Icon name="Plus" size={16} />
+                        <span>Create Deal</span>
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <>
                     <button
@@ -898,12 +902,14 @@ const DealManagement = () => {
                                 {new Date(deal.created_at).toLocaleDateString()}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button
-                                  onClick={() => handleEditDeal(deal)}
-                                  className="text-primary hover:text-primary-600 mr-3"
-                                >
-                                  Edit
-                                </button>
+                                {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
+                                  <button
+                                    onClick={() => handleEditDeal(deal)}
+                                    className="text-primary hover:text-primary-600 mr-3"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}

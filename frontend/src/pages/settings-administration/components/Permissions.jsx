@@ -14,47 +14,68 @@ const Permissions = () => {
     {
       category: 'Dashboard & Analytics',
       items: [
-        { name: 'View Dashboard', key: 'view_dashboard' },
-        { name: 'View Analytics', key: 'view_analytics' },
-        { name: 'Export Reports', key: 'export_reports' }
-      ]
-    },
-    {
-      category: 'Contact Management',
-      items: [
-        { name: 'View Contacts', key: 'view_contacts' },
-        { name: 'Create Contacts', key: 'create_contacts' },
-        { name: 'Edit Contacts', key: 'edit_contacts' },
-        { name: 'Delete Contacts', key: 'delete_contacts' },
-        { name: 'Import/Export Contacts', key: 'import_export_contacts' }
+        { name: 'View Dashboard Statistics', key: 'dashboard.view_stats' },
+        { name: 'Filter Dashboard Data', key: 'dashboard.filter' },
+        { name: 'Drag & Drop Pipeline', key: 'dashboard.pipeline_drag_drop' },
+        { name: 'View Pipeline', key: 'dashboard.pipeline_view' },
+        { name: 'View Personal Analytics', key: 'analytics.view_personal' },
+        { name: 'View Team Analytics', key: 'analytics.view_team' },
+        { name: 'View Company Analytics', key: 'analytics.view_company' },
+        { name: 'Export Analytics Reports', key: 'analytics.export' }
       ]
     },
     {
       category: 'Deal Management',
       items: [
-        { name: 'View Deals', key: 'view_deals' },
-        { name: 'Create Deals', key: 'create_deals' },
-        { name: 'Edit Deals', key: 'edit_deals' },
-        { name: 'Delete Deals', key: 'delete_deals' },
-        { name: 'Move Pipeline Stages', key: 'move_pipeline_stages' }
+        { name: 'View All Deals', key: 'deals.view_all' },
+        { name: 'View Own Deals', key: 'deals.view_own' },
+        { name: 'Create Deals', key: 'deals.create' },
+        { name: 'Edit All Deals', key: 'deals.edit_all' },
+        { name: 'Edit Own Deals', key: 'deals.edit_own' },
+        { name: 'Delete All Deals', key: 'deals.delete_all' },
+        { name: 'Delete Own Deals', key: 'deals.delete_own' },
+        { name: 'Move Pipeline Stages', key: 'deals.move_stages' }
       ]
     },
     {
-      category: 'User Management',
+      category: 'Contact Management',
       items: [
-        { name: 'View Users', key: 'view_users' },
-        { name: 'Invite Users', key: 'invite_users' },
-        { name: 'Edit User Roles', key: 'edit_user_roles' },
-        { name: 'Deactivate Users', key: 'deactivate_users' }
+        { name: 'View All Contacts', key: 'contacts.view_all' },
+        { name: 'View Own Contacts', key: 'contacts.view_own' },
+        { name: 'Create Contacts', key: 'contacts.create' },
+        { name: 'Edit All Contacts', key: 'contacts.edit_all' },
+        { name: 'Edit Own Contacts', key: 'contacts.edit_own' },
+        { name: 'Delete All Contacts', key: 'contacts.delete_all' },
+        { name: 'Delete Own Contacts', key: 'contacts.delete_own' },
+        { name: 'Import Contacts', key: 'contacts.import' },
+        { name: 'Export Contacts', key: 'contacts.export' }
       ]
     },
     {
-      category: 'System Configuration',
+      category: 'Activity Management',
       items: [
-        { name: 'Manage Integrations', key: 'manage_integrations' },
-        { name: 'Configure Custom Fields', key: 'configure_custom_fields' },
-        { name: 'Manage Email Templates', key: 'manage_email_templates' },
-        { name: 'Access System Settings', key: 'access_system_settings' }
+        { name: 'View All Activities', key: 'activities.view_all' },
+        { name: 'View Own Activities', key: 'activities.view_own' },
+        { name: 'Create Activity for Any Contact', key: 'activities.create_all' },
+        { name: 'Create Activity for Own Contacts', key: 'activities.create_own' },
+        { name: 'Edit All Activities', key: 'activities.edit_all' },
+        { name: 'Edit Own Activities', key: 'activities.edit_own' },
+        { name: 'Delete All Activities', key: 'activities.delete_all' },
+        { name: 'Delete Own Activities', key: 'activities.delete_own' },
+        { name: 'Export Activities', key: 'activities.export' }
+      ]
+    },
+    {
+      category: 'Settings & Configuration',
+      items: [
+        { name: 'User Management', key: 'settings.user_management' },
+        { name: 'Manage Permissions', key: 'settings.permissions' },
+        { name: 'Manage Integrations', key: 'settings.integrations' },
+        { name: 'Manage Custom Fields', key: 'settings.custom_fields' },
+        { name: 'Manage Email Templates', key: 'settings.email_templates' },
+        { name: 'System Configuration', key: 'settings.system_config' },
+        { name: 'View Own Profile', key: 'settings.view_profile' },
+        { name: 'Edit Own Profile', key: 'settings.edit_profile' }
       ]
     }
   ];
@@ -73,10 +94,13 @@ const Permissions = () => {
       ]);
 
       // Transform roles data to match the expected format
-      const transformedRoles = rolesData.map(role => ({
-        name: role.display_name,
-        userCount: 0 // TODO: Get actual user count from API
-      }));
+      // Filter out Sales Operations role
+      const transformedRoles = rolesData
+        .filter(role => role.name !== 'sales_operations')
+        .map(role => ({
+          name: role.display_name,
+          userCount: 0 // TODO: Get actual user count from API
+        }));
 
       setRoles(transformedRoles);
 
@@ -134,22 +158,50 @@ const Permissions = () => {
 
       console.log('Saving permission changes for:', selectedRole);
       console.log('Current permissions:', rolePermissions[selectedRole]);
-      
+
       const permissions = rolePermissions[selectedRole] || {};
-      
+
       // Call the backend API to save permissions
       const result = await rolesService.updateRolePermissionsByName(selectedRole, permissions);
-      
-      setSuccess(`Permissions updated successfully for ${selectedRole}!`);
-      
+
+      setSuccess(`Permissions updated successfully for ${selectedRole}! Users with this role will need to log out and log back in to see the changes.`);
+
       // Reload the permissions to reflect changes
       await loadData();
-      
-      // Auto-clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000);
+
+      // Auto-clear success message after 5 seconds (longer to read the message)
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       console.error('Error saving permission changes:', err);
       setError('Failed to save permission changes. Please try again.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
+  const handleRestoreDefaults = async () => {
+    if (!confirm(`Are you sure you want to restore default permissions for ${selectedRole}? This will overwrite all custom changes.`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+
+      console.log('Restoring default permissions for:', selectedRole);
+
+      // Call the backend API to restore defaults
+      const result = await rolesService.restoreDefaultPermissions(selectedRole);
+
+      setSuccess(`Default permissions restored for ${selectedRole}!`);
+
+      // Reload the permissions to reflect changes
+      await loadData();
+
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error restoring default permissions:', err);
+      setError('Failed to restore default permissions. Please try again.');
       setTimeout(() => setError(''), 5000);
     }
   };
@@ -167,13 +219,33 @@ const Permissions = () => {
           <h2 className="text-2xl font-bold text-text-primary">Permissions</h2>
           <p className="text-text-secondary mt-1">Configure role-based access control</p>
         </div>
-        <button
-          onClick={handleSaveChanges}
-          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2"
-        >
-          <Icon name="Save" size={16} />
-          <span>Save Changes</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRestoreDefaults}
+            className="bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth flex items-center space-x-2"
+          >
+            <Icon name="RotateCcw" size={16} />
+            <span>Restore to Default</span>
+          </button>
+          <button
+            onClick={handleSaveChanges}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2"
+          >
+            <Icon name="Save" size={16} />
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <Icon name="Info" size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-800 dark:text-blue-200">
+            <p className="font-medium mb-1">Important: Permission Changes Require Re-login</p>
+            <p>After updating role permissions, users with that role must <strong>log out and log back in</strong> to see the new permissions take effect.</p>
+          </div>
+        </div>
       </div>
 
       {/* Success Message */}

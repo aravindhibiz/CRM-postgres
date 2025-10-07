@@ -14,7 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { permissionsService } from '../../services/permissionsService';
 
 const SettingsAdministration = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState('user-management');
 
@@ -24,19 +24,19 @@ const SettingsAdministration = () => {
       // Check if there's a section specified in URL params (for OAuth callback)
       const sectionParam = searchParams.get('section');
       const hasOAuthParams = searchParams.get('code') || searchParams.get('error');
-      
+
       // If OAuth callback, force integrations section
       if (hasOAuthParams) {
         setActiveSection('integrations');
         return;
       }
-      
+
       // If section specified in URL, use that
       if (sectionParam) {
         setActiveSection(sectionParam);
         return;
       }
-      
+
       // List of sections in priority order
       const sections = [
         { id: 'user-management', permission: 'settings.user_management' },
@@ -49,14 +49,13 @@ const SettingsAdministration = () => {
 
       // Find the first section the user has access to
       for (const section of sections) {
-        const [module, action] = section.permission.split('.');
-        if (permissionsService.hasPermission(user?.role, module, action)) {
+        if (hasPermission(section.permission)) {
           setActiveSection(section.id);
           break;
         }
       }
     }
-  }, [user, searchParams]);
+  }, [user, searchParams, hasPermission]);
 
   const renderActiveSection = () => {
     switch (activeSection) {
@@ -103,22 +102,22 @@ const SettingsAdministration = () => {
                   onChange={(e) => setActiveSection(e?.target?.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                 >
-                  {user && permissionsService.hasPermission(user?.role, 'settings', 'user_management') && (
+                  {hasPermission('settings.user_management') && (
                     <option value="user-management">User Management</option>
                   )}
-                  {user && permissionsService.hasPermission(user?.role, 'settings', 'permissions') && (
+                  {hasPermission('settings.permissions') && (
                     <option value="permissions">Permissions</option>
                   )}
-                  {user && permissionsService.hasPermission(user?.role, 'settings', 'integrations') && (
+                  {hasPermission('settings.integrations') && (
                     <option value="integrations">Integrations</option>
                   )}
-                  {user && permissionsService.hasPermission(user?.role, 'settings', 'custom_fields') && (
+                  {hasPermission('settings.custom_fields') && (
                     <option value="custom-fields">Custom Fields</option>
                   )}
-                  {user && permissionsService.hasPermission(user?.role, 'settings', 'email_templates') && (
+                  {hasPermission('settings.email_templates') && (
                     <option value="email-templates">Email Templates</option>
                   )}
-                  {user && permissionsService.hasPermission(user?.role, 'settings', 'system_config') && (
+                  {hasPermission('settings.system_config') && (
                     <option value="system-config">System Configuration</option>
                   )}
                 </select>

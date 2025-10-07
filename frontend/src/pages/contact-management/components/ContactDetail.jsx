@@ -9,6 +9,7 @@ import ComposeEmailModal from './ComposeEmailModal';
 import LogCallModal from './LogCallModal';
 import { activitiesService } from '../../../services/activitiesService';
 import { dealsService } from '../../../services/dealsService';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -19,6 +20,7 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
   const [contactDeals, setContactDeals] = useState([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
   const [notesCount, setNotesCount] = useState(0);
+  const { hasAnyPermission } = useAuth();
   
   if (!contact) return null;
 
@@ -204,29 +206,33 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
               <span>Call</span>
             </button>
             
-            <button
-              onClick={onEdit}
-              className="inline-flex items-center space-x-2 px-3 py-2 border border-border rounded-lg text-text-secondary hover:text-primary hover:border-primary transition-all duration-150 ease-out"
-            >
-              <Icon name="Edit" size={16} />
-              <span>Edit</span>
-            </button>
+            {hasAnyPermission(['contacts.edit_all', 'contacts.edit_own']) && (
+              <button
+                onClick={onEdit}
+                className="inline-flex items-center space-x-2 px-3 py-2 border border-border rounded-lg text-text-secondary hover:text-primary hover:border-primary transition-all duration-150 ease-out"
+              >
+                <Icon name="Edit" size={16} />
+                <span>Edit</span>
+              </button>
+            )}
             
-            <div className="relative group">
-              
-              
-              {/* <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-lg border border-border z-10 hidden group-hover:block"> */}
-                <div className="py-1">
-                  <button
-                    onClick={onDelete}
-                    className="flex w-full items-center px-4 py-2 text-sm text-error hover:bg-surface-hover"
-                  >
-                    <Icon name="Trash2" size={16} className="mr-2" />
-                    Delete
-                  </button>
-                </div>
-              {/* </div> */}
-            </div>
+            {hasAnyPermission(['contacts.delete_all', 'contacts.delete_own']) && (
+              <div className="relative group">
+                
+                
+                {/* <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-lg border border-border z-10 hidden group-hover:block"> */}
+                  <div className="py-1">
+                    <button
+                      onClick={onDelete}
+                      className="flex w-full items-center px-4 py-2 text-sm text-error hover:bg-surface-hover"
+                    >
+                      <Icon name="Trash2" size={16} className="mr-2" />
+                      Delete
+                    </button>
+                  </div>
+                {/* </div> */}
+              </div>
+            )}
           </div>
         </div>
       </div>

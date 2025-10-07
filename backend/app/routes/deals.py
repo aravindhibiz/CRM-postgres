@@ -5,7 +5,8 @@ from uuid import UUID
 from ..core.database import get_db
 from ..core.auth import (
     get_current_user, require_sales_user, require_any_authenticated,
-    can_access_user_data, can_modify_user_data
+    can_access_user_data, can_modify_user_data, require_permission,
+    has_permission
 )
 from ..models.user import UserProfile
 from ..models.deal import Deal
@@ -34,16 +35,9 @@ async def get_user_deals(
         joinedload(Deal.owner)
     )
 
-    # Role-based filtering
-    if current_user.role == 'admin':
-        # Admin can see all deals
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all deals (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_deals_query_filter
+    query = get_deals_query_filter(db, current_user, query)
 
     # Apply filters
     from datetime import datetime, timedelta
@@ -76,7 +70,7 @@ async def get_user_deals(
             query = query.filter(Deal.probability < 30)
 
     # Owner filtering (for managers/admins)
-    if owner_id and current_user.role in ['admin', 'sales_manager']:
+    if owner_id and has_permission(db, current_user, "deals.view_all"):
         query = query.filter(Deal.owner_id == owner_id)
 
     # Stage filtering
@@ -103,16 +97,9 @@ async def get_pipeline_deals(
         joinedload(Deal.owner)
     )
 
-    # Role-based filtering - same as main deals endpoint
-    if current_user.role == 'admin':
-        # Admin can see all deals
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all deals (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_deals_query_filter
+    query = get_deals_query_filter(db, current_user, query)
 
     # Apply filters (same as main deals endpoint)
     from datetime import datetime, timedelta
@@ -145,7 +132,7 @@ async def get_pipeline_deals(
             query = query.filter(Deal.probability < 30)
 
     # Owner filtering (for managers/admins)
-    if owner_id and current_user.role in ['admin', 'sales_manager']:
+    if owner_id and has_permission(db, current_user, "deals.view_all"):
         query = query.filter(Deal.owner_id == owner_id)
 
     deals = query.order_by(Deal.updated_at.desc()).all()
@@ -191,271 +178,9 @@ async def get_deal_by_id(
         joinedload(Deal.documents)
     ).filter(Deal.id == deal_id)
 
-    # Role-based filtering for individual deal access
-    if current_user.role == 'admin':
-        # Admin can see any deal
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see any deal (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
-
-    deal = query.first()
-
-    if not deal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deal not found"
-        )
-
-    # Get custom fields for the deal
-    custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
-        db=db,
-        entity_id=str(deal.id),
-        entity_type=EntityType.DEAL
-    )
-
-    # Build response with custom fields
-    response_data = {
-        "id": deal.id,
-        "name": deal.name,
-        "value": deal.value,
-        "stage": deal.stage,
-        "probability": deal.probability,
-        "expected_close_date": deal.expected_close_date,
-        "description": deal.description,
-        "source": deal.source,
-        "next_action": deal.next_action,
-        "company_id": deal.company_id,
-        "contact_id": deal.contact_id,
-        "owner_id": deal.owner_id,
-        "actual_close_date": deal.actual_close_date,
-        "lost_reason": deal.lost_reason,
-        "created_at": deal.created_at,
-        "updated_at": deal.updated_at,
-        "custom_fields": custom_fields_dict if custom_fields_dict else None,
-        "owner": deal.owner,
-        "contact": deal.contact,
-        "company": deal.company
-    }
-
-    return response_data
-
-
-@router.post("/", response_model=DealResponse)
-async def create_deal(
-    deal_data: DealCreate,
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
-):
-    try:
-        # Extract custom fields before creating deal
-        custom_fields_data = deal_data.custom_fields or {}
-
-        # Create deal with current user as owner
-        deal_dict = deal_data.dict(exclude={'owner_id', 'custom_fields'})
-        db_deal = Deal(
-            **deal_dict,
-            owner_id=current_user.id
-        )
-
-        db.add(db_deal)
-        db.commit()
-        db.refresh(db_deal)
-
-        # Save custom field values if provided
-        if custom_fields_data:
-            print(
-                f"DEBUG: Saving custom fields for deal: {custom_fields_data}")
-            result = CustomFieldService.save_custom_field_values(
-                db=db,
-                entity_id=str(db_deal.id),
-                entity_type=EntityType.DEAL,
-                field_values=custom_fields_data
-            )
-            print(f"DEBUG: Save result: {result}")
-            db.commit()  # Commit custom field values
-
-        # Get custom fields for response
-        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
-            db=db,
-            entity_id=str(db_deal.id),
-            entity_type=EntityType.DEAL
-        )
-
-        # Build response with custom fields
-        response_data = {
-            "id": db_deal.id,
-            "name": db_deal.name,
-            "value": db_deal.value,
-            "stage": db_deal.stage,
-            "probability": db_deal.probability,
-            "expected_close_date": db_deal.expected_close_date,
-            "description": db_deal.description,
-            "source": db_deal.source,
-            "next_action": db_deal.next_action,
-            "company_id": db_deal.company_id,
-            "contact_id": db_deal.contact_id,
-            "owner_id": db_deal.owner_id,
-            "actual_close_date": db_deal.actual_close_date,
-            "lost_reason": db_deal.lost_reason,
-            "created_at": db_deal.created_at,
-            "updated_at": db_deal.updated_at,
-            "custom_fields": custom_fields_dict if custom_fields_dict else None
-        }
-
-        return response_data
-
-    except Exception as e:
-        db.rollback()
-        print(f"Error creating deal: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create deal: {str(e)}"
-        )
-
-
-@router.put("/{deal_id}", response_model=DealResponse)
-async def update_deal(
-    deal_id: UUID,
-    deal_data: DealUpdate,
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_any_authenticated())
-):
-    query = db.query(Deal).filter(Deal.id == deal_id)
-
-    # Role-based filtering for update access
-    if current_user.role == 'admin':
-        # Admin can update any deal
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can update any deal (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only update their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
-
-    deal = query.first()
-
-    if not deal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deal not found"
-        )
-
-    try:
-        # Extract custom fields before updating deal
-        update_data = deal_data.dict(exclude_unset=True)
-        custom_fields_data = update_data.pop('custom_fields', None)
-
-        # Update deal fields
-        for field, value in update_data.items():
-            setattr(deal, field, value)
-
-        db.commit()
-        db.refresh(deal)
-
-        # Update custom field values if provided
-        if custom_fields_data is not None:
-            CustomFieldService.save_custom_field_values(
-                db=db,
-                entity_id=str(deal.id),
-                entity_type=EntityType.DEAL,
-                field_values=custom_fields_data
-            )
-            db.commit()  # Commit custom field values
-
-        # Get custom fields for response
-        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
-            db=db,
-            entity_id=str(deal.id),
-            entity_type=EntityType.DEAL
-        )
-
-        # Build response with custom fields
-        response_data = {
-            "id": deal.id,
-            "name": deal.name,
-            "value": deal.value,
-            "stage": deal.stage,
-            "probability": deal.probability,
-            "expected_close_date": deal.expected_close_date,
-            "description": deal.description,
-            "source": deal.source,
-            "next_action": deal.next_action,
-            "company_id": deal.company_id,
-            "contact_id": deal.contact_id,
-            "owner_id": deal.owner_id,
-            "actual_close_date": deal.actual_close_date,
-            "lost_reason": deal.lost_reason,
-            "created_at": deal.created_at,
-            "updated_at": deal.updated_at,
-            "custom_fields": custom_fields_dict if custom_fields_dict else None
-        }
-
-        return response_data
-
-    except Exception as e:
-        db.rollback()
-        print(f"Error updating deal: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update deal: {str(e)}"
-        )
-
-
-@router.delete("/{deal_id}")
-async def delete_deal(
-    deal_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_any_authenticated())
-):
-    query = db.query(Deal).filter(Deal.id == deal_id)
-
-    # Role-based filtering for delete access
-    if current_user.role == 'admin':
-        # Admin can delete any deal
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can delete any deal (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only delete their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
-
-    deal = query.first()
-
-    if not deal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deal not found"
-        )
-
-    db.delete(deal)
-    db.commit()
-
-    return {"message": "Deal deleted successfully"}
-
-
-@router.get("/stats/overview")
-async def get_deals_stats(
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_any_authenticated())
-):
-    query = db.query(Deal)
-
-    # Role-based filtering
-    if current_user.role == 'admin':
-        # Admin can see all deals
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all deals (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_deals_query_filter
+    query = get_deals_query_filter(db, current_user, query)
 
     deals = query.all()
 
@@ -491,19 +216,12 @@ async def get_revenue_data(
 
     query = db.query(Deal).options(joinedload(Deal.company))
 
-    # Role-based filtering
-    if current_user.role == 'admin':
-        # Admin can see all deals
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all deals (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_deals_query_filter
+    query = get_deals_query_filter(db, current_user, query)
 
     # Apply additional filters
-    if owner_id and current_user.role in ['admin', 'sales_manager']:
+    if owner_id and has_permission(db, current_user, "deals.view_all"):
         query = query.filter(Deal.owner_id == owner_id)
 
     # Apply date range filter
@@ -582,19 +300,12 @@ async def get_performance_metrics(
 
     query = db.query(Deal).options(joinedload(Deal.company))
 
-    # Role-based filtering
-    if current_user.role == 'admin':
-        # Admin can see all deals
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all deals (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_deals_query_filter
+    query = get_deals_query_filter(db, current_user, query)
 
     # Apply additional filters
-    if owner_id and current_user.role in ['admin', 'sales_manager']:
+    if owner_id and has_permission(db, current_user, "deals.view_all"):
         query = query.filter(Deal.owner_id == owner_id)
 
     # Apply date range filter
@@ -654,16 +365,9 @@ async def get_win_rate_data(
 ):
     query = db.query(Deal)
 
-    # Role-based filtering
-    if current_user.role == 'admin':
-        # Admin can see all deals
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all deals (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own deals
-        query = query.filter(Deal.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_deals_query_filter
+    query = get_deals_query_filter(db, current_user, query)
 
     deals = query.all()
 
@@ -745,3 +449,198 @@ async def get_filter_options(
             {"value": "lastyear", "label": "Last Year"}
         ]
     }
+
+
+@router.post("/", response_model=DealResponse)
+async def create_deal(
+    deal_data: DealCreate,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Create a new deal"""
+
+    # Check if user has permission to create deals
+    if not has_permission(db, current_user, "deals.create"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to create deals"
+        )
+
+    try:
+        # Extract custom fields before creating deal
+        custom_fields_data = deal_data.custom_fields or {}
+
+        # Create deal with current user as owner
+        deal_dict = deal_data.model_dump(exclude={'owner_id', 'custom_fields'})
+        db_deal = Deal(
+            **deal_dict,
+            owner_id=current_user.id
+        )
+
+        db.add(db_deal)
+        db.commit()
+        db.refresh(db_deal)
+
+        # Save custom field values if provided
+        if custom_fields_data:
+            print(f"DEBUG: Saving custom fields: {custom_fields_data}")
+            result = CustomFieldService.save_custom_field_values(
+                db=db,
+                entity_id=str(db_deal.id),
+                entity_type=EntityType.DEAL,
+                field_values=custom_fields_data
+            )
+            print(f"DEBUG: Save result: {result}")
+            db.commit()  # Commit custom field values
+
+        # Get custom fields for response
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=db,
+            entity_id=str(db_deal.id),
+            entity_type=EntityType.DEAL
+        )
+
+        # Build response with custom fields
+        response_data = {
+            "id": db_deal.id,
+            "name": db_deal.name,
+            "value": db_deal.value,
+            "stage": db_deal.stage,
+            "probability": db_deal.probability,
+            "expected_close_date": db_deal.expected_close_date,
+            "description": db_deal.description,
+            "source": db_deal.source,
+            "next_action": db_deal.next_action,
+            "company_id": db_deal.company_id,
+            "contact_id": db_deal.contact_id,
+            "owner_id": db_deal.owner_id,
+            "created_at": db_deal.created_at,
+            "updated_at": db_deal.updated_at,
+            "actual_close_date": db_deal.actual_close_date,
+            "custom_fields": custom_fields_dict if custom_fields_dict else None
+        }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating deal: {str(e)}")  # For debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create deal: {str(e)}"
+        )
+
+
+@router.put("/{deal_id}", response_model=DealResponse)
+async def update_deal(
+    deal_id: UUID,
+    deal_data: DealUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Update an existing deal"""
+    # Get the deal first
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+
+    if not deal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deal not found"
+        )
+
+    # Check edit permission using helper function
+    from ..core.auth_helpers import check_deal_edit_permission
+    if not check_deal_edit_permission(db, current_user, deal):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this deal"
+        )
+
+    try:
+        # Extract custom fields before updating deal
+        update_data = deal_data.model_dump(exclude_unset=True)
+        custom_fields_data = update_data.pop('custom_fields', None)
+
+        # Update deal fields
+        for field, value in update_data.items():
+            setattr(deal, field, value)
+
+        db.commit()
+        db.refresh(deal)
+
+        # Update custom field values if provided
+        if custom_fields_data is not None:
+            CustomFieldService.save_custom_field_values(
+                db=db,
+                entity_id=str(deal.id),
+                entity_type=EntityType.DEAL,
+                field_values=custom_fields_data
+            )
+            db.commit()  # Commit custom field values
+
+        # Get custom fields for response
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=db,
+            entity_id=str(deal.id),
+            entity_type=EntityType.DEAL
+        )
+
+        # Build response with custom fields
+        response_data = {
+            "id": deal.id,
+            "name": deal.name,
+            "value": deal.value,
+            "stage": deal.stage,
+            "probability": deal.probability,
+            "expected_close_date": deal.expected_close_date,
+            "description": deal.description,
+            "source": deal.source,
+            "next_action": deal.next_action,
+            "company_id": deal.company_id,
+            "contact_id": deal.contact_id,
+            "owner_id": deal.owner_id,
+            "created_at": deal.created_at,
+            "updated_at": deal.updated_at,
+            "actual_close_date": deal.actual_close_date,
+            "custom_fields": custom_fields_dict if custom_fields_dict else None
+        }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating deal: {str(e)}")  # For debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update deal: {str(e)}"
+        )
+
+
+@router.delete("/{deal_id}")
+async def delete_deal(
+    deal_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Delete a deal"""
+    # Get the deal first
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+
+    if not deal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deal not found"
+        )
+
+    # Check delete permission using helper function
+    from ..core.auth_helpers import check_deal_delete_permission
+    if not check_deal_delete_permission(db, current_user, deal):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this deal"
+        )
+
+    db.delete(deal)
+    db.commit()
+
+    return {"message": "Deal deleted successfully"}

@@ -2,8 +2,8 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { permissionsService } from '../services/permissionsService';
 
-const RoleBasedNavigation = ({ children, requiredRoles = [], requiredPermission = null, fallback = null }) => {
-  const { user } = useAuth();
+const RoleBasedNavigation = ({ children, requiredRoles = [], requiredPermission = null, requiredPermissions = [], fallback = null }) => {
+  const { user, hasPermission, hasAnyPermission } = useAuth();
 
   if (!user) {
     return fallback;
@@ -14,10 +14,16 @@ const RoleBasedNavigation = ({ children, requiredRoles = [], requiredPermission 
     return fallback;
   }
 
-  // Check specific permission
+  // Check specific single permission
   if (requiredPermission) {
-    const [module, action] = requiredPermission.split('.');
-    if (!permissionsService.hasPermission(user.role, module, action)) {
+    if (!hasPermission(requiredPermission)) {
+      return fallback;
+    }
+  }
+
+  // Check multiple permissions (user needs ANY of these)
+  if (requiredPermissions && requiredPermissions.length > 0) {
+    if (!hasAnyPermission(requiredPermissions)) {
       return fallback;
     }
   }

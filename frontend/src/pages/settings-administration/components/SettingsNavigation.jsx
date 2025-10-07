@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { permissionsService } from '../../../services/permissionsService';
 
 const SettingsNavigation = ({ activeSection, onSectionChange }) => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const navigationItems = [
     {
@@ -55,8 +55,7 @@ const SettingsNavigation = ({ activeSection, onSectionChange }) => {
   // Filter navigation items based on user permissions
   const allowedItems = navigationItems.filter(item => {
     if (!item.requiredPermission) return true;
-    const [module, action] = item.requiredPermission.split('.');
-    return permissionsService.hasPermission(user?.role, module, action);
+    return hasPermission(item.requiredPermission);
   });
 
   return (

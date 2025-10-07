@@ -38,16 +38,9 @@ async def get_user_contacts(
         joinedload(Contact.tasks)
     )
 
-    # Role-based filtering
-    if current_user.role == 'admin':
-        # Admin can see all contacts
-        pass
-    elif current_user.role == 'sales_manager':
-        # Manager can see all contacts (for now, until team structure is implemented)
-        pass
-    else:
-        # Sales reps and users can only see their own contacts
-        query = query.filter(Contact.owner_id == current_user.id)
+    # Permission-based filtering using helper function
+    from ..core.auth_helpers import get_contacts_query_filter
+    query = get_contacts_query_filter(db, current_user, query)
 
     # Apply search filter
     if search:

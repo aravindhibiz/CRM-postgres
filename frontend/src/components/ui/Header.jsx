@@ -7,14 +7,18 @@ import Icon from '../AppIcon';
 import ThemeToggle from '../ThemeToggle';
 
 const Header = () => {
-  const { signOut, user, userProfile } = useAuth();
+  const { signOut, user, userProfile, hasPermission, refreshPermissions, permissions } = useAuth();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+  // Debug: Log current permissions when Header renders
+  console.log('📊 Header - Current permissions:', permissions);
+  console.log('📊 Header - User:', user?.email, 'Role:', user?.role);
+
   const navigationItems = [
-    { label: 'Dashboard', path: '/sales-dashboard', icon: 'BarChart3', tooltip: 'Pipeline overview and metrics', requiredPermission: 'dashboard.view_personal' },
+    { label: 'Dashboard', path: '/sales-dashboard', icon: 'BarChart3', tooltip: 'Pipeline overview and metrics', requiredPermission: 'dashboard.view_stats' },
     { label: 'Deals', path: '/deal-management', icon: 'Target', tooltip: 'Manage deal lifecycle and opportunities', requiredPermission: 'deals.view_own' },
     { label: 'Contacts', path: '/contact-management', icon: 'Users', tooltip: 'Customer relationship management', requiredPermission: 'contacts.view_own' },
     { label: 'Analytics', path: '/pipeline-analytics', icon: 'TrendingUp', tooltip: 'Performance insights and analysis', requiredPermission: 'analytics.view_personal' },
@@ -22,21 +26,22 @@ const Header = () => {
   ];
 
   const userMenuItems = [
-  { label: 'Settings', path: '/settings-administration', icon: 'Settings', requiredPermission: 'settings.view_own_profile' },
+  { label: 'Settings', path: '/settings-administration', icon: 'Settings', requiredPermission: 'settings.view_profile' },
+  { label: 'Refresh Permissions', action: 'refresh', icon: 'RefreshCw', requiredPermission: 'settings.view_profile' },
   { label: 'Logout', action: 'logout', icon: 'LogOut' }
   ];
 
   // Filter navigation items based on user permissions
   const allowedNavItems = navigationItems.filter(item => {
     if (!item.requiredPermission) return true;
-    const [module, action] = item.requiredPermission.split('.');
-    return permissionsService.hasPermission(user?.role, module, action);
+    const hasAccess = hasPermission(item.requiredPermission);
+    console.log(`🔍 Nav item "${item.label}": requires "${item.requiredPermission}" - ${hasAccess ? '✅ ALLOWED' : '❌ DENIED'}`);
+    return hasAccess;
   });
 
   const allowedUserMenuItems = userMenuItems.filter(item => {
     if (!item.requiredPermission) return true;
-    const [module, action] = item.requiredPermission.split('.');
-    return permissionsService.hasPermission(user?.role, module, action);
+    return hasPermission(item.requiredPermission);
   });
 
   const isActiveRoute = (path) => {
@@ -73,9 +78,25 @@ const Header = () => {
     }
   };
 
+  const handleRefreshPermissions = async () => {
+    console.log('Refreshing permissions...');
+    try {
+      setIsUserMenuOpen(false);
+      await refreshPermissions();
+      toast.success('Permissions refreshed successfully!');
+      // Optionally reload the current page to apply new permissions
+      window.location.reload();
+    } catch (error) {
+      console.error('Refresh permissions error:', error);
+      toast.error('Failed to refresh permissions. Please try again.');
+    }
+  };
+
   const handleMenuItemClick = (item) => {
     if (item.action === 'logout') {
       handleLogout();
+    } else if (item.action === 'refresh') {
+      handleRefreshPermissions();
     } else {
       handleNavigation();
     }
@@ -156,6 +177,17 @@ const Header = () => {
                             <div
                               key={item.label}
                               onClick={handleLogout}
+                              className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 ease-smooth cursor-pointer"
+                            >
+                              <Icon name={item?.icon} size={16} />
+                              <span>{item?.label}</span>
+                            </div>
+                          );
+                        } else if (item.action === 'refresh') {
+                          return (
+                            <div
+                              key={item.label}
+                              onClick={handleRefreshPermissions}
                               className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 ease-smooth cursor-pointer"
                             >
                               <Icon name={item?.icon} size={16} />

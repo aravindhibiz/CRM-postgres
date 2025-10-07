@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from typing import List, Dict
 from ..core.database import get_db
 from ..core.security import create_access_token, verify_password, get_password_hash
 from ..core.config import settings
+from ..core.auth import get_current_user, get_user_permissions
 from ..models.user import UserProfile
 from ..schemas.user import UserCreate, UserLogin, Token, UserResponse
 
@@ -81,4 +83,29 @@ async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer",
         "user": UserResponse.model_validate(user)
+    }
+
+
+@router.get("/me/permissions")
+async def get_my_permissions(
+    current_user: UserProfile = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's permissions based on their role"""
+    permissions = get_user_permissions(db, current_user)
+
+    # Organize permissions by category for easier frontend consumption
+    permissions_by_category = {}
+    for perm in permissions:
+        parts = perm.split('.')
+        if len(parts) == 2:
+            category, action = parts
+            if category not in permissions_by_category:
+                permissions_by_category[category] = []
+            permissions_by_category[category].append(action)
+
+    return {
+        "permissions": permissions,
+        "permissions_by_category": permissions_by_category,
+        "role": current_user.role
     }

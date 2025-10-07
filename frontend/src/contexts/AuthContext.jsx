@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import apiClient from '../lib/apiClient';
+import { permissionsService } from '../services/permissionsService';
 
 const AuthContext = createContext({})
 
@@ -16,16 +17,20 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+  const [permissions, setPermissions] = useState([])
 
   useEffect(() => {
     // Check for existing session on app load
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       const token = apiClient.getToken()
       const savedUser = apiClient.getCurrentUser()
 
       if (token && savedUser) {
         setUser(savedUser)
         setUserProfile(savedUser) // In our new setup, user and userProfile are the same
+
+        // Load user permissions BEFORE setting loading to false
+        await loadUserPermissions()
       }
 
       setLoading(false)
@@ -33,6 +38,26 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth()
   }, [])
+
+  // Load user permissions from backend
+  const loadUserPermissions = async () => {
+    try {
+      console.log('🔐 Loading user permissions...')
+      const permissionsData = await permissionsService.fetchUserPermissions()
+      console.log('🔐 Permissions data received:', permissionsData)
+      if (permissionsData) {
+        const perms = permissionsData.permissions || []
+        console.log('🔐 Setting permissions:', perms)
+        console.log('🔐 Number of permissions:', perms.length)
+        setPermissions(perms)
+        console.log('🔐 Permissions set successfully!')
+      } else {
+        console.warn('🔐 No permissions data received')
+      }
+    } catch (error) {
+      console.error('🔐 Failed to load permissions:', error)
+    }
+  }
 
   const signIn = async (email, password) => {
     try {
@@ -49,6 +74,8 @@ export const AuthProvider = ({ children }) => {
       if (user) {
         setUser(user)
         setUserProfile(user) // In our new setup, user and userProfile are the same
+        // Load permissions after successful login
+        await loadUserPermissions()
         return { user, userProfile: user }
       }
     } catch (error) {
@@ -91,10 +118,33 @@ export const AuthProvider = ({ children }) => {
       await apiClient.logout()
       setUser(null)
       setUserProfile(null)
+      setPermissions([])
       setAuthError('')
+      // Clear permission cache
+      permissionsService.clearCache()
     } catch (error) {
       console.error('Sign out error:', error)
     }
+  }
+
+  // Helper to check if user has a specific permission
+  const hasPermission = (permissionName) => {
+    const result = permissions.includes(permissionName)
+    // Debug: uncomment to see every permission check
+    // console.log(`hasPermission("${permissionName}"): ${result}, available:`, permissions.length)
+    return result
+  }
+
+  // Helper to check if user has any of the specified permissions
+  const hasAnyPermission = (permissionNames) => {
+    return permissionNames.some(perm => permissions.includes(perm))
+  }
+
+  // Force refresh permissions without logging out
+  const refreshPermissions = async () => {
+    console.log('🔄 Manually refreshing permissions...')
+    await loadUserPermissions()
+    return permissions
   }
 
   // For compatibility with existing code - returns the current user profile
@@ -133,12 +183,17 @@ export const AuthProvider = ({ children }) => {
     userProfile,
     loading,
     authError,
+    permissions,
     signIn,
     signUp,
     signOut,
     getUserProfile,
     updateUserProfile,
-    clearAuthError
+    clearAuthError,
+    hasPermission,
+    hasAnyPermission,
+    loadUserPermissions,
+    refreshPermissions
   }
 
   return (
