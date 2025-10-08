@@ -30,6 +30,8 @@ yarn-error.log*
 /frontend/src/services/__tests__
 /frontend/src/utils/__tests__
 /zmd
+/frontend/zmd
+/backend/zmd
 
 # gemini-cli settings
 .gemini/

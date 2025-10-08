@@ -12,6 +12,9 @@ from ..services.custom_field_service import CustomFieldService
 
 router = APIRouter()
 
+# Constants
+ACTIVITY_NOT_FOUND = "Activity not found"
+
 
 @router.get("/", response_model=List[ActivityResponse])
 async def get_user_activities(
@@ -52,7 +55,7 @@ async def get_activity_by_id(
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Activity not found"
+            detail=ACTIVITY_NOT_FOUND
         )
 
     # Get custom fields for the activity
@@ -169,12 +172,12 @@ async def update_activity(
 
     activity = db.query(Activity).filter(
         Activity.id == activity_id
-    ).first()
+    ).filter(Activity.id == activity_id).first()
 
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Activity not found"
+            detail=ACTIVITY_NOT_FOUND
         )
 
     # Check permission to edit this activity
@@ -246,12 +249,12 @@ async def delete_activity(
 
     activity = db.query(Activity).filter(
         Activity.id == activity_id
-    ).first()
+    ).filter(Activity.id == activity_id).first()
 
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Activity not found"
+            detail=ACTIVITY_NOT_FOUND
         )
 
     # Check permission to delete this activity

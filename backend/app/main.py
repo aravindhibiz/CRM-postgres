@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from .core.database import engine, Base
-from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users, roles, system_config, custom_fields, email_templates, integrations, notes
+from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users, roles, system_config, custom_fields, email_templates, integrations, notes, activities_new
 # Import all models to ensure SQLAlchemy relationships are set up properly
 from . import models
 import traceback
@@ -39,6 +39,9 @@ app.include_router(
     companies.router, prefix="/api/v1/companies", tags=["companies"])
 app.include_router(activities.router,
                    prefix="/api/v1/activities", tags=["activities"])
+# New modular architecture for activities (v2) - for testing
+app.include_router(activities_new.router,
+                   prefix="/api/v1/activities-v2", tags=["activities-v2"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(
     dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])

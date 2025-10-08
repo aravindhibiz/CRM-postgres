@@ -17,6 +17,10 @@ from ..services.custom_field_service import CustomFieldService
 
 router = APIRouter()
 
+# Constants
+FILTER_BY_OWNER_ID = "Filter by owner ID"
+DEALS_VIEW_ALL_PERMISSION = "deals.view_all"
+
 
 @router.get("/", response_model=List[DealWithRelations])
 async def get_user_deals(
@@ -24,7 +28,7 @@ async def get_user_deals(
         None, description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"),
     probability_range: Optional[str] = Query(
         None, description="Probability range: high, medium, low"),
-    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
+    owner_id: Optional[str] = Query(None, description=FILTER_BY_OWNER_ID),
     stage: Optional[str] = Query(None, description="Filter by deal stage"),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
@@ -70,7 +74,7 @@ async def get_user_deals(
             query = query.filter(Deal.probability < 30)
 
     # Owner filtering (for managers/admins)
-    if owner_id and has_permission(db, current_user, "deals.view_all"):
+    if owner_id and has_permission(db, current_user, DEALS_VIEW_ALL_PERMISSION):
         query = query.filter(Deal.owner_id == owner_id)
 
     # Stage filtering
@@ -87,7 +91,7 @@ async def get_pipeline_deals(
         None, description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"),
     probability_range: Optional[str] = Query(
         None, description="Probability range: high, medium, low"),
-    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
+    owner_id: Optional[str] = Query(None, description=FILTER_BY_OWNER_ID),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
@@ -132,7 +136,7 @@ async def get_pipeline_deals(
             query = query.filter(Deal.probability < 30)
 
     # Owner filtering (for managers/admins)
-    if owner_id and has_permission(db, current_user, "deals.view_all"):
+    if owner_id and has_permission(db, current_user, DEALS_VIEW_ALL_PERMISSION):
         query = query.filter(Deal.owner_id == owner_id)
 
     deals = query.order_by(Deal.updated_at.desc()).all()
@@ -208,7 +212,7 @@ async def get_deal_by_id(
 async def get_revenue_data(
     date_range: Optional[str] = Query(
         None, description="Date range filter: last7days, last30days, last90days, thisquarter, lastyear"),
-    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
+    owner_id: Optional[str] = Query(None, description=FILTER_BY_OWNER_ID),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
@@ -292,7 +296,7 @@ async def get_revenue_data(
 async def get_performance_metrics(
     date_range: Optional[str] = Query(
         None, description="Date range filter: last7days, last30days, last90days, thisquarter, lastyear"),
-    owner_id: Optional[str] = Query(None, description="Filter by owner ID"),
+    owner_id: Optional[str] = Query(None, description=FILTER_BY_OWNER_ID),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
@@ -483,14 +487,12 @@ async def create_deal(
 
         # Save custom field values if provided
         if custom_fields_data:
-            print(f"DEBUG: Saving custom fields: {custom_fields_data}")
-            result = CustomFieldService.save_custom_field_values(
+            CustomFieldService.save_custom_field_values(
                 db=db,
                 entity_id=str(db_deal.id),
                 entity_type=EntityType.DEAL,
                 field_values=custom_fields_data
             )
-            print(f"DEBUG: Save result: {result}")
             db.commit()  # Commit custom field values
 
         # Get custom fields for response
@@ -524,7 +526,6 @@ async def create_deal(
 
     except Exception as e:
         db.rollback()
-        print(f"Error creating deal: {str(e)}")  # For debugging
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create deal: {str(e)}"
@@ -609,7 +610,6 @@ async def update_deal(
 
     except Exception as e:
         db.rollback()
-        print(f"Error updating deal: {str(e)}")  # For debugging
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update deal: {str(e)}"

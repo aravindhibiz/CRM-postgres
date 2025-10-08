@@ -190,9 +190,7 @@ const DealManagement = () => {
         setError('Permission denied. You may not have access to view this deal.');
       } else if (err?.message?.includes('company') || err?.message?.includes('schema cache')) {
         setError('Could not load deal information. Please check your database connection and try refreshing the page.');
-      } else {
-        setError('Failed to load deal. Please try again.');
-      }
+      } 
     } finally {
       setIsLoading(false);
     }
