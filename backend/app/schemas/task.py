@@ -48,3 +48,14 @@ class TaskWithRelations(TaskResponse):
 
     class Config:
         from_attributes = True
+
+
+class TaskStatistics(BaseModel):
+    """Task statistics schema."""
+    total_tasks: int
+    pending_tasks: int
+    in_progress_tasks: int
+    completed_tasks: int
+    overdue_tasks: int
+    completion_rate: float
+    by_priority: dict

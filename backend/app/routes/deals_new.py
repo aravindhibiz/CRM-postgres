@@ -1,0 +1,403 @@
+"""
+Deal API routes.
+Clean endpoint definitions using the controller layer.
+"""
+
+from typing import List, Optional
+from uuid import UUID
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from ..controllers.deal_controller import DealController
+from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelations
+from ..core.database import get_db
+from ..core.auth import get_current_user, require_any_authenticated
+from ..models.user import UserProfile
+
+
+router = APIRouter()
+
+
+@router.get("/", response_model=List[DealWithRelations])
+async def get_user_deals(
+    date_range: Optional[str] = Query(
+        None,
+        description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"
+    ),
+    probability_range: Optional[str] = Query(
+        None,
+        description="Probability range: high, medium, low"
+    ),
+    owner_id: Optional[str] = Query(
+        None,
+        description="Filter by owner ID (requires deals.view_all permission)"
+    ),
+    stage: Optional[str] = Query(
+        None,
+        description="Filter by deal stage"
+    ),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000,
+                       description="Maximum number of records to return"),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Retrieve all deals with advanced filtering.
+
+    **Permissions:**
+    - Users see only their own deals (requires deals.view_own)
+    - Managers/Admins can see all deals (requires deals.view_all)
+
+    **Filters:**
+    - **date_range**: Filter by creation date (thisWeek, thisMonth, thisQuarter, thisYear)
+    - **probability_range**: Filter by probability (high >70%, medium 30-70%, low <30%)
+    - **owner_id**: Filter by owner (managers/admins only)
+    - **stage**: Filter by deal stage (lead, qualified, proposal, negotiation, closed_won, closed_lost)
+
+    **Performance Note:** This endpoint uses optimized queries with eager loading
+    to prevent N+1 query issues. All related data (company, contact, owner) is
+    loaded in a single query.
+    """
+    return DealController.get_deals(
+        db=db,
+        current_user=current_user,
+        date_range=date_range,
+        probability_range=probability_range,
+        owner_id=owner_id,
+        stage=stage,
+        skip=skip,
+        limit=limit
+    )
+
+
+@router.get("/pipeline")
+async def get_pipeline_deals(
+    date_range: Optional[str] = Query(
+        None,
+        description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"
+    ),
+    probability_range: Optional[str] = Query(
+        None,
+        description="Probability range: high, medium, low"
+    ),
+    owner_id: Optional[str] = Query(
+        None,
+        description="Filter by owner ID (requires deals.view_all permission)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get deals organized by pipeline stages.
+
+    **Purpose:** This endpoint provides deals grouped by their current stage,
+    perfect for Kanban-style pipeline views.
+
+    **Returns:**
+    ```json
+    {
+      "lead": {"id": "lead", "title": "Lead", "deals": [...]},
+      "qualified": {"id": "qualified", "title": "Qualified", "deals": [...]},
+      "proposal": {"id": "proposal", "title": "Proposal", "deals": [...]},
+      "negotiation": {"id": "negotiation", "title": "Negotiation", "deals": [...]},
+      "closed_won": {"id": "closed_won", "title": "Closed Won", "deals": [...]},
+      "closed_lost": {"id": "closed_lost", "title": "Closed Lost", "deals": [...]}
+    }
+    ```
+
+    Each deal includes: id, title, value, probability, contact, company, avatar, expected_close_date
+    """
+    return DealController.get_pipeline_deals(
+        db=db,
+        current_user=current_user,
+        date_range=date_range,
+        probability_range=probability_range,
+        owner_id=owner_id
+    )
+
+
+@router.get("/statistics")
+async def get_deal_statistics(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get comprehensive deal statistics.
+
+    **Returns:**
+    - total_deals: Total number of deals
+    - active_deals: Deals not yet won or lost
+    - won_deals: Successfully closed deals
+    - lost_deals: Lost opportunities
+    - total_value: Combined value of all deals
+    - won_value: Total value of won deals
+    - pipeline_value: Total value of active deals
+    - conversion_rate: Percentage of deals won
+    """
+    return DealController.get_deal_statistics(
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.get("/analytics/revenue")
+async def get_revenue_data(
+    date_range: Optional[str] = Query(
+        None,
+        description="Date range: last7days, last30days, last90days, thisquarter, lastyear"
+    ),
+    owner_id: Optional[str] = Query(
+        None,
+        description="Filter by owner ID (requires deals.view_all permission)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get revenue analytics data for the last 12 months.
+
+    **Returns:** Monthly breakdown with actual, forecast, and target values.
+
+    This endpoint generates revenue trends showing:
+    - **actual**: Actual revenue from closed won deals
+    - **forecast**: Projected revenue (actual × 1.1)
+    - **target**: Target revenue (forecast × 0.9)
+
+    Perfect for revenue charts and trend analysis.
+    """
+    return DealController.get_revenue_data(
+        db=db,
+        current_user=current_user,
+        date_range=date_range,
+        owner_id=owner_id
+    )
+
+
+@router.get("/analytics/performance")
+async def get_performance_metrics(
+    date_range: Optional[str] = Query(
+        None,
+        description="Date range: last7days, last30days, last90days, thisquarter, lastyear"
+    ),
+    owner_id: Optional[str] = Query(
+        None,
+        description="Filter by owner ID (requires deals.view_all permission)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get performance metrics and KPIs.
+
+    **Returns:**
+    - achieved: Total revenue achieved
+    - quota: Target quota (achieved × 1.3)
+    - percentage: Achievement percentage
+    - avgDealSize: Average size of won deals
+    - conversionRate: Win rate percentage
+    - dealsWon: Number of won deals
+    - dealsLost: Number of lost deals
+    - totalDeals: Total number of deals
+
+    Use this for performance dashboards and quota tracking.
+    """
+    return DealController.get_performance_metrics(
+        db=db,
+        current_user=current_user,
+        date_range=date_range,
+        owner_id=owner_id
+    )
+
+
+@router.get("/analytics/winrate")
+async def get_win_rate_data(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get win rate analytics by quarter.
+
+    **Returns:** Quarterly win rate data with percentage for each quarter (Q1-Q4).
+
+    Win rate is calculated as: (won deals / total closed deals) × 100
+
+    Includes natural variation to show realistic quarterly trends.
+    """
+    return DealController.get_win_rate_data(
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.get("/analytics/filter-options")
+async def get_filter_options(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get available filter options for analytics.
+
+    **Returns:**
+    - **reps**: Available sales representatives (based on user permissions)
+    - **industries**: Available industries from companies
+    - **dateRanges**: Predefined date range options
+
+    **Permission-based:**
+    - Admins/Managers see all sales reps
+    - Regular users see only themselves
+
+    Use this to populate filter dropdowns in the UI.
+    """
+    return DealController.get_filter_options(
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.get("/{deal_id}", response_model=DealWithRelations)
+async def get_deal_by_id(
+    deal_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Retrieve a single deal by ID.
+
+    **Returns:** Complete deal details including:
+    - All deal fields
+    - Custom field values
+    - Owner information
+    - Contact details
+    - Company information
+    - Related activities
+    - Related documents
+
+    **Permissions:** Users can only view deals they have permission to access
+    based on their role (own deals or all deals).
+    """
+    return DealController.get_deal(
+        deal_id=deal_id,
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.post("/", response_model=DealResponse, status_code=201)
+async def create_deal(
+    deal: DealCreate,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Create a new deal.
+
+    **Required Permission:** deals.create
+
+    **Required Fields:**
+    - name: Deal name
+
+    **Optional Fields:**
+    - value: Deal value (Decimal)
+    - stage: Deal stage (default: "lead")
+    - probability: Win probability 0-100 (default: 0)
+    - expected_close_date: Expected closing date
+    - description: Deal description
+    - source: Lead source
+    - next_action: Next planned action
+    - company_id: Associated company UUID
+    - contact_id: Associated contact UUID
+    - custom_fields: Dictionary of custom field values
+
+    **Custom Fields:**
+    Provide as key-value pairs where keys are field names.
+
+    Example:
+    ```json
+    {
+      "name": "Enterprise Software Deal",
+      "value": 150000.00,
+      "stage": "qualified",
+      "probability": 65,
+      "company_id": "uuid-here",
+      "contact_id": "uuid-here",
+      "custom_fields": {
+        "deal_type": "New Business",
+        "competitor": "CompanyX"
+      }
+    }
+    ```
+
+    The deal is automatically assigned to the current user as owner.
+    """
+    return DealController.create_deal(
+        deal_data=deal,
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.put("/{deal_id}", response_model=DealResponse)
+async def update_deal(
+    deal_id: UUID,
+    deal: DealUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Update an existing deal.
+
+    **Required Permissions:**
+    - deals.edit_all: Edit any deal
+    - deals.edit_own: Edit only own deals
+
+    **All fields are optional.** Only provided fields will be updated.
+
+    **Available Fields:**
+    - name, value, stage, probability
+    - expected_close_date, actual_close_date
+    - description, source, lost_reason, next_action
+    - company_id, contact_id
+    - custom_fields
+
+    **Stage Updates:**
+    When moving to 'closed_won' or 'closed_lost', consider setting:
+    - actual_close_date: DateTime of closure
+    - lost_reason: Reason if closed_lost
+
+    **Custom Fields:**
+    - Providing custom_fields replaces all custom field values
+    - To update specific fields, include all existing ones you want to keep
+    """
+    return DealController.update_deal(
+        deal_id=deal_id,
+        deal_data=deal,
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.delete("/{deal_id}")
+async def delete_deal(
+    deal_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Delete a deal.
+
+    **Required Permissions:**
+    - deals.delete_all: Delete any deal
+    - deals.delete_own: Delete only own deals
+
+    **Warning:** This action cannot be undone. The deal and all associated
+    custom field values will be permanently deleted.
+
+    **Note:** Related activities and documents may remain depending on
+    database cascade settings.
+    """
+    return DealController.delete_deal(
+        deal_id=deal_id,
+        db=db,
+        current_user=current_user
+    )

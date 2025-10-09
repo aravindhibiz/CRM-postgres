@@ -589,7 +589,6 @@ const SalesDashboard = () => {
                 {/* Right Sidebar */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <QuickActions />
                   
                   {/* Upcoming Tasks */}
                   <UpcomingTasks />

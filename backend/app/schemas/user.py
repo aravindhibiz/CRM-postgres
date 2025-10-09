@@ -58,3 +58,12 @@ class UserStats(BaseModel):
     active: int
     inactive: int
     roles: dict
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class PasswordReset(BaseModel):
+    new_password: str

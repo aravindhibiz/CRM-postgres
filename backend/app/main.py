@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from .core.database import engine, Base
-from .routes import auth, contacts, deals, companies, activities, tasks, dashboard, users, roles, system_config, custom_fields, email_templates, integrations, notes, activities_new
+from .routes import auth, contacts_new, tasks_new, dashboard, users_new, roles_new, system_config_new, custom_fields_new, email_templates_new, integrations_new, notes_new, activities_new, companies_new, deals_new
 # Import all models to ensure SQLAlchemy relationships are set up properly
 from . import models
 import traceback
@@ -32,30 +32,28 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
-app.include_router(
-    contacts.router, prefix="/api/v1/contacts", tags=["contacts"])
-app.include_router(deals.router, prefix="/api/v1/deals", tags=["deals"])
-app.include_router(
-    companies.router, prefix="/api/v1/companies", tags=["companies"])
-app.include_router(activities.router,
-                   prefix="/api/v1/activities", tags=["activities"])
-# New modular architecture for activities (v2) - for testing
+# New modular architecture (world-class production-level)
+app.include_router(contacts_new.router,
+                   prefix="/api/v1/contacts", tags=["contacts"])
 app.include_router(activities_new.router,
-                   prefix="/api/v1/activities-v2", tags=["activities-v2"])
-app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
+                   prefix="/api/v1/activities", tags=["activities"])
+app.include_router(companies_new.router,
+                   prefix="/api/v1/companies", tags=["companies"])
+app.include_router(deals_new.router, prefix="/api/v1/deals", tags=["deals"])
+app.include_router(tasks_new.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(
     dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
-app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
-app.include_router(roles.router, prefix="/api/v1/roles", tags=["roles"])
-app.include_router(system_config.router,
-                   prefix="/api/v1/system-config", tags=["system-config"])
-app.include_router(custom_fields.router,
-                   prefix="/api/v1/custom-fields", tags=["custom-fields"])
-app.include_router(email_templates.router,
+app.include_router(users_new.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(roles_new.router, prefix="/api/v1/roles", tags=["roles"])
+app.include_router(system_config_new.router,
+                   prefix="/api/v1", tags=["system-config"])
+app.include_router(custom_fields_new.router,
+                   prefix="/api/v1", tags=["custom-fields"])
+app.include_router(email_templates_new.router,
                    prefix="/api/v1/email-templates", tags=["email-templates"])
-app.include_router(integrations.router,
+app.include_router(integrations_new.router,
                    prefix="/api/v1/integrations", tags=["integrations"])
-app.include_router(notes.router, prefix="/api/v1/notes", tags=["notes"])
+app.include_router(notes_new.router, prefix="/api/v1/notes", tags=["notes"])
 
 # Global exception handler to preserve CORS headers
 

@@ -10,7 +10,7 @@ export const rolesService = {
 
   // Get all permissions
   async getAllPermissions() {
-    const { data, error } = await apiClient.get('/api/v1/roles/permissions');
+    const { data, error } = await apiClient.get('/api/v1/roles/permissions/all');
     if (error) throw error;
     return data || [];
   },

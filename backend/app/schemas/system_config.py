@@ -45,10 +45,6 @@ class SystemConfigBulkUpdateRequest(BaseModel):
     )
 
 
-class SystemConfigBulkUpdateRequestNew(BaseModel):
-    configurations: List[SystemConfigBulkUpdateItem]
-
-
 class SystemConfigCategoryResponse(BaseModel):
     category: str
     label: str

@@ -5,8 +5,8 @@ import { dealsService } from './dealsService';
 export const activitiesService = {
   // Get all activities for the current user
   async getUserActivities(limit = 50) {
-    console.log('Fetching user activities from v2 endpoint...');
-    const { data, error } = await apiClient.get(`/api/v1/activities-v2?limit=${limit}`);
+    console.log('Fetching user activities (new architecture)...');
+    const { data, error } = await apiClient.get(`/api/v1/activities?limit=${limit}`);
 
     if (error) {
       console.error('Error fetching activities:', error);
@@ -15,12 +15,11 @@ export const activitiesService = {
 
     console.log('Fetched activities data from v2 (with relations):', data);
     
-    // v2 endpoint returns activities with relations already populated
-    // No need to populate manually anymore!
+    // New architecture returns activities with relations already populated
     return data || [];
   },
 
-  // NOTE: populateActivityRelations is no longer needed with v2 endpoint
+  // NOTE: populateActivityRelations is no longer needed with new architecture
   // The v2 endpoint returns activities with contact, deal, and user relations already loaded
   // Keeping this commented for reference in case needed for backward compatibility
   /*
@@ -79,8 +78,8 @@ export const activitiesService = {
 
   // Get a single activity by ID (includes custom fields)
   async getActivityById(activityId) {
-    console.log('Fetching activity by ID from v2 endpoint:', activityId);
-    const { data, error } = await apiClient.get(`/api/v1/activities-v2/${activityId}`);
+    console.log('Fetching activity by ID (new architecture):', activityId);
+    const { data, error } = await apiClient.get(`/api/v1/activities/${activityId}`);
 
     if (error) {
       console.error('Error fetching activity:', error);
@@ -108,7 +107,7 @@ export const activitiesService = {
 
     console.log('Sending clean activity data:', cleanActivityData);
 
-    const { data, error } = await apiClient.post('/api/v1/activities-v2', cleanActivityData);
+    const { data, error } = await apiClient.post('/api/v1/activities', cleanActivityData);
 
     if (error) {
       console.error('Error creating activity:', error);
@@ -136,7 +135,7 @@ export const activitiesService = {
 
     console.log('Sending clean update data:', cleanActivityData);
 
-    const { data, error } = await apiClient.put(`/api/v1/activities-v2/${activityId}`, cleanActivityData);
+    const { data, error } = await apiClient.put(`/api/v1/activities/${activityId}`, cleanActivityData);
 
     if (error) {
       console.error('Error updating activity:', error);
@@ -149,7 +148,7 @@ export const activitiesService = {
 
   // Delete an activity
   async deleteActivity(activityId) {
-    const { data, error } = await apiClient.delete(`/api/v1/activities-v2/${activityId}`);
+    const { data, error } = await apiClient.delete(`/api/v1/activities/${activityId}`);
 
     if (error) throw error;
     return true;
@@ -183,7 +182,7 @@ export const activitiesService = {
     }
 
     const queryString = params.toString();
-    const endpoint = queryString ? `/api/v1/activities-v2?${queryString}` : '/api/v1/activities-v2';
+    const endpoint = queryString ? `/api/v1/activities?${queryString}` : '/api/v1/activities';
 
     const { data, error } = await apiClient.get(endpoint);
 
@@ -193,7 +192,7 @@ export const activitiesService = {
 
   // Get activity statistics
   async getActivityStats() {
-    const { data, error } = await apiClient.get('/api/v1/activities-v2/stats');
+    const { data, error } = await apiClient.get('/api/v1/activities/stats');
 
     if (error) {
       // Fallback: calculate stats from all activities
@@ -236,7 +235,7 @@ export const activitiesService = {
     }
 
     const queryString = params.toString();
-    const endpoint = queryString ? `/api/v1/activities-v2?${queryString}` : '/api/v1/activities-v2';
+    const endpoint = queryString ? `/api/v1/activities?${queryString}` : '/api/v1/activities';
 
     const { data, error } = await apiClient.get(endpoint);
 
