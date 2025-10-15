@@ -473,10 +473,10 @@ export const dealsService = {
         return {
           reps: [{ value: 'all', label: 'All Representatives' }],
           dateRanges: [
-            { value: 'last7days', label: 'Last 7 Days' },
-            { value: 'last30days', label: 'Last 30 Days' },
-            { value: 'last90days', label: 'Last 90 Days' },
+            { value: 'all', label: 'All Time' },
             { value: 'thisquarter', label: 'This Quarter' },
+            { value: 'lastquarter', label: 'Last Quarter' },
+            { value: 'thisyear', label: 'This Year' },
             { value: 'lastyear', label: 'Last Year' }
           ]
         };
@@ -490,9 +490,21 @@ export const dealsService = {
   },
 
   // Get win rate data for analytics
-  async getWinRateData() {
+  async getWinRateData(filters = {}) {
     try {
-      const { data, error } = await apiClient.get('/api/v1/deals/analytics/winrate');
+      // Build query params from filters
+      const params = new URLSearchParams();
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
+      }
+      if (filters.ownerId) {
+        params.append('owner_id', filters.ownerId);
+      }
+
+      const queryString = params.toString();
+      const url = `/api/v1/deals/analytics/winrate${queryString ? `?${queryString}` : ''}`;
+      
+      const { data, error } = await apiClient.get(url);
 
       if (error) {
         // Fallback: generate win rate data
@@ -515,6 +527,40 @@ export const dealsService = {
       return data;
     } catch (err) {
       console.error('Error fetching win rate data:', err);
+      throw err;
+    }
+  },
+
+  // Export deals with filters
+  async exportDeals(filters = {}) {
+    try {
+      const params = new URLSearchParams();
+      
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
+      }
+      
+      if (filters.probabilityRange) {
+        params.append('probability_range', filters.probabilityRange);
+      }
+      
+      if (filters.ownerId) {
+        params.append('owner_id', filters.ownerId);
+      }
+
+      if (filters.stage) {
+        params.append('stage', filters.stage);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/api/v1/deals/export?${queryString}` : '/api/v1/deals/export';
+
+      const { data, error } = await apiClient.get(endpoint);
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error exporting deals:', err);
       throw err;
     }
   }

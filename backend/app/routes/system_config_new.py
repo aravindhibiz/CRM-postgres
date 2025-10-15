@@ -66,7 +66,7 @@ async def get_all_configurations(
     include_inactive: bool = Query(
         False, description="Include inactive configurations"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """List all system configurations with optional filtering."""
     controller = SystemConfigController(db)
@@ -97,7 +97,7 @@ async def get_all_configurations(
 )
 async def get_configuration_schema(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Get the configuration schema with categories and field types."""
     controller = SystemConfigController(db)
@@ -133,7 +133,7 @@ async def get_configuration_schema(
 )
 async def get_configurations_grouped(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Get configurations grouped by category in nested format."""
     controller = SystemConfigController(db)
@@ -165,7 +165,7 @@ async def get_configurations_by_categories(
     categories: List[str] = Query(...,
                                   description="List of categories to retrieve"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Get configurations for specific categories with metadata."""
     controller = SystemConfigController(db)
@@ -200,7 +200,7 @@ async def get_configurations_by_categories(
 )
 async def get_current_configuration(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Get current effective configuration."""
     controller = SystemConfigController(db)
@@ -230,7 +230,7 @@ async def get_current_configuration(
 )
 async def export_configurations(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Export all configurations with metadata."""
     controller = SystemConfigController(db)
@@ -260,7 +260,7 @@ async def export_configurations(
 async def create_configuration(
     config_data: SystemConfigCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Create a new system configuration."""
     controller = SystemConfigController(db)
@@ -293,7 +293,7 @@ async def create_configuration(
 async def validate_configurations(
     bulk_data: SystemConfigBulkUpdateRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Validate configurations without saving."""
     controller = SystemConfigController(db)
@@ -326,7 +326,7 @@ async def validate_configurations(
 )
 async def initialize_default_configurations(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Initialize all default configurations."""
     controller = SystemConfigController(db)
@@ -366,7 +366,7 @@ async def initialize_default_configurations(
 async def bulk_update_configurations(
     bulk_data: SystemConfigBulkUpdateRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Bulk update multiple configurations."""
     controller = SystemConfigController(db)
@@ -399,7 +399,7 @@ async def update_configuration(
     config_id: UUID,
     config_data: SystemConfigUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Update a single configuration."""
     controller = SystemConfigController(db)
@@ -428,7 +428,7 @@ async def update_configuration(
 async def delete_configuration(
     config_id: UUID,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin())
 ):
     """Soft delete a configuration."""
     controller = SystemConfigController(db)

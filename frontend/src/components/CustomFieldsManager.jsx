@@ -8,6 +8,9 @@ const CustomFieldsManager = () => {
   const [editingField, setEditingField] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [entityFilter, setEntityFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fieldTypes = [
     { value: 'text', label: 'Text' },
@@ -318,6 +321,75 @@ const CustomFieldsManager = () => {
     }
   };
 
+  // Filter custom fields based on entity type
+  const filteredFields = entityFilter === 'all' 
+    ? customFields 
+    : customFields.filter(field => field.entity_type === entityFilter);
+
+  // Get count for each entity type
+  const getEntityCount = (entityType) => {
+    if (entityType === 'all') return customFields.length;
+    return customFields.filter(field => field.entity_type === entityType).length;
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredFields.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedFields = filteredFields.slice(startIndex, endIndex);
+
+  // Reset to first page when filter changes
+  const handleFilterChange = (filter) => {
+    setEntityFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (value) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -337,12 +409,62 @@ const CustomFieldsManager = () => {
         </button>
       </div>
 
+      {/* Entity Filter Tabs */}
+      <div className="mb-6 bg-white rounded-lg shadow p-2 flex flex-wrap gap-2">
+        <button
+          onClick={() => handleFilterChange('all')}
+          className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            entityFilter === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          All ({getEntityCount('all')})
+        </button>
+        {entityTypes.map((entity) => (
+          <button
+            key={entity.value}
+            onClick={() => handleFilterChange(entity.value)}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              entityFilter === entity.value
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {entity.label} ({getEntityCount(entity.value)})
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto" style={{ maxWidth: '100%', overflowX: 'auto' }}>
-            <table className="min-w-full divide-y divide-gray-200">
+        <>
+          {/* Items per page selector and info */}
+          <div className="bg-white rounded-lg shadow px-6 py-3 mb-4 flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-600">entries per page</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              Showing {filteredFields.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, filteredFields.length)} of {filteredFields.length} entries
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto" style={{ maxWidth: '100%', overflowX: 'auto' }}>
+              <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -369,7 +491,7 @@ const CustomFieldsManager = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {customFields && customFields.length > 0 ? customFields.map((field) => (
+              {paginatedFields && paginatedFields.length > 0 ? paginatedFields.map((field) => (
                 <tr key={field.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -421,17 +543,73 @@ const CustomFieldsManager = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-500">
+                  <td colSpan="7" className="text-center py-8 text-gray-500">
                     {loading ? 'Loading custom fields...' : 
                      error ? error : 
-                     'No custom fields found. Create your first custom field to get started.'}
+                     entityFilter !== 'all' 
+                       ? `No custom fields found for ${entityTypes.find(e => e.value === entityFilter)?.label}. Create your first ${entityTypes.find(e => e.value === entityFilter)?.label} custom field to get started.`
+                       : 'No custom fields found. Create your first custom field to get started.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+            </div>
           </div>
-        </div>
+
+          {/* Pagination Controls */}
+          {filteredFields.length > 0 && totalPages > 1 && (
+            <div className="bg-white rounded-lg shadow px-6 py-4 mt-4">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-md font-medium ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Previous
+                </button>
+
+                <div className="flex space-x-2">
+                  {getPageNumbers().map((page, index) => (
+                    page === '...' ? (
+                      <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-500">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-md font-medium ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {showCreateModal && (

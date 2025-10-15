@@ -52,6 +52,8 @@ def get_all_permissions():
             "description": "Delete only own deals", "category": "Deals"},
         {"name": "deals.move_stages", "display_name": "Move Pipeline Stages",
             "description": "Move deals between pipeline stages", "category": "Deals"},
+        {"name": "deals.export", "display_name": "Export Deals",
+            "description": "Export deals to CSV/JSON", "category": "Deals"},
 
         # Contact Permissions
         {"name": "contacts.view_all", "display_name": "View All Contacts",
@@ -124,7 +126,7 @@ def get_default_role_permissions():
             # Sales Manager gets most permissions except system config and permissions management
             "dashboard.view_stats", "dashboard.filter", "dashboard.pipeline_drag_drop", "dashboard.pipeline_view",
             "analytics.view_personal", "analytics.view_team", "analytics.export",
-            "deals.view_all", "deals.view_own", "deals.create", "deals.edit_all", "deals.edit_own", "deals.delete_all", "deals.delete_own", "deals.move_stages",
+            "deals.view_all", "deals.view_own", "deals.create", "deals.edit_all", "deals.edit_own", "deals.delete_all", "deals.delete_own", "deals.move_stages", "deals.export",
             "contacts.view_all", "contacts.view_own", "contacts.create", "contacts.edit_all", "contacts.edit_own", "contacts.delete_all", "contacts.delete_own", "contacts.import", "contacts.export",
             "activities.view_all", "activities.view_own", "activities.create_all", "activities.create_own", "activities.edit_all", "activities.edit_own", "activities.delete_all", "activities.delete_own", "activities.export",
             "settings.user_management", "settings.integrations", "settings.custom_fields", "settings.email_templates",

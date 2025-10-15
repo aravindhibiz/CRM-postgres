@@ -8,48 +8,129 @@ from ..models.user import UserProfile
 from ..models.contact import Contact
 from ..models.company import Company
 from ..models.deal import Deal
+from ..models.custom_field import CustomField, CustomFieldValue
 
 
 class EmailTemplateService:
     """Service for processing email templates and merge fields"""
 
     @staticmethod
-    def get_available_merge_fields() -> List[Dict[str, str]]:
-        """Get list of available merge fields with descriptions"""
-        return [
-            {"field": "{{first_name}}",
-                "description": "Contact first name", "example": "John"},
-            {"field": "{{last_name}}",
-                "description": "Contact last name", "example": "Doe"},
+    def get_available_merge_fields(db: Optional[Session] = None) -> List[Dict[str, str]]:
+        """Get list of available merge fields with descriptions, including custom fields"""
+
+        print("DEBUG: get_available_merge_fields called!")  # DEBUG
+
+        # Standard Contact Fields
+        contact_fields = [
+            {"field": "{{first_name}}", "description": "Contact first name",
+             "example": "John", "category": "Contact Fields"},
+            {"field": "{{last_name}}", "description": "Contact last name",
+             "example": "Doe", "category": "Contact Fields"},
             {"field": "{{full_name}}", "description": "Contact full name",
-                "example": "John Doe"},
+             "example": "John Doe", "category": "Contact Fields"},
             {"field": "{{email}}", "description": "Contact email address",
-                "example": "john@example.com"},
-            {"field": "{{company_name}}",
-                "description": "Contact company name", "example": "Acme Corp"},
+             "example": "john@example.com", "category": "Contact Fields"},
             {"field": "{{phone}}", "description": "Contact phone number",
-                "example": "+1-555-123-4567"},
+             "example": "+1-555-123-4567", "category": "Contact Fields"},
             {"field": "{{position}}", "description": "Contact position/title",
-                "example": "Sales Manager"},
-            {"field": "{{deal_name}}", "description": "Deal title",
-                "example": "Q4 Partnership Deal"},
-            {"field": "{{deal_value}}",
-                "description": "Deal value", "example": "$50,000"},
-            {"field": "{{deal_stage}}",
-                "description": "Deal stage", "example": "Proposal"},
-            {"field": "{{sender_name}}", "description": "Your name",
-                "example": "Jane Smith"},
-            {"field": "{{sender_email}}", "description": "Your email",
-                "example": "jane@company.com"},
-            {"field": "{{sender_title}}", "description": "Your title",
-                "example": "Account Manager"},
-            {"field": "{{current_date}}", "description": "Current date",
-                "example": "October 1, 2025"},
-            {"field": "{{company_address}}", "description": "Company address",
-                "example": "123 Business St"},
-            {"field": "{{company_phone}}", "description": "Company phone",
-                "example": "+1-555-987-6543"},
+             "example": "Sales Manager", "category": "Contact Fields"},
         ]
+
+        # Standard Company Fields
+        company_fields = [
+            {"field": "{{company_name}}", "description": "Company name",
+             "example": "Acme Corp", "category": "Company Fields"},
+            {"field": "{{company_address}}", "description": "Company address",
+             "example": "123 Business St", "category": "Company Fields"},
+            {"field": "{{company_phone}}", "description": "Company phone",
+             "example": "+1-555-987-6543", "category": "Company Fields"},
+        ]
+
+        # Standard Deal Fields
+        deal_fields = [
+            {"field": "{{deal_name}}", "description": "Deal title",
+             "example": "Q4 Partnership Deal", "category": "Deal Fields"},
+            {"field": "{{deal_value}}", "description": "Deal value",
+             "example": "$50,000", "category": "Deal Fields"},
+            {"field": "{{deal_stage}}", "description": "Deal stage",
+             "example": "Proposal", "category": "Deal Fields"},
+        ]
+
+        # System Fields
+        system_fields = [
+            {"field": "{{sender_name}}", "description": "Your name",
+             "example": "Jane Smith", "category": "System Fields"},
+            {"field": "{{sender_email}}", "description": "Your email",
+             "example": "jane@company.com", "category": "System Fields"},
+            {"field": "{{sender_title}}", "description": "Your title",
+             "example": "Account Manager", "category": "System Fields"},
+            {"field": "{{current_date}}", "description": "Current date",
+             "example": "October 14, 2025", "category": "System Fields"},
+        ]
+
+        # Combine standard fields
+        all_fields = contact_fields + company_fields + deal_fields + system_fields
+
+        print(f"DEBUG: Returning {len(all_fields)} fields")  # DEBUG
+        print(f"DEBUG: First field: {all_fields[0]}")  # DEBUG
+        # DEBUG
+        print(
+            f"DEBUG: Categories in all_fields: {set(f['category'] for f in all_fields)}")
+
+        # Fetch custom fields from database if db session provided
+        if db:
+            try:
+                custom_fields = db.query(CustomField).filter(
+                    CustomField.is_active == True
+                ).all()
+
+                for cf in custom_fields:
+                    # Create merge field key from field_key
+                    field_key = f"{{{{{cf.field_key}}}}}"
+
+                    # Determine category based on entity type
+                    entity_category_map = {
+                        "contact": "Contact Custom Fields",
+                        "company": "Company Custom Fields",
+                        "deal": "Deal Custom Fields",
+                        "activity": "Activity Custom Fields"
+                    }
+                    category = entity_category_map.get(
+                        cf.entity_type.value if hasattr(
+                            cf.entity_type, 'value') else cf.entity_type,
+                        "Custom Fields"
+                    )
+
+                    # Create example based on field type
+                    example_map = {
+                        "text": "Sample text",
+                        "email": "sample@email.com",
+                        "phone": "+1-555-000-0000",
+                        "url": "https://example.com",
+                        "number": "100",
+                        "currency": "$1,000",
+                        "date": "2025-10-14",
+                        "datetime": "2025-10-14 10:30 AM",
+                        "checkbox": "Yes",
+                        "select": "Option 1",
+                        "multiselect": "Option 1, Option 2",
+                        "textarea": "Sample long text..."
+                    }
+                    field_type_str = cf.field_type.value if hasattr(
+                        cf.field_type, 'value') else str(cf.field_type)
+                    example = example_map.get(field_type_str, "Sample value")
+
+                    all_fields.append({
+                        "field": field_key,
+                        "description": cf.description or cf.name,
+                        "example": example,
+                        "category": category
+                    })
+            except Exception as e:
+                # If there's an error fetching custom fields, just return standard fields
+                print(f"Error fetching custom fields for merge fields: {e}")
+
+        return all_fields
 
     @staticmethod
     def process_template(
@@ -109,9 +190,50 @@ class EmailTemplateService:
             "current_date": datetime.now().strftime("%B %d, %Y"),
         }
 
+        # Fetch custom field values if entity IDs provided
+        custom_field_data = {}
+        try:
+            # Get contact custom fields
+            if contact_id:
+                contact_custom_values = db.query(CustomFieldValue, CustomField).join(
+                    CustomField
+                ).filter(
+                    CustomFieldValue.entity_id == contact_id,
+                    CustomFieldValue.entity_type == 'contact'
+                ).all()
+                for cf_value, cf in contact_custom_values:
+                    custom_field_data[cf.field_key] = cf_value.value or ""
+
+            # Get deal custom fields
+            if deal_id:
+                deal_custom_values = db.query(CustomFieldValue, CustomField).join(
+                    CustomField
+                ).filter(
+                    CustomFieldValue.entity_id == deal_id,
+                    CustomFieldValue.entity_type == 'deal'
+                ).all()
+                for cf_value, cf in deal_custom_values:
+                    custom_field_data[cf.field_key] = cf_value.value or ""
+
+            # Get company custom fields (from contact's company)
+            if contact_id and contact_data:
+                contact = db.query(Contact).filter(
+                    Contact.id == contact_id).first()
+                if contact and contact.company_id:
+                    company_custom_values = db.query(CustomFieldValue, CustomField).join(
+                        CustomField
+                    ).filter(
+                        CustomFieldValue.entity_id == contact.company_id,
+                        CustomFieldValue.entity_type == 'company'
+                    ).all()
+                    for cf_value, cf in company_custom_values:
+                        custom_field_data[cf.field_key] = cf_value.value or ""
+        except Exception as e:
+            print(f"Error fetching custom field values: {e}")
+
         # Combine all data sources (merge_data takes precedence)
         all_data = {**contact_data, **deal_data, **
-                    sender_data, **current_data, **merge_data}
+                    sender_data, **current_data, **custom_field_data, **merge_data}
 
         # Replace merge fields in subject and content
         processed_subject = EmailTemplateService._replace_merge_fields(

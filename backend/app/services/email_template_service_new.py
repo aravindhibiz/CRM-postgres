@@ -27,6 +27,7 @@ from ..models.user import UserProfile
 from ..models.contact import Contact
 from ..models.company import Company
 from ..models.deal import Deal
+from ..models.custom_field import CustomField, CustomFieldValue, EntityType
 from ..schemas.email_template import (
     EmailTemplateCreate, EmailTemplateUpdate,
     SendEmailRequest, TemplatePreviewRequest
@@ -54,37 +55,7 @@ class EmailTemplateService:
     """
 
     # Define available merge fields with metadata
-    AVAILABLE_MERGE_FIELDS = [
-        {"field": "{{first_name}}",
-            "description": "Contact first name", "example": "John"},
-        {"field": "{{last_name}}", "description": "Contact last name", "example": "Doe"},
-        {"field": "{{full_name}}", "description": "Contact full name",
-            "example": "John Doe"},
-        {"field": "{{email}}", "description": "Contact email address",
-            "example": "john@example.com"},
-        {"field": "{{company_name}}",
-            "description": "Contact company name", "example": "Acme Corp"},
-        {"field": "{{phone}}", "description": "Contact phone number",
-            "example": "+1-555-123-4567"},
-        {"field": "{{position}}", "description": "Contact position/title",
-            "example": "Sales Manager"},
-        {"field": "{{deal_name}}", "description": "Deal title",
-            "example": "Q4 Partnership Deal"},
-        {"field": "{{deal_value}}", "description": "Deal value", "example": "$50,000"},
-        {"field": "{{deal_stage}}", "description": "Deal stage", "example": "Proposal"},
-        {"field": "{{sender_name}}", "description": "Your name",
-            "example": "Jane Smith"},
-        {"field": "{{sender_email}}", "description": "Your email",
-            "example": "jane@company.com"},
-        {"field": "{{sender_title}}", "description": "Your title",
-            "example": "Account Manager"},
-        {"field": "{{current_date}}", "description": "Current date",
-            "example": "October 9, 2025"},
-        {"field": "{{company_address}}", "description": "Company address",
-            "example": "123 Business St"},
-        {"field": "{{company_phone}}", "description": "Company phone",
-            "example": "+1-555-987-6543"},
-    ]
+    # NOTE: This is now a method to support dynamic custom fields
 
     def __init__(self, db: Session):
         """
@@ -99,18 +70,119 @@ class EmailTemplateService:
 
     # ==================== Merge Field Operations ====================
 
-    @staticmethod
-    def get_available_merge_fields() -> List[Dict[str, str]]:
-        """
-        Get list of available merge fields with descriptions.
+    def get_available_merge_fields(self) -> List[Dict[str, str]]:
+        """Get list of available merge fields with descriptions, including custom fields"""
 
-        Returns:
-            List[Dict[str, str]]: List of merge field metadata
-        """
-        return EmailTemplateService.AVAILABLE_MERGE_FIELDS
+        # Standard Contact Fields
+        contact_fields = [
+            {"field": "{{first_name}}", "description": "Contact first name",
+             "example": "John", "category": "Contact Fields"},
+            {"field": "{{last_name}}", "description": "Contact last name",
+             "example": "Doe", "category": "Contact Fields"},
+            {"field": "{{full_name}}", "description": "Contact full name",
+             "example": "John Doe", "category": "Contact Fields"},
+            {"field": "{{email}}", "description": "Contact email address",
+             "example": "john@example.com", "category": "Contact Fields"},
+            {"field": "{{phone}}", "description": "Contact phone number",
+             "example": "+1-555-123-4567", "category": "Contact Fields"},
+            {"field": "{{position}}", "description": "Contact position/title",
+             "example": "Sales Manager", "category": "Contact Fields"},
+        ]
 
-    @staticmethod
-    def validate_merge_fields(text: str) -> List[str]:
+        # Standard Company Fields
+        company_fields = [
+            {"field": "{{company_name}}", "description": "Company name",
+             "example": "Acme Corp", "category": "Company Fields"},
+            {"field": "{{company_address}}", "description": "Company address",
+             "example": "123 Business St", "category": "Company Fields"},
+            {"field": "{{company_phone}}", "description": "Company phone",
+             "example": "+1-555-987-6543", "category": "Company Fields"},
+        ]
+
+        # Standard Deal Fields
+        deal_fields = [
+            {"field": "{{deal_name}}", "description": "Deal title",
+             "example": "Q4 Partnership Deal", "category": "Deal Fields"},
+            {"field": "{{deal_value}}", "description": "Deal value",
+             "example": "$50,000", "category": "Deal Fields"},
+            {"field": "{{deal_stage}}", "description": "Deal stage",
+             "example": "Proposal", "category": "Deal Fields"},
+        ]
+
+        # System Fields
+        system_fields = [
+            {"field": "{{sender_name}}", "description": "Your name",
+             "example": "Jane Smith", "category": "System Fields"},
+            {"field": "{{sender_email}}", "description": "Your email",
+             "example": "jane@company.com", "category": "System Fields"},
+            {"field": "{{sender_title}}", "description": "Your title",
+             "example": "Account Manager", "category": "System Fields"},
+            {"field": "{{current_date}}", "description": "Current date",
+             "example": "October 14, 2025", "category": "System Fields"},
+        ]
+
+        # Combine standard fields
+        all_fields = contact_fields + company_fields + deal_fields + system_fields
+
+        # Fetch custom fields from database
+        try:
+            custom_fields = self.db.query(CustomField).filter(
+                CustomField.is_active == True
+            ).all()
+
+            for cf in custom_fields:
+                # Create merge field key from field_key
+                field_key = f"{{{{{cf.field_key}}}}}"
+
+                # Determine category based on entity type
+                entity_category_map = {
+                    "contact": "Contact Custom Fields",
+                    "company": "Company Custom Fields",
+                    "deal": "Deal Custom Fields",
+                    "activity": "Activity Custom Fields",
+                    "task": "Task Custom Fields"
+                }
+                entity_type_str = cf.entity_type.value if hasattr(
+                    cf.entity_type, 'value') else str(cf.entity_type)
+                category = entity_category_map.get(
+                    entity_type_str,
+                    "Custom Fields"
+                )
+
+                # Create example based on field type
+                example_map = {
+                    "text": "Sample text",
+                    "email": "sample@email.com",
+                    "phone": "+1-555-000-0000",
+                    "url": "https://example.com",
+                    "number": "100",
+                    "currency": "$1,000",
+                    "date": "2025-10-14",
+                    "datetime": "2025-10-14 10:30 AM",
+                    "checkbox": "Yes",
+                    "boolean": "Yes",
+                    "select": "Option 1",
+                    "multi_select": "Option 1, Option 2",
+                    "multiselect": "Option 1, Option 2",
+                    "textarea": "Sample long text..."
+                }
+                field_type_str = cf.field_type.value if hasattr(
+                    cf.field_type, 'value') else str(cf.field_type)
+                example = example_map.get(field_type_str, "Sample value")
+
+                all_fields.append({
+                    "field": field_key,
+                    "description": cf.description or cf.name,
+                    "example": example,
+                    "category": category
+                })
+        except Exception as e:
+            # If there's an error fetching custom fields, just return standard fields
+            print(f"Error fetching custom fields for merge fields: {e}")
+
+        return all_fields
+
+    def validate_merge_fields(self, text: str) -> List[str]:
         """
         Extract and validate merge fields in text.
 
@@ -127,7 +199,7 @@ class EmailTemplateService:
         # Get list of valid field names (without {{ }})
         available_fields = [
             field["field"].replace("{{", "").replace("}}", "")
-            for field in EmailTemplateService.AVAILABLE_MERGE_FIELDS
+            for field in self.get_available_merge_fields()
         ]
 
         # Find invalid fields
@@ -164,6 +236,8 @@ class EmailTemplateService:
         merge_data: Dict[str, Any],
         contact_id: Optional[UUID] = None,
         deal_id: Optional[UUID] = None,
+        activity_id: Optional[UUID] = None,
+        task_id: Optional[UUID] = None,
         sender: Optional[UserProfile] = None
     ) -> Dict[str, str]:
         """
@@ -174,6 +248,8 @@ class EmailTemplateService:
             merge_data (Dict[str, Any]): Custom merge data
             contact_id (Optional[UUID]): Contact ID for contact data
             deal_id (Optional[UUID]): Deal ID for deal data
+            activity_id (Optional[UUID]): Activity ID for activity data
+            task_id (Optional[UUID]): Task ID for task data
             sender (Optional[UserProfile]): Sender user for sender data
 
         Returns:
@@ -201,6 +277,31 @@ class EmailTemplateService:
                     "company_phone": contact.company.phone if contact.company else "",
                 }
 
+                # Fetch custom field values for this contact
+                contact_custom_values = self.db.query(CustomFieldValue).join(
+                    CustomField
+                ).filter(
+                    CustomFieldValue.entity_type == EntityType.CONTACT,
+                    CustomFieldValue.entity_id == contact_id,
+                    CustomField.is_active == True
+                ).all()
+
+                for cfv in contact_custom_values:
+                    contact_data[cfv.custom_field.field_key] = cfv.value or ""
+
+                # Also get company custom fields if contact has a company
+                if contact.company:
+                    company_custom_values = self.db.query(CustomFieldValue).join(
+                        CustomField
+                    ).filter(
+                        CustomFieldValue.entity_type == EntityType.COMPANY,
+                        CustomFieldValue.entity_id == contact.company.id,
+                        CustomField.is_active == True
+                    ).all()
+
+                    for cfv in company_custom_values:
+                        contact_data[cfv.custom_field.field_key] = cfv.value or ""
+
         # Get deal data if deal_id provided
         deal_data = {}
         if deal_id:
@@ -211,6 +312,48 @@ class EmailTemplateService:
                     "deal_value": f"${deal.value:,.2f}" if deal.value else "",
                     "deal_stage": deal.stage or "",
                 }
+
+                # Fetch custom field values for this deal
+                deal_custom_values = self.db.query(CustomFieldValue).join(
+                    CustomField
+                ).filter(
+                    CustomFieldValue.entity_type == EntityType.DEAL,
+                    CustomFieldValue.entity_id == deal_id,
+                    CustomField.is_active == True
+                ).all()
+
+                for cfv in deal_custom_values:
+                    deal_data[cfv.custom_field.field_key] = cfv.value or ""
+
+        # Get activity data if activity_id provided
+        activity_data = {}
+        if activity_id:
+            # Fetch custom field values for this activity
+            activity_custom_values = self.db.query(CustomFieldValue).join(
+                CustomField
+            ).filter(
+                CustomFieldValue.entity_type == EntityType.ACTIVITY,
+                CustomFieldValue.entity_id == activity_id,
+                CustomField.is_active == True
+            ).all()
+
+            for cfv in activity_custom_values:
+                activity_data[cfv.custom_field.field_key] = cfv.value or ""
+
+        # Get task data if task_id provided
+        task_data = {}
+        if task_id:
+            # Fetch custom field values for this task
+            task_custom_values = self.db.query(CustomFieldValue).join(
+                CustomField
+            ).filter(
+                CustomFieldValue.entity_type == EntityType.TASK,
+                CustomFieldValue.entity_id == task_id,
+                CustomField.is_active == True
+            ).all()
+
+            for cfv in task_custom_values:
+                task_data[cfv.custom_field.field_key] = cfv.value or ""
 
         # Get sender data
         sender_data = {}
@@ -230,6 +373,8 @@ class EmailTemplateService:
         all_data = {
             **contact_data,
             **deal_data,
+            **activity_data,
+            **task_data,
             **sender_data,
             **current_data,
             **merge_data
@@ -451,6 +596,10 @@ class EmailTemplateService:
         return self.process_template(
             template=template,
             merge_data=preview_data.merge_data,
+            contact_id=preview_data.contact_id,
+            deal_id=preview_data.deal_id,
+            activity_id=preview_data.activity_id,
+            task_id=preview_data.task_id,
             sender=user
         )
 
@@ -472,10 +621,12 @@ class EmailTemplateService:
     ) -> EmailLog:
         """
         Send an email using a template or custom content.
+        Uses company email from system configuration as the sender.
+        Actually sends the email via SendGrid.
 
         Args:
             email_data (SendEmailRequest): Email data
-            sender (UserProfile): The sender user
+            sender (UserProfile): The sender user (for tracking purposes)
 
         Returns:
             EmailLog: The created email log
@@ -483,6 +634,15 @@ class EmailTemplateService:
         Raises:
             ValueError: If validation fails
         """
+        print(f"\n{'='*60}")
+        print(f"📧 SEND EMAIL CALLED")
+        print(f"To: {email_data.to}")
+        print(f"Subject: {email_data.subject}")
+        print(f"Has Content: {bool(email_data.content)}")
+        print(f"Template ID: {email_data.template_id}")
+        print(f"User: {sender.email}")
+        print(f"{'='*60}\n")
+
         template = None
         processed_subject = email_data.subject or ""
         processed_content = email_data.content or ""
@@ -512,14 +672,167 @@ class EmailTemplateService:
         if not processed_subject or not processed_content:
             raise ValueError("Subject and content are required")
 
-        # Create email log (status would be updated by actual email service)
+        # Get company email from system configuration
+        from ..services.system_config_service_new import SystemConfigService
+        config_service = SystemConfigService(self.db)
+        company_email = config_service.get_configuration_value(
+            "general.company_email",
+            default="noreply@company.com"
+        )
+
+        # Get company name for sender name
+        company_name = config_service.get_configuration_value(
+            "general.company_name",
+            default="CRM System"
+        )
+
+        # Send email via SendGrid
+        email_status = "pending"
+        error_message = None
+
+        try:
+            from ..services.sendgrid_service import get_sendgrid_service
+
+            sendgrid = get_sendgrid_service()
+            result = sendgrid.send_email(
+                from_email=company_email,
+                to_email=email_data.to,
+                subject=processed_subject,
+                html_content=processed_content,
+                cc_emails=email_data.cc,
+                bcc_emails=email_data.bcc,
+                from_name=company_name
+            )
+
+            if result.get('success'):
+                email_status = "sent"
+                print(
+                    f"✅ Email sent successfully via SendGrid to {email_data.to}")
+            else:
+                email_status = "failed"
+                error_message = result.get('message', 'Unknown error')
+                print(f"❌ Email failed: {error_message}")
+                raise ValueError(f"Email delivery failed: {error_message}")
+
+        except Exception as e:
+            email_status = "failed"
+            error_message = str(e)
+            print(f"❌ SendGrid error: {error_message}")
+            # Re-raise to let controller handle it
+            raise
+
+        # Create email log
         email_log = self.log_email_sent(
             template_id=email_data.template_id,
-            sender_email=sender.email,
+            sender_email=company_email,  # Use company email instead of user email
             recipient_email=email_data.to,
             subject=processed_subject,
             content=processed_content,
-            status="sent",  # In production, this would be set by email service
+            status=email_status,
+            cc=email_data.cc,
+            bcc=email_data.bcc
+        )
+
+        return email_log
+
+    async def send_email_with_attachments(
+        self,
+        email_data: SendEmailRequest,
+        sender: UserProfile,
+        attachments: Optional[List[Any]] = None
+    ) -> EmailLog:
+        """
+        Send an email with file attachments.
+        Content should already be merged/prepared on frontend.
+        Uses company email from system configuration as the sender.
+
+        Args:
+            email_data (SendEmailRequest): Email data (content already merged)
+            sender (UserProfile): The sender user (for tracking purposes)
+            attachments (Optional[List[UploadFile]]): List of file attachments
+
+        Returns:
+            EmailLog: The created email log
+
+        Raises:
+            ValueError: If validation fails
+        """
+        print(f"\n{'='*60}")
+        print(f"📧 SEND EMAIL WITH ATTACHMENTS CALLED")
+        print(f"To: {email_data.to}")
+        print(f"Subject: {email_data.subject}")
+        print(f"Has Content: {bool(email_data.content)}")
+        print(f"Attachments: {len(attachments) if attachments else 0}")
+        print(f"User: {sender.email}")
+        print(f"{'='*60}\n")
+
+        # Content should already be merged on frontend
+        processed_subject = email_data.subject or ""
+        processed_content = email_data.content or ""
+
+        # Validate required fields
+        if not processed_subject or not processed_content:
+            raise ValueError("Subject and content are required")
+
+        # Get company email from system configuration
+        from ..services.system_config_service_new import SystemConfigService
+        config_service = SystemConfigService(self.db)
+        company_email = config_service.get_configuration_value(
+            "general.company_email",
+            default="noreply@company.com"
+        )
+
+        # Get company name for sender name
+        company_name = config_service.get_configuration_value(
+            "general.company_name",
+            default="CRM System"
+        )
+
+        # Send email via SendGrid with attachments
+        email_status = "pending"
+        error_message = None
+
+        try:
+            from ..services.sendgrid_service import get_sendgrid_service
+
+            sendgrid = get_sendgrid_service()
+            result = await sendgrid.send_email_with_attachments(
+                from_email=company_email,
+                to_email=email_data.to,
+                subject=processed_subject,
+                html_content=processed_content,
+                attachments=attachments,
+                cc_emails=email_data.cc,
+                bcc_emails=email_data.bcc,
+                from_name=company_name
+            )
+
+            if result.get('success'):
+                email_status = "sent"
+                attachment_count = len(attachments) if attachments else 0
+                print(
+                    f"✅ Email sent successfully via SendGrid to {email_data.to} with {attachment_count} attachment(s)")
+            else:
+                email_status = "failed"
+                error_message = result.get('message', 'Unknown error')
+                print(f"❌ Email failed: {error_message}")
+                raise ValueError(f"Email delivery failed: {error_message}")
+
+        except Exception as e:
+            email_status = "failed"
+            error_message = str(e)
+            print(f"❌ SendGrid error: {error_message}")
+            # Re-raise to let controller handle it
+            raise
+
+        # Create email log
+        email_log = self.log_email_sent(
+            template_id=None,  # No template when attachments are used
+            sender_email=company_email,
+            recipient_email=email_data.to,
+            subject=processed_subject,
+            content=processed_content,
+            status=email_status,
             cc=email_data.cc,
             bcc=email_data.bcc
         )

@@ -340,24 +340,14 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         <h3 className="text-lg font-semibold text-text-primary">
           {deal ? 'Edit Deal' : 'Create New Deal'}
         </h3>
-        <div className="flex space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"
-            disabled={loading || isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading || isSaving || isSubmitting}
-            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {(loading || isSaving || isSubmitting) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-            <span>{deal ? 'Update Deal' : 'Create Deal'}</span>
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading || isSaving || isSubmitting}
+          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {(loading || isSaving || isSubmitting) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
+          <span>{deal ? 'Update Deal' : 'Create Deal'}</span>
+        </button>
       </div>
 
       {/* Error Messages */}

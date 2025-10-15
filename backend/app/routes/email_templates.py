@@ -20,9 +20,11 @@ router = APIRouter()
 
 
 @router.get("/merge-fields", response_model=MergeFieldsResponse)
-async def get_merge_fields():
-    """Get available merge fields"""
-    fields = EmailTemplateService.get_available_merge_fields()
+async def get_merge_fields(
+    db: Session = Depends(get_db)
+):
+    """Get available merge fields including custom fields"""
+    fields = EmailTemplateService.get_available_merge_fields(db=db)
     return MergeFieldsResponse(
         fields=[MergeField(**field) for field in fields]
     )

@@ -69,7 +69,7 @@ const PipelineAnalyticsDataProcessing = () => {
           dealsService.getPipelineDeals(filters),
           dealsService.getRevenueData(filters),
           dealsService.getPerformanceMetrics(filters),
-          dealsService.getWinRateData(),
+          dealsService.getWinRateData(filters), // Updated to use filters
         ]);
 
         setRawData({ pipeline, revenue, performance, winRate });

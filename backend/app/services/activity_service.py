@@ -5,10 +5,11 @@ Handles all business rules and orchestrates operations for activities.
 
 from typing import List, Optional, Dict, Any
 from uuid import UUID
-from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm import Session, Query, joinedload
 
 from ..repositories.activity_repository import ActivityRepository
 from ..models.activity import Activity
+from ..models.contact import Contact
 from ..models.user import UserProfile
 from ..models.custom_field import EntityType
 from ..schemas.activity import (
@@ -99,6 +100,49 @@ class ActivityService:
 
         return [
             self._build_activity_response(activity)
+            for activity in activities
+        ]
+
+    def get_activities_with_relations(
+        self,
+        *,
+        filtered_query: Optional[Query] = None,
+        limit: int = 50,
+        skip: int = 0
+    ) -> List[ActivityWithRelations]:
+        """
+        Retrieve activities with relations (contact, deal, user).
+
+        Args:
+            filtered_query: Pre-filtered query (e.g., with permission filters)
+            limit: Maximum number of records to return
+            skip: Number of records to skip
+
+        Returns:
+            List of activities with relations
+        """
+        if filtered_query is not None:
+            # Load activities with relations using joinedload
+            activities = (
+                filtered_query
+                .options(
+                    joinedload(Activity.contact).joinedload(Contact.company),
+                    joinedload(Activity.deal),
+                    joinedload(Activity.user)
+                )
+                .order_by(Activity.created_at.desc())
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
+        else:
+            activities = self.repository.get_recent_activities(
+                limit=limit,
+                load_relations=True
+            )
+
+        return [
+            self._build_activity_response_with_relations(activity)
             for activity in activities
         ]
 

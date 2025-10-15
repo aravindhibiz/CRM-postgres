@@ -92,7 +92,6 @@ class DealController:
         db: Session,
         current_user: UserProfile,
         date_range: Optional[str] = None,
-        probability_range: Optional[str] = None,
         owner_id: Optional[str] = None
     ) -> Dict[str, Dict[str, Any]]:
         """
@@ -101,8 +100,7 @@ class DealController:
         Args:
             db: Database session
             current_user: The authenticated user
-            date_range: Date range filter
-            probability_range: Probability range filter
+            date_range: Date range filter (uses created_at for pipeline view)
             owner_id: Owner ID filter
 
         Returns:
@@ -128,7 +126,6 @@ class DealController:
         return service.get_pipeline_deals(
             filtered_query=filtered_query,
             date_range=date_range,
-            probability_range=probability_range,
             owner_id=owner_filter
         )
 
@@ -284,7 +281,9 @@ class DealController:
     @staticmethod
     def get_win_rate_data(
         db: Session,
-        current_user: UserProfile
+        current_user: UserProfile,
+        date_range: Optional[str] = None,
+        owner_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Handle GET request to retrieve win rate analytics.
@@ -292,6 +291,8 @@ class DealController:
         Args:
             db: Database session
             current_user: The authenticated user
+            date_range: Optional date range filter
+            owner_id: Optional owner ID filter
 
         Returns:
             List of quarterly win rate data
@@ -300,9 +301,13 @@ class DealController:
         base_query = db.query(Deal)
         filtered_query = get_deals_query_filter(db, current_user, base_query)
 
-        # Delegate to service
+        # Delegate to service with filters
         service = DealService(db)
-        return service.get_win_rate_data(filtered_query=filtered_query)
+        return service.get_win_rate_data(
+            filtered_query=filtered_query,
+            date_range=date_range,
+            owner_id=owner_id
+        )
 
     @staticmethod
     def get_filter_options(

@@ -83,6 +83,44 @@ class ContactService:
             entity_type=EntityType.CONTACT
         )
 
+        # Serialize company data properly
+        company_data = None
+        if contact.company:
+            company_data = {
+                "id": contact.company.id,
+                "name": contact.company.name,
+                "industry": contact.company.industry,
+                "size": contact.company.size,
+                "website": contact.company.website,
+                "phone": contact.company.phone,
+                "email": contact.company.email,
+                "address": contact.company.address,
+                "city": contact.company.city,
+                "state": contact.company.state,
+                "zip_code": contact.company.zip_code,
+                "country": contact.company.country,
+                "description": contact.company.description,
+                "revenue": contact.company.revenue,
+                "created_at": contact.company.created_at,
+                "updated_at": contact.company.updated_at
+            }
+
+        # Serialize owner data properly
+        owner_data = None
+        if contact.owner:
+            owner_data = {
+                "id": contact.owner.id,
+                "email": contact.owner.email,
+                "first_name": contact.owner.first_name,
+                "last_name": contact.owner.last_name,
+                "avatar_url": contact.owner.avatar_url,
+                "is_active": contact.owner.is_active,
+                "created_at": contact.owner.created_at,
+                "updated_at": contact.owner.updated_at,
+                "role": contact.owner.role if hasattr(contact.owner, 'role') else None,
+                "phone": contact.owner.phone if hasattr(contact.owner, 'phone') else None
+            }
+
         # Build response dictionary
         return {
             "id": contact.id,
@@ -101,8 +139,8 @@ class ContactService:
             "created_at": contact.created_at,
             "updated_at": contact.updated_at,
             "custom_fields": custom_fields_dict if custom_fields_dict else None,
-            "owner": contact.owner,
-            "company": contact.company,
+            "owner": owner_data,
+            "company": company_data,
             "deals": contact.deals,
             "activities": contact.activities,
             "tasks": contact.tasks

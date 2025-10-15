@@ -103,7 +103,7 @@ const PipelineAnalyticsDebugSections = () => {
           dealsService.getPipelineDeals(filters),
           dealsService.getRevenueData(filters),
           dealsService.getPerformanceMetrics(filters),
-          dealsService.getWinRateData(),
+          dealsService.getWinRateData(filters), // Updated to use filters
         ]);
 
         // Process data

@@ -1,6 +1,7 @@
 // src/pages/settings-administration/components/UserManagement.jsx
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
+import Pagination from '../../../components/Pagination';
 import { userService } from '../../../services/userService';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -27,6 +28,10 @@ const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const roles = userService?.getUserRoles();
 
@@ -81,6 +86,11 @@ const UserManagement = () => {
       loadUsers();
     }
   }, [currentUser, searchQuery, statusFilter, roleFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, roleFilter, itemsPerPage]);
 
   // Auto-clear messages
   useEffect(() => {
@@ -202,6 +212,20 @@ const UserManagement = () => {
     }
   };
 
+  // Calculate pagination
+  const totalPages = Math.ceil(users?.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = users?.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e?.target?.value));
+  };
+
   const getStatusBadge = (status) => {
     const statusStyles = {
       Active: 'bg-success-50 text-success-600 border-success-100',
@@ -319,14 +343,21 @@ const UserManagement = () => {
           </select>
         </div>
         
-        <button
-          onClick={loadUsers}
-          disabled={loading}
-          className="flex items-center space-x-2 px-3 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"
-        >
-          <Icon name="RefreshCw" size={16} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh</span>
-        </button>
+        {/* Items per page selector */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-text-secondary whitespace-nowrap">Items per page:</label>
+          <select
+            value={itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            className="px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
       </div>
       {/* Bulk Actions */}
       {selectedUsers?.length > 0 && (
@@ -383,7 +414,7 @@ const UserManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {users?.length === 0 ? (
+                {paginatedUsers?.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="py-8 text-center">
                       <Icon name="Users" size={48} className="text-text-tertiary mx-auto mb-4" />
@@ -391,7 +422,7 @@ const UserManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  users?.map((user) => {
+                  paginatedUsers?.map((user) => {
                     const isProtected = user?.rawData?.role === 'admin' || user?.id === currentUser?.id;
                     return (
                     <tr key={user?.id} className="border-b border-border hover:bg-surface-hover">
@@ -460,6 +491,18 @@ const UserManagement = () => {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          {users?.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={users?.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              showInfo={true}
+            />
+          )}
         </div>)
       )}
       {/* Invite User Modal */}

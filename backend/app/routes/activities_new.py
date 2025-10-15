@@ -25,9 +25,9 @@ router = APIRouter()
 
 @router.get(
     "/",
-    response_model=List[ActivityResponse],
+    response_model=List[ActivityWithRelations],
     summary="Get all activities",
-    description="Retrieve activities based on user permissions (view_all or view_own)"
+    description="Retrieve activities with relations based on user permissions (view_all or view_own)"
 )
 async def get_activities(
     limit: int = Query(

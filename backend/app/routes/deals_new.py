@@ -75,11 +75,7 @@ async def get_user_deals(
 async def get_pipeline_deals(
     date_range: Optional[str] = Query(
         None,
-        description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"
-    ),
-    probability_range: Optional[str] = Query(
-        None,
-        description="Probability range: high, medium, low"
+        description="Date range filter: all, thisquarter, thisyear, lastyear"
     ),
     owner_id: Optional[str] = Query(
         None,
@@ -89,10 +85,13 @@ async def get_pipeline_deals(
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
     """
-    Get deals organized by pipeline stages.
+    Get deals organized by pipeline stages for analytics.
 
     **Purpose:** This endpoint provides deals grouped by their current stage,
-    perfect for Kanban-style pipeline views.
+    filtered by creation date for analytics purposes.
+
+    **Date Filter:** Uses `created_at` to show deals that entered the pipeline
+    during the selected period.
 
     **Returns:**
     ```json
@@ -112,7 +111,6 @@ async def get_pipeline_deals(
         db=db,
         current_user=current_user,
         date_range=date_range,
-        probability_range=probability_range,
         owner_id=owner_id
     )
 
@@ -212,6 +210,14 @@ async def get_performance_metrics(
 
 @router.get("/analytics/winrate")
 async def get_win_rate_data(
+    date_range: Optional[str] = Query(
+        None,
+        description="Date range: last7days, last30days, last90days, thisquarter, lastyear"
+    ),
+    owner_id: Optional[str] = Query(
+        None,
+        description="Filter by owner ID (requires deals.view_all permission)"
+    ),
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
@@ -223,10 +229,14 @@ async def get_win_rate_data(
     Win rate is calculated as: (won deals / total closed deals) × 100
 
     Includes natural variation to show realistic quarterly trends.
+
+    Supports filtering by date range and owner ID for targeted analytics.
     """
     return DealController.get_win_rate_data(
         db=db,
-        current_user=current_user
+        current_user=current_user,
+        date_range=date_range,
+        owner_id=owner_id
     )
 
 
@@ -252,6 +262,66 @@ async def get_filter_options(
     return DealController.get_filter_options(
         db=db,
         current_user=current_user
+    )
+
+
+@router.get("/export")
+async def export_deals(
+    date_range: Optional[str] = Query(
+        None,
+        description="Date range filter: thisWeek, thisMonth, thisQuarter, thisYear"
+    ),
+    probability_range: Optional[str] = Query(
+        None,
+        description="Probability range: high, medium, low"
+    ),
+    owner_id: Optional[str] = Query(
+        None,
+        description="Filter by owner ID (requires deals.view_all permission)"
+    ),
+    stage: Optional[str] = Query(
+        None,
+        description="Filter by deal stage"
+    ),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Export deals data with filters.
+
+    **Required Permission:** deals.export
+
+    **Purpose:** Returns all deals matching the filters for export purposes.
+
+    **Filters:**
+    - **date_range**: Filter by creation date
+    - **probability_range**: Filter by probability
+    - **owner_id**: Filter by owner (managers/admins only)
+    - **stage**: Filter by deal stage
+
+    **Returns:** List of deals with all details including relationships
+    (company, contact, owner) suitable for CSV/JSON export.
+    """
+    from ..core.auth import has_permission
+    from fastapi import HTTPException
+
+    # Check export permission
+    if not has_permission(db, current_user, "deals.export"):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to export deals"
+        )
+
+    # Use the existing get_deals method with all filters
+    return DealController.get_deals(
+        db=db,
+        current_user=current_user,
+        date_range=date_range,
+        probability_range=probability_range,
+        owner_id=owner_id,
+        stage=stage,
+        skip=0,
+        limit=10000  # High limit for export
     )
 
 

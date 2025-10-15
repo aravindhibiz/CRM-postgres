@@ -1,36 +1,26 @@
 import React from 'react';
 import Icon from 'components/AppIcon';
-import { useAuth } from '../../../contexts/AuthContext';
 
-const DealActions = ({ onSave, onDelete, onClone, onCreateTask, isSaving }) => {
-  const { hasAnyPermission } = useAuth();
-  
+const DealActions = ({ onSave, isSaving }) => {
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-     
-
-      {/* Secondary Actions */}
-      <div className="flex space-x-2">
-        <button
-          onClick={onClone}
-          className="flex items-center space-x-2 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150"
-          title="Clone Deal"
-        >
-          <Icon name="Copy" size={16} />
-          <span className="hidden sm:inline">Clone</span>
-        </button>
-
-        {hasAnyPermission(['deals.delete_all', 'deals.delete_own']) && (
-          <button
-            onClick={onDelete}
-            className="flex items-center space-x-2 px-4 py-2 border border-error text-error rounded-lg hover:bg-error-50 transition-all duration-150"
-            title="Delete Deal"
-          >
-            <Icon name="Trash2" size={16} />
-            <span className="hidden sm:inline">Delete</span>
-          </button>
+    <div className="flex items-center justify-end">
+      <button
+        onClick={onSave}
+        disabled={isSaving}
+        className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
+      >
+        {isSaving ? (
+          <>
+            <Icon name="Loader2" size={16} className="animate-spin" />
+            <span>Saving...</span>
+          </>
+        ) : (
+          <>
+            <Icon name="Save" size={16} />
+            <span>Save Deal</span>
+          </>
         )}
-      </div>
+      </button>
     </div>
   );
 };

@@ -11,8 +11,8 @@ import { configService } from '../../services/configService';
 import DealForm from './components/DealForm';
 import ActivityTimeline from './components/ActivityTimeline';
 import DocumentsSection from './components/DocumentsSection';
-import DealActions from './components/DealActions';
 import DealsGridView from './components/DealsGridView';
+import ExportDealsModal from '../sales-dashboard/components/ExportDealsModal';
 
 import { dealsService } from '../../services/dealsService';
 import { contactsService } from '../../services/contactsService';
@@ -47,9 +47,15 @@ const DealManagement = () => {
   // Error and UI states
   const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   // Filter state
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Sorting state
+  const [sortField, setSortField] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState('desc');
   
   // Load system configuration on component mount
   useEffect(() => {
@@ -79,22 +85,69 @@ const DealManagement = () => {
     { value: "closed_lost", label: "Closed Lost", color: "bg-red-100 text-red-800" }
   ];
 
-  // Filter deals based on selected stage
-  const filteredDeals = selectedStageFilter === 'all' 
-    ? allDeals 
-    : allDeals.filter(deal => deal.stage === selectedStageFilter);
+  // Filter deals based on selected stage and search query
+  const filteredDeals = allDeals.filter(deal => {
+    // Stage filter
+    const matchesStage = selectedStageFilter === 'all' || deal.stage === selectedStageFilter;
+    
+    // Search filter
+    const matchesSearch = !searchQuery || 
+      (deal.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (deal.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (deal.company_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (deal.contact_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesStage && matchesSearch;
+  });
+
+  // Sort deals
+  const sortedDeals = [...filteredDeals].sort((a, b) => {
+    let aValue, bValue;
+
+    switch (sortField) {
+      case 'name':
+        aValue = (a.name || '').toLowerCase();
+        bValue = (b.name || '').toLowerCase();
+        break;
+      case 'value':
+        aValue = a.value || 0;
+        bValue = b.value || 0;
+        break;
+      case 'probability':
+        aValue = a.probability || 0;
+        bValue = b.probability || 0;
+        break;
+      case 'created_at':
+        aValue = new Date(a.created_at || 0).getTime();
+        bValue = new Date(b.created_at || 0).getTime();
+        break;
+      case 'stage':
+        const stageOrder = { lead: 1, qualified: 2, proposal: 3, negotiation: 4, closed_won: 5, closed_lost: 6 };
+        aValue = stageOrder[a.stage] || 0;
+        bValue = stageOrder[b.stage] || 0;
+        break;
+      default:
+        return 0;
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+    } else {
+      return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+    }
+  });
 
   // Pagination calculations
-  const totalItems = filteredDeals.length;
+  const totalItems = sortedDeals.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedDeals = filteredDeals.slice(startIndex, endIndex);
+  const paginatedDeals = sortedDeals.slice(startIndex, endIndex);
 
   // Reset to first page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStageFilter]);
+  }, [selectedStageFilter, searchQuery]);
 
   // Handle pagination functions
   const handlePageChange = (page) => {
@@ -104,6 +157,19 @@ const DealManagement = () => {
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset to first page when items per page changes
+  };
+
+  // Handle sorting
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction if clicking the same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting changes
   };
 
   // Load initial data
@@ -372,7 +438,7 @@ const DealManagement = () => {
       let result;
       
       if (selectedDeal?.id) {
-        // Update existing deal
+        // Update existing deal 
         result = await dealsService?.updateDeal(selectedDeal?.id, {
           ...dealData,
           owner_id: user?.id
@@ -508,6 +574,16 @@ const DealManagement = () => {
     // TODO: Implement task creation functionality
     
     // This would typically open a task creation modal
+  };
+
+  // Handle export deals
+  const handleExportDeals = () => {
+    if (filteredDeals.length === 0) {
+      setError('No deals to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    setShowExportModal(true);
   };
 
   // Handle adding activity
@@ -692,6 +768,18 @@ const DealManagement = () => {
               <div className="flex items-center space-x-3">
                 {isListView ? (
                   <>
+                    {/* Export Button - Only for admin and sales_manager */}
+                    {hasPermission('deals.export') && (
+                      <button
+                        onClick={handleExportDeals}
+                        disabled={filteredDeals.length === 0}
+                        className="flex items-center space-x-2 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Export deals"
+                      >
+                        <Icon name="Download" size={16} />
+                        <span>Export</span>
+                      </button>
+                    )}
                     {hasPermission('deals.create') && (
                       <button
                         onClick={handleCreateNewDeal}
@@ -703,24 +791,13 @@ const DealManagement = () => {
                     )}
                   </>
                 ) : (
-                  <>
-                    <button
-                      onClick={handleBackToList}
-                      className="btn-secondary flex items-center space-x-2"
-                    >
-                      <Icon name="ArrowLeft" size={16} />
-                      <span>Back to List</span>
-                    </button>
-                    {selectedDeal?.id && (
-                      <DealActions
-                        onSave={() => handleSaveDeal(selectedDeal)}
-                        onDelete={() => setShowDeleteModal(true)}
-                        onClone={handleCloneDeal}
-                        onCreateTask={handleCreateTask}
-                        isSaving={isSaving}
-                      />
-                    )}
-                  </>
+                  <button
+                    onClick={handleBackToList}
+                    className="btn-secondary flex items-center space-x-2"
+                  >
+                    <Icon name="ArrowLeft" size={16} />
+                    <span>Back to List</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -729,6 +806,32 @@ const DealManagement = () => {
             {isListView ? (
               // Deals List View
               <div className="bg-surface rounded-lg border border-border">
+                {/* Search Bar */}
+                <div className="p-6 border-b border-border">
+                  <div className="relative">
+                    <Icon 
+                      name="Search" 
+                      size={20} 
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search deals by name, company, or description..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-text-primary placeholder-text-tertiary"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                      >
+                        <Icon name="X" size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="p-6 border-b border-border">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-text-primary">All Deals</h2>
@@ -775,7 +878,7 @@ const DealManagement = () => {
                       </div>
                       <div className="text-sm text-text-secondary">
                         {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''} 
-                        {selectedStageFilter !== 'all' && ` (${allDeals.length} total)`}
+                        {(selectedStageFilter !== 'all' || searchQuery) && ` (${allDeals.length} total)`}
                       </div>
                     </div>
                   </div>
@@ -845,6 +948,14 @@ const DealManagement = () => {
                       deals={paginatedDeals}
                       stages={stages}
                       onEditDeal={handleEditDeal}
+                      onCloneDeal={(deal) => {
+                        setSelectedDeal(deal);
+                        handleCloneDeal();
+                      }}
+                      onDeleteDeal={(deal) => {
+                        setSelectedDeal(deal);
+                        setShowDeleteModal(true);
+                      }}
                     />
                     
                     {/* Pagination for Grid View */}
@@ -866,11 +977,81 @@ const DealManagement = () => {
                       <table className="w-full">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Deal</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Stage</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Value</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Probability</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Created</th>
+                            <th 
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleSort('name')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Deal</span>
+                                {sortField === 'name' && (
+                                  <Icon 
+                                    name={sortDirection === 'asc' ? 'ArrowUp' : 'ArrowDown'} 
+                                    size={14} 
+                                    className="text-primary"
+                                  />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleSort('stage')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Stage</span>
+                                {sortField === 'stage' && (
+                                  <Icon 
+                                    name={sortDirection === 'asc' ? 'ArrowUp' : 'ArrowDown'} 
+                                    size={14} 
+                                    className="text-primary"
+                                  />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleSort('value')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Value</span>
+                                {sortField === 'value' && (
+                                  <Icon 
+                                    name={sortDirection === 'asc' ? 'ArrowUp' : 'ArrowDown'} 
+                                    size={14} 
+                                    className="text-primary"
+                                  />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleSort('probability')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Probability</span>
+                                {sortField === 'probability' && (
+                                  <Icon 
+                                    name={sortDirection === 'asc' ? 'ArrowUp' : 'ArrowDown'} 
+                                    size={14} 
+                                    className="text-primary"
+                                  />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleSort('created_at')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Created</span>
+                                {sortField === 'created_at' && (
+                                  <Icon 
+                                    name={sortDirection === 'asc' ? 'ArrowUp' : 'ArrowDown'} 
+                                    size={14} 
+                                    className="text-primary"
+                                  />
+                                )}
+                              </div>
+                            </th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
@@ -899,15 +1080,45 @@ const DealManagement = () => {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                                 {new Date(deal.created_at).toLocaleDateString()}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                  {/* Edit Icon */}
+                                  {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
+                                    <button
+                                      onClick={() => handleEditDeal(deal)}
+                                      className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors duration-150"
+                                      title="Edit deal"
+                                    >
+                                      <Icon name="Edit" size={16} />
+                                    </button>
+                                  )}
+                                  
+                                  {/* Clone Icon */}
                                   <button
-                                    onClick={() => handleEditDeal(deal)}
-                                    className="text-primary hover:text-primary-600 mr-3"
+                                    onClick={() => {
+                                      setSelectedDeal(deal);
+                                      handleCloneDeal();
+                                    }}
+                                    className="p-2 text-text-secondary hover:bg-surface-hover rounded-lg transition-colors duration-150"
+                                    title="Clone deal"
                                   >
-                                    Edit
+                                    <Icon name="Copy" size={16} />
                                   </button>
-                                )}
+                                  
+                                  {/* Delete Icon */}
+                                  {hasAnyPermission(['deals.delete_all', 'deals.delete_own']) && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedDeal(deal);
+                                        setShowDeleteModal(true);
+                                      }}
+                                      className="p-2 text-error hover:bg-error-50 rounded-lg transition-colors duration-150"
+                                      title="Delete deal"
+                                    >
+                                      <Icon name="Trash2" size={16} />
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1011,6 +1222,17 @@ const DealManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <ExportDealsModal
+          deals={filteredDeals}
+          onClose={() => setShowExportModal(false)}
+          filters={{
+            stage: selectedStageFilter !== 'all' ? selectedStageFilter : null
+          }}
+        />
       )}
     </div>
   );

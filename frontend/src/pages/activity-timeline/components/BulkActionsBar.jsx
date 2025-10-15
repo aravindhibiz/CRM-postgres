@@ -1,11 +1,8 @@
 import React from 'react';
 import Icon from 'components/AppIcon';
 
-const BulkActionsBar = ({ selectedCount, onBulkAction, onClearSelection }) => {
+const BulkActionsBar = ({ selectedCount, selectedIds, onBulkAction, onClearSelection }) => {
   const handleAction = (action) => {
-    // Get selected activity IDs - this would need to be passed from parent
-    // For now, we'll simulate with the count
-    const selectedIds = Array.from({ length: selectedCount }, (_, i) => `activity-${i}`);
     onBulkAction(action, selectedIds);
   };
 
@@ -25,14 +22,6 @@ const BulkActionsBar = ({ selectedCount, onBulkAction, onClearSelection }) => {
         >
           <Icon name="Download" size={16} />
           <span>Export</span>
-        </button>
-        
-        <button
-          onClick={() => handleAction('archive')}
-          className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-primary-300 rounded-md text-primary hover:bg-primary-50 transition-colors duration-150"
-        >
-          <Icon name="Archive" size={16} />
-          <span>Archive</span>
         </button>
         
         <button

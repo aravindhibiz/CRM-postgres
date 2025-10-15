@@ -280,150 +280,255 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
-        <div className="bg-surface rounded-lg shadow-xl max-w-2xl w-full relative z-10">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+    <div className="fixed inset-0 z-[9999] overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      {/* Background overlay */}
+      <div 
+        className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" 
+        onClick={onClose}
+        aria-hidden="true"
+      ></div>
+
+      {/* Modal container */}
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          {/* Modal panel */}
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl my-8 transform transition-all">
+          {/* Header */}
+          <div className="bg-primary px-6 py-5 rounded-t-xl text-white font-semibold text-lg">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <h3 className="text-xl font-semibold text-text-primary">
-                  {editingActivity ? 'Edit Activity' : 'Add New Activity'}
-                </h3>
-                {templateData && !editingActivity && (
-                  <div className="flex items-center space-x-2 px-3 py-1 bg-primary-50 text-primary text-sm rounded-full">
-                    <Icon name="FileTemplate" size={14} />
-                    <span>Using: {templateData.name}</span>
-                  </div>
-                )}
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                  <Icon name="Activity" size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white" id="modal-title">
+                    {editingActivity ? 'Edit Activity' : 'Add New Activity'}
+                  </h3>
+                  {templateData && !editingActivity && (
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Icon name="FileTemplate" size={14} className="text-white text-opacity-80" />
+                      <span className="text-sm text-white text-opacity-80">Using template: {templateData.name}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
-                <Icon name="X" size={24} />
+              <button 
+                onClick={onClose} 
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors duration-150"
+                aria-label="Close"
+              >
+                <Icon name="X" size={20} />
               </button>
             </div>
+          </div>
 
+          {/* Modal Body - Scrollable */}
+          <div className="bg-white px-6 py-6 max-h-[calc(100vh-200px)] overflow-y-auto">
             {errors.submit && (
-              <div className="bg-error-50 border border-error-200 text-error p-4 rounded-lg mb-6">
-                {errors.submit}
+              <div className="mb-6 bg-error-50 border-l-4 border-error text-error p-4 rounded-r-lg flex items-start space-x-3">
+                <Icon name="AlertCircle" size={20} className="flex-shrink-0 mt-0.5" />
+                <span>{errors.submit}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Activity Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-3">Activity Type *</label>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Activity Type <span className="text-error">*</span>
+                </label>
+                <div className="grid grid-cols-5 gap-3">
                   {activityTypes.map(type => (
                     <button
                       key={type.value}
                       type="button"
                       onClick={() => handleInputChange('type', type.value)}
-                      className={`p-3 border rounded-lg flex flex-col items-center space-y-2 ${
+                      className={`group relative p-4 border-2 rounded-xl transition-all duration-200 ${
                         formData.type === type.value
-                          ? 'border-primary bg-primary-50 text-primary' :'border-border hover:border-primary-50'
+                          ? 'border-primary bg-primary-50 shadow-md scale-105'
+                          : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
                       }`}
                     >
-                      <Icon name={type.icon} size={20} />
-                      <span className="text-sm font-medium">{type.label}</span>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                          formData.type === type.value
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 group-hover:bg-primary-100 group-hover:text-primary'
+                        }`}>
+                          <Icon name={type.icon} size={20} />
+                        </div>
+                        <span className={`text-sm font-medium ${
+                          formData.type === type.value ? 'text-primary' : 'text-gray-700'
+                        }`}>
+                          {type.label}
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Subject */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Subject *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Subject <span className="text-error">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.subject || ''}
                   onChange={(e) => handleInputChange('subject', e.target.value)}
-                  className={`w-full input-field ${errors.subject ? 'border-error' : ''}`}
+                  className={`w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                    errors.subject ? 'border-error' : 'border-gray-200'
+                  }`}
+                  placeholder="Enter activity subject..."
                   required
                 />
-                {errors.subject && <p className="text-sm text-error mt-1">{errors.subject}</p>}
+                {errors.subject && (
+                  <p className="text-sm text-error mt-1 flex items-center space-x-1">
+                    <Icon name="AlertCircle" size={14} />
+                    <span>{errors.subject}</span>
+                  </p>
+                )}
               </div>
 
+              {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Description</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                 <textarea
                   value={formData.description || ''}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={4}
-                  className="w-full input-field"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+                  placeholder="Add details about this activity..."
                 />
               </div>
 
+              {/* Related Contact and Deal */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Related Contact</label>
-                  <select
-                    value={formData.contact_id || ''}
-                    onChange={(e) => handleInputChange('contact_id', e.target.value)}
-                    className="w-full input-field"
-                  >
-                    <option value="">Select Contact</option>
-                    {contacts.map(contact => (
-                      <option key={contact.id} value={contact.id}>
-                        {contact.first_name} {contact.last_name}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Related Contact</label>
+                  <div className="relative">
+                    <Icon name="User" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <select
+                      value={formData.contact_id || ''}
+                      onChange={(e) => handleInputChange('contact_id', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all appearance-none bg-white"
+                    >
+                      <option value="">Select Contact</option>
+                      {contacts.map(contact => (
+                        <option key={contact.id} value={contact.id}>
+                          {contact.first_name} {contact.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Related Deal</label>
-                  <select
-                    value={formData.deal_id || ''}
-                    onChange={(e) => handleInputChange('deal_id', e.target.value)}
-                    className="w-full input-field"
-                  >
-                    <option value="">Select Deal</option>
-                    {deals.map(deal => (
-                      <option key={deal.id} value={deal.id}>{deal.name}</option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Related Deal</label>
+                  <div className="relative">
+                    <Icon name="TrendingUp" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <select
+                      value={formData.deal_id || ''}
+                      onChange={(e) => handleInputChange('deal_id', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all appearance-none bg-white"
+                    >
+                      <option value="">Select Deal</option>
+                      {deals.map(deal => (
+                        <option key={deal.id} value={deal.id}>{deal.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
+              {/* Duration and DateTime for Calls/Meetings */}
               {['call', 'meeting'].includes(formData.type) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">Duration (minutes)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formData.duration_minutes || ''}
-                      onChange={(e) => handleInputChange('duration_minutes', e.target.value)}
-                      className={`w-full input-field ${errors.duration_minutes ? 'border-error' : ''}`}
-                    />
-                    {errors.duration_minutes && <p className="text-sm text-error mt-1">{errors.duration_minutes}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">Date/Time</label>
-                    <input
-                      type="datetime-local"
-                      value={formData.scheduled_at || ''}
-                      onChange={(e) => handleInputChange('scheduled_at', e.target.value)}
-                      className="w-full input-field"
-                    />
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <Icon name="Clock" size={14} className="inline mr-1" />
+                        Duration (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.duration_minutes || ''}
+                        onChange={(e) => handleInputChange('duration_minutes', e.target.value)}
+                        className={`w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                          errors.duration_minutes ? 'border-error' : 'border-gray-200'
+                        }`}
+                        placeholder="30"
+                      />
+                      {errors.duration_minutes && (
+                        <p className="text-sm text-error mt-1">{errors.duration_minutes}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <Icon name="Calendar" size={14} className="inline mr-1" />
+                        Date & Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.scheduled_at || ''}
+                        onChange={(e) => handleInputChange('scheduled_at', e.target.value)}
+                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Custom Fields */}
               {customFields.length > 0 && (
-                <CustomFieldsGroup
-                  fields={customFields}
-                  values={customFieldValues}
-                  onChange={handleCustomFieldChange}
-                  loading={customFieldsLoading}
-                />
+                <div className="border-t-2 border-gray-100 pt-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center space-x-2">
+                    <Icon name="Settings" size={16} />
+                    <span>Custom Fields</span>
+                  </h4>
+                  <CustomFieldsGroup
+                    fields={customFields}
+                    values={customFieldValues}
+                    onChange={handleCustomFieldChange}
+                    loading={customFieldsLoading}
+                  />
+                </div>
               )}
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-border">
-                <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? (editingActivity ? 'Updating...' : 'Creating...') : (editingActivity ? 'Update Activity' : 'Create Activity')}
-                </button>
-              </div>
             </form>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 rounded-b-xl border-t-2 border-gray-100">
+            <div className="flex justify-end space-x-3">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors duration-150"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                onClick={handleSubmit}
+                className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-600 font-medium shadow-md hover:shadow-lg transition-all duration-150 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Icon name="Loader2" size={16} className="animate-spin" />
+                    <span>{editingActivity ? 'Updating...' : 'Creating...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name={editingActivity ? "Check" : "Plus"} size={16} />
+                    <span>{editingActivity ? 'Update Activity' : 'Create Activity'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
           </div>
         </div>
       </div>

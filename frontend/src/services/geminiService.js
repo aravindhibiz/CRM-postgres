@@ -1,7 +1,8 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+// Updated to use the latest available Gemini model (as of Oct 2025)
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 class GeminiService {
   async generateEmailContent(contactInfo, existingSubject = '', existingBody = '') {
@@ -10,19 +11,20 @@ class GeminiService {
     }
 
     try {
-      // Determine if we're enhancing existing content or creating new content
       const hasExistingContent = existingSubject.trim() || existingBody.trim();
-      console.log('🔄 Gemini Generation Mode:', hasExistingContent ? 'Enhancement' : 'Template');
+      console.log('Gemini Generation Mode:', hasExistingContent ? 'Enhancement' : 'Template');
+      console.log('API Key present:', !!GEMINI_API_KEY);
+      console.log('Contact info:', contactInfo);
       
       let prompt;
       
       if (hasExistingContent) {
-        // Enhancement mode: improve existing content
         prompt = this.createEnhancementPrompt(contactInfo, existingSubject, existingBody);
       } else {
-        // Template mode: create new professional email
         prompt = this.createTemplatePrompt(contactInfo);
       }
+
+      console.log('Sending request to Gemini API...');
 
       const response = await axios.post(
         `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
@@ -31,7 +33,13 @@ class GeminiService {
             parts: [{
               text: prompt
             }]
-          }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
         },
         {
           headers: {
@@ -40,29 +48,39 @@ class GeminiService {
         }
       );
 
+      console.log('Gemini API Response received:', response.status);
+
       if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
+        console.error('Invalid response structure:', response.data);
         throw new Error('Invalid response from Gemini API');
       }
 
       const candidate = response.data.candidates[0];
       if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
+        console.error('Invalid content structure:', candidate);
         throw new Error('Invalid content structure from Gemini API');
       }
 
       const generatedText = candidate.content.parts[0].text;
+      console.log('Generated text:', generatedText);
+      
       const parsedContent = this.parseEmailContent(generatedText);
       
-      console.log('✨ Email content generated successfully');
+      console.log('Email content generated successfully:', parsedContent);
       return parsedContent;
     } catch (error) {
-      console.error('❌ Gemini API Error:', error.message);
+      console.error('Gemini API Error:', error);
+      console.error('Error response:', error.response?.data);
       
       if (error.response?.status === 400) {
-        throw new Error('Invalid request to Gemini API. Please check your content.');
+        const errorDetails = error.response.data?.error?.message || 'Invalid request';
+        throw new Error(`Invalid request to Gemini API: ${errorDetails}`);
       } else if (error.response?.status === 403) {
         throw new Error('Gemini API key is invalid or has no quota remaining.');
       } else if (error.response?.status === 429) {
         throw new Error('Too many requests to Gemini API. Please try again later.');
+      } else if (error.response?.status === 404) {
+        throw new Error('Gemini API endpoint not found. The model may have been updated.');
       } else {
         throw new Error(`Failed to generate email content: ${error.message}`);
       }
@@ -126,7 +144,6 @@ Respond in this exact JSON format:
 
   parseEmailContent(text) {
     try {
-      // Try to extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
@@ -136,9 +153,8 @@ Respond in this exact JSON format:
         };
       }
       
-      // Fallback: try to parse manually if JSON parsing fails
-      const subjectMatch = text.match(/["']?subject["']?\s*:\s*["']([^"']+)["']/i);
-      const bodyMatch = text.match(/["']?body["']?\s*:\s*["']([^"']+)["']/i);
+      const subjectMatch = text.match(/["'']?subject["'']?\s*:\s*["'']([^"'']+)["'']/i);
+      const bodyMatch = text.match(/["'']?body["'']?\s*:\s*["'']([^"'']+)["'']/i);
       
       return {
         subject: subjectMatch ? subjectMatch[1] : 'Professional Follow-up',

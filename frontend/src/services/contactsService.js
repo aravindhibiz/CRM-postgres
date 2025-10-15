@@ -54,7 +54,30 @@ export const contactsService = {
 
   // Update a contact
   async updateContact(contactId, updates) {
-    const { data, error } = await apiClient.put(`/api/v1/contacts/${contactId}`, updates);
+    // Clean the data and prepare for API (same mapping as create)
+    const cleanUpdates = {
+      first_name: updates.first_name,
+      last_name: updates.last_name,
+      email: updates.email || null,
+      phone: updates.phone || null,
+      mobile: updates.mobile || null,
+      position: updates.position || null,
+      status: updates.status || null,
+      notes: updates.notes || null,
+      social_linkedin: updates.social_linkedin || null,
+      social_twitter: updates.social_twitter || null,
+      company_id: updates.company_id || null,
+      custom_fields: updates.custom_fields || undefined
+    };
+
+    // Remove undefined values to only send fields that should be updated
+    Object.keys(cleanUpdates).forEach(key => {
+      if (cleanUpdates[key] === undefined) {
+        delete cleanUpdates[key];
+      }
+    });
+
+    const { data, error } = await apiClient.put(`/api/v1/contacts/${contactId}`, cleanUpdates);
 
     if (error) throw error;
     return data;

@@ -328,7 +328,7 @@ class EmailTemplateController:
             current_user (UserProfile): Authenticated user
 
         Returns:
-            SendEmailResponse: Send result with log ID
+            SendEmailResponse: Send result with log ID and sender email
 
         Raises:
             HTTPException: 404 if template not found, 400 for validation, 500 for errors
@@ -342,7 +342,8 @@ class EmailTemplateController:
             return SendEmailResponse(
                 success=True,
                 message="Email sent successfully",
-                email_log_id=email_log.id
+                email_log_id=email_log.id,
+                sender_email=email_log.sender_email  # Include the actual sender email used
             )
 
         except ValueError as e:
@@ -376,6 +377,85 @@ class EmailTemplateController:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to send email: {str(e)}"
+            )
+
+    async def send_email_with_attachments(
+        self,
+        email_data: SendEmailRequest,
+        current_user: UserProfile,
+        attachments: Optional[List[Any]] = None
+    ) -> SendEmailResponse:
+        """
+        Send an email with file attachments.
+
+        Args:
+            email_data (SendEmailRequest): Email data (content already merged)
+            current_user (UserProfile): Authenticated user
+            attachments (Optional[List[UploadFile]]): List of file attachments
+
+        Returns:
+            SendEmailResponse: Send result with log ID and sender email
+
+        Raises:
+            HTTPException: 400 for validation, 413 for file too large, 500 for errors
+        """
+        try:
+            # Validate file sizes (10MB limit per file)
+            MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB in bytes
+
+            if attachments:
+                for file in attachments:
+                    # Read file to check size
+                    file_content = await file.read()
+                    if len(file_content) > MAX_FILE_SIZE:
+                        raise HTTPException(
+                            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                            detail=f"File {file.filename} exceeds maximum size of 10MB"
+                        )
+                    # Reset file pointer for later use
+                    await file.seek(0)
+
+            # Send email with attachments
+            email_log = await self.service.send_email_with_attachments(
+                email_data=email_data,
+                sender=current_user,
+                attachments=attachments
+            )
+
+            return SendEmailResponse(
+                success=True,
+                message="Email sent successfully with attachments",
+                email_log_id=email_log.id,
+                sender_email=email_log.sender_email
+            )
+
+        except HTTPException:
+            # Re-raise HTTP exceptions as-is
+            raise
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        except Exception as e:
+            # Log failed email attempt
+            try:
+                self.service.log_email_sent(
+                    template_id=None,
+                    sender_email=current_user.email,
+                    recipient_email=email_data.to,
+                    subject=email_data.subject or "Failed email",
+                    content=email_data.content or "Failed email",
+                    status="failed",
+                    cc=email_data.cc,
+                    bcc=email_data.bcc
+                )
+            except Exception:
+                pass  # Don't fail if logging fails
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to send email with attachments: {str(e)}"
             )
 
     def get_email_logs(

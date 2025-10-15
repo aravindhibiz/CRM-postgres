@@ -142,7 +142,7 @@ async def get_custom_field(
 async def create_custom_field(
     field_data: CustomFieldCreate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_manager_or_admin)
+    current_user: UserProfile = Depends(require_manager_or_admin())
 ):
     """Create a new custom field."""
     controller = CustomFieldController(db)
@@ -176,7 +176,7 @@ async def update_custom_field(
     field_id: UUID,
     field_data: CustomFieldUpdate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_manager_or_admin)
+    current_user: UserProfile = Depends(require_manager_or_admin())
 ):
     """Update an existing custom field."""
     controller = CustomFieldController(db)
@@ -205,7 +205,7 @@ async def update_custom_field(
 async def delete_custom_field(
     field_id: UUID,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(require_manager_or_admin)
+    current_user: UserProfile = Depends(require_manager_or_admin())
 ):
     """Delete a custom field and all its values."""
     controller = CustomFieldController(db)

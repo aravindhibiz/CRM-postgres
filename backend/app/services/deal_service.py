@@ -124,7 +124,6 @@ class DealService:
         *,
         filtered_query: Optional[Query] = None,
         date_range: Optional[str] = None,
-        probability_range: Optional[str] = None,
         owner_id: Optional[UUID] = None
     ) -> Dict[str, Dict[str, Any]]:
         """
@@ -132,18 +131,16 @@ class DealService:
 
         Args:
             filtered_query: Pre-filtered query (for permission filtering)
-            date_range: Date range filter
-            probability_range: Probability range filter
+            date_range: Date range filter (uses created_at for pipeline filtering)
             owner_id: Owner ID filter
 
         Returns:
             Dictionary with stages as keys and deal groups as values
         """
-        # Apply filters
-        query = self.repository.get_filtered_query(
+        # Apply pipeline-specific filters (created_at for pipeline view)
+        query = self.repository.get_pipeline_filtered_query(
             base_query=filtered_query,
             date_range=date_range,
-            probability_range=probability_range,
             owner_id=owner_id
         )
 
@@ -228,36 +225,173 @@ class DealService:
 
         deals = query.all()
 
-        # Generate last 12 months of revenue data
+        # Determine the date range for revenue data based on filter
         revenue_data = []
         now = datetime.now()
 
-        for i in range(11, -1, -1):
-            # Calculate the month
-            month_date = datetime(now.year, now.month, 1) - \
-                timedelta(days=30*i)
-            month_name = calendar.month_abbr[month_date.month]
+        if date_range == 'thisquarter':
+            # Show only current quarter months (3 months)
+            current_quarter = (now.month - 1) // 3 + 1
+            quarter_start_month = (current_quarter - 1) * 3 + 1
+            start_date = datetime(now.year, quarter_start_month, 1)
 
-            # Filter deals closed in this month
-            month_deals = self.repository.get_deals_by_month(
-                deals,
-                month_date.month,
-                month_date.year
-            )
+            # Generate data for months in this quarter
+            current_month = start_date
+            while current_month <= now:
+                month_name = calendar.month_abbr[current_month.month]
 
-            won_month_deals = self.repository.get_won_deals(month_deals)
-            actual = self.repository.calculate_total_value(won_month_deals)
+                # Filter deals closed in this month
+                month_deals = self.repository.get_deals_by_month(
+                    deals,
+                    current_month.month,
+                    current_month.year
+                )
 
-            # Generate forecast (simple projection)
-            forecast = actual * 1.1 if actual > 0 else 50000
-            target = forecast * 0.9
+                won_month_deals = self.repository.get_won_deals(month_deals)
+                actual = self.repository.calculate_total_value(won_month_deals)
 
-            revenue_data.append({
-                "month": month_name,
-                "actual": int(actual),
-                "forecast": int(forecast),
-                "target": int(target)
-            })
+                # Generate forecast (simple projection)
+                forecast = actual * 1.1 if actual > 0 else 50000
+                target = forecast * 0.9
+
+                revenue_data.append({
+                    "month": month_name,
+                    "actual": int(actual),
+                    "forecast": int(forecast),
+                    "target": int(target)
+                })
+
+                # Move to next month
+                if current_month.month == 12:
+                    current_month = datetime(current_month.year + 1, 1, 1)
+                else:
+                    current_month = datetime(
+                        current_month.year, current_month.month + 1, 1)
+
+        elif date_range == 'lastquarter':
+            # Show only last quarter months (3 months)
+            current_quarter = (now.month - 1) // 3 + 1
+            last_quarter = current_quarter - 1 if current_quarter > 1 else 4
+            last_quarter_year = now.year if current_quarter > 1 else now.year - 1
+            last_quarter_start_month = (last_quarter - 1) * 3 + 1
+
+            start_date = datetime(
+                last_quarter_year, last_quarter_start_month, 1)
+
+            # Generate data for months in last quarter
+            current_month = start_date
+            for _ in range(3):  # Always 3 months in a quarter
+                month_name = calendar.month_abbr[current_month.month]
+
+                # Filter deals closed in this month
+                month_deals = self.repository.get_deals_by_month(
+                    deals,
+                    current_month.month,
+                    current_month.year
+                )
+
+                won_month_deals = self.repository.get_won_deals(month_deals)
+                actual = self.repository.calculate_total_value(won_month_deals)
+
+                # Generate forecast (simple projection)
+                forecast = actual * 1.1 if actual > 0 else 50000
+                target = forecast * 0.9
+
+                revenue_data.append({
+                    "month": month_name,
+                    "actual": int(actual),
+                    "forecast": int(forecast),
+                    "target": int(target)
+                })
+
+                # Move to next month
+                if current_month.month == 12:
+                    current_month = datetime(current_month.year + 1, 1, 1)
+                else:
+                    current_month = datetime(
+                        current_month.year, current_month.month + 1, 1)
+
+        elif date_range == 'thisyear':
+            # Show all months of current year
+            for month in range(1, now.month + 1):
+                month_name = calendar.month_abbr[month]
+
+                # Filter deals closed in this month
+                month_deals = self.repository.get_deals_by_month(
+                    deals,
+                    month,
+                    now.year
+                )
+
+                won_month_deals = self.repository.get_won_deals(month_deals)
+                actual = self.repository.calculate_total_value(won_month_deals)
+
+                # Generate forecast (simple projection)
+                forecast = actual * 1.1 if actual > 0 else 50000
+                target = forecast * 0.9
+
+                revenue_data.append({
+                    "month": month_name,
+                    "actual": int(actual),
+                    "forecast": int(forecast),
+                    "target": int(target)
+                })
+
+        elif date_range == 'lastyear':
+            # Show all 12 months of last year
+            last_year = now.year - 1
+            for month in range(1, 13):
+                month_name = calendar.month_abbr[month]
+
+                # Filter deals closed in this month
+                month_deals = self.repository.get_deals_by_month(
+                    deals,
+                    month,
+                    last_year
+                )
+
+                won_month_deals = self.repository.get_won_deals(month_deals)
+                actual = self.repository.calculate_total_value(won_month_deals)
+
+                # Generate forecast (simple projection)
+                forecast = actual * 1.1 if actual > 0 else 50000
+                target = forecast * 0.9
+
+                revenue_data.append({
+                    "month": month_name,
+                    "actual": int(actual),
+                    "forecast": int(forecast),
+                    "target": int(target)
+                })
+
+        else:
+            # Default: Show last 12 months (All Time)
+            for i in range(11, -1, -1):
+                # Calculate the month
+                month_date = datetime(now.year, now.month, 1) - \
+                    timedelta(days=30*i)
+                month_name = calendar.month_abbr[month_date.month]
+
+                # Filter deals closed in this month
+                month_deals = self.repository.get_deals_by_month(
+                    deals,
+                    month_date.month,
+                    month_date.year
+                )
+
+                won_month_deals = self.repository.get_won_deals(month_deals)
+                actual = self.repository.calculate_total_value(won_month_deals)
+
+                # Generate forecast (simple projection)
+                forecast = actual * 1.1 if actual > 0 else 50000
+                target = forecast * 0.9
+
+                revenue_data.append({
+                    "month": month_name,
+                    "actual": int(actual),
+                    "forecast": int(forecast),
+                    "target": int(target)
+                })
 
         return revenue_data
 
@@ -316,41 +450,115 @@ class DealService:
     def get_win_rate_data(
         self,
         *,
-        filtered_query: Optional[Query] = None
+        filtered_query: Optional[Query] = None,
+        date_range: Optional[str] = None,
+        owner_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Get win rate analytics data.
 
         Args:
             filtered_query: Pre-filtered query (for permission filtering)
+            date_range: Optional date range filter
+            owner_id: Optional owner ID filter
 
         Returns:
-            List of quarterly win rate data
+            List of quarterly win rate data with actual numbers
         """
-        if filtered_query is not None:
-            deals = filtered_query.all()
+        # Apply analytics filters
+        query = self.repository.get_analytics_filtered_query(
+            base_query=filtered_query,
+            date_range=date_range,
+            owner_id=owner_id
+        )
+
+        if query is not None:
+            deals = query.all()
         else:
             deals = self.repository.get_all_with_relations(
                 load_relations=False)
 
-        won_deals = len(self.repository.get_won_deals(deals))
-        lost_deals = len(self.repository.get_lost_deals(deals))
-        total_closed = won_deals + lost_deals
-        base_win_rate = round((won_deals / total_closed)
-                              * 100) if total_closed > 0 else 0
+        # Get current year for quarterly analysis
+        now = datetime.now()
+        current_year = now.year
 
-        # Generate quarterly win rate data with some variation
-        quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+        # First, get all closed deals (won or lost) regardless of dates
+        all_closed_deals = [
+            deal for deal in deals
+            if deal.stage and deal.stage.lower() in ['closed_won', 'closed-won', 'closed_lost', 'closed-lost']
+        ]
+
+        # If no closed deals at all, return empty quarters
+        if not all_closed_deals:
+            quarters = [
+                {"period": "Q1", "start_month": 1, "end_month": 3},
+                {"period": "Q2", "start_month": 4, "end_month": 6},
+                {"period": "Q3", "start_month": 7, "end_month": 9},
+                {"period": "Q4", "start_month": 10, "end_month": 12}
+            ]
+            return [
+                {
+                    "period": q["period"],
+                    "winRate": 0,
+                    "won": 0,
+                    "lost": 0,
+                    "total": 0
+                }
+                for q in quarters
+            ]
+
+        # Define quarters
+        quarters = [
+            {"period": "Q1", "start_month": 1, "end_month": 3},
+            {"period": "Q2", "start_month": 4, "end_month": 6},
+            {"period": "Q3", "start_month": 7, "end_month": 9},
+            {"period": "Q4", "start_month": 10, "end_month": 12}
+        ]
 
         win_rate_data = []
-        for quarter in quarters:
-            # Add some variation to the base win rate
-            variation = random.randint(-10, 10)
-            win_rate = max(0, min(100, base_win_rate + variation))
+
+        for quarter_info in quarters:
+            # Filter deals for this quarter
+            quarter_deals = []
+            for deal in all_closed_deals:
+                # Determine which date to use for quarter assignment
+                date_to_use = None
+
+                if deal.actual_close_date:
+                    date_to_use = deal.actual_close_date
+                elif deal.expected_close_date:
+                    date_to_use = deal.expected_close_date
+                elif deal.updated_at:
+                    date_to_use = deal.updated_at
+                elif deal.created_at:
+                    date_to_use = deal.created_at
+
+                # Check if deal belongs to this quarter
+                if date_to_use and date_to_use.year == current_year:
+                    if quarter_info["start_month"] <= date_to_use.month <= quarter_info["end_month"]:
+                        quarter_deals.append(deal)
+
+            # Count won and lost deals (handle both formats: closed_won and closed-won)
+            won_count = len([
+                d for d in quarter_deals
+                if d.stage and d.stage.lower() in ['closed_won', 'closed-won']
+            ])
+            lost_count = len([
+                d for d in quarter_deals
+                if d.stage and d.stage.lower() in ['closed_lost', 'closed-lost']
+            ])
+            total_count = won_count + lost_count
+
+            # Calculate win rate
+            win_rate = round((won_count / total_count) *
+                             100) if total_count > 0 else 0
 
             win_rate_data.append({
-                "period": quarter,
-                "winRate": win_rate
+                "period": quarter_info["period"],
+                "winRate": win_rate,
+                "won": won_count,
+                "lost": lost_count,
+                "total": total_count
             })
 
         return win_rate_data
@@ -409,10 +617,10 @@ class DealService:
             "reps": reps,
             "industries": industry_options,
             "dateRanges": [
-                {"value": "last7days", "label": "Last 7 Days"},
-                {"value": "last30days", "label": "Last 30 Days"},
-                {"value": "last90days", "label": "Last 90 Days"},
+                {"value": "all", "label": "All Time"},
                 {"value": "thisquarter", "label": "This Quarter"},
+                {"value": "lastquarter", "label": "Last Quarter"},
+                {"value": "thisyear", "label": "This Year"},
                 {"value": "lastyear", "label": "Last Year"}
             ]
         }

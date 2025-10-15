@@ -6,7 +6,6 @@ import ActivityTimeline from './ActivityTimeline';
 import DealsList from './DealsList';
 import Notes from './Notes';
 import ComposeEmailModal from './ComposeEmailModal';
-import LogCallModal from './LogCallModal';
 import { activitiesService } from '../../../services/activitiesService';
 import { dealsService } from '../../../services/dealsService';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -14,7 +13,6 @@ import { useAuth } from '../../../contexts/AuthContext';
 const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [contactActivities, setContactActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [contactDeals, setContactDeals] = useState([]);
@@ -139,11 +137,11 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
   // Extract social profiles from URLs
   const getSocialProfiles = () => {
     const profiles = {};
-    if (contact?.linkedin_url) {
-      profiles.linkedin = contact?.linkedin_url;
+    if (contact?.social_linkedin) {
+      profiles.linkedin = contact?.social_linkedin;
     }
-    if (contact?.twitter_url) {
-      profiles.twitter = contact?.twitter_url;
+    if (contact?.social_twitter) {
+      profiles.twitter = contact?.social_twitter;
     }
     return profiles;
   };
@@ -196,14 +194,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
             >
               <Icon name="Mail" size={16} />
               <span>Email</span>
-            </button>
-            
-            <button
-              onClick={() => setIsCallModalOpen(true)}
-              className="inline-flex items-center space-x-2 px-3 py-2 border border-border rounded-lg text-text-secondary hover:text-primary hover:border-primary transition-all duration-150 ease-out"
-            >
-              <Icon name="Phone" size={16} />
-              <span>Call</span>
             </button>
             
             {hasAnyPermission(['contacts.edit_all', 'contacts.edit_own']) && (
@@ -399,14 +389,38 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
                 
                 {contact?.custom_fields && Object.keys(contact?.custom_fields)?.length > 0 ? (
                   <div className="space-y-3">
-                    {Object.entries(contact?.custom_fields)?.map(([key, value]) => (
-                      <div key={key}>
-                        <div className="text-sm text-text-secondary mb-1">
-                          {key?.replace(/([A-Z])/g, ' $1')?.replace(/^./, str => str?.toUpperCase())}
+                    {Object.entries(contact?.custom_fields)?.map(([key, fieldData]) => {
+                      // Handle both direct values and field objects with metadata
+                      const displayValue = typeof fieldData === 'object' && fieldData !== null && 'value' in fieldData
+                        ? fieldData.value
+                        : fieldData;
+                      
+                      // Format the field name
+                      const fieldName = key?.replace(/_/g, ' ')?.replace(/([A-Z])/g, ' $1')?.trim()
+                        ?.split(' ')
+                        ?.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        ?.join(' ');
+                      
+                      // Don't display if value is null or undefined
+                      if (displayValue === null || displayValue === undefined || displayValue === '') {
+                        return null;
+                      }
+                      
+                      return (
+                        <div key={key} className="pb-3 border-b border-border last:border-0">
+                          <div className="text-sm font-medium text-text-secondary mb-1">
+                            {fieldName}
+                          </div>
+                          <div className="text-text-primary">
+                            {typeof displayValue === 'boolean' 
+                              ? (displayValue ? 'Yes' : 'No')
+                              : Array.isArray(displayValue)
+                              ? displayValue.join(', ')
+                              : String(displayValue)}
+                          </div>
                         </div>
-                        <div className="text-text-primary">{String(value)}</div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-text-secondary text-sm">No additional information</p>
@@ -446,16 +460,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
           onSend={(emailData) => {
             console.log('Email sent:', emailData);
             setIsEmailModalOpen(false);
-          }}
-        />
-      )}
-      {isCallModalOpen && (
-        <LogCallModal
-          contact={contact}
-          onClose={() => setIsCallModalOpen(false)}
-          onLog={(callData) => {
-            console.log('Call logged:', callData);
-            setIsCallModalOpen(false);
           }}
         />
       )}

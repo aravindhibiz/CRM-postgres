@@ -12,6 +12,8 @@ const EmailTemplates = () => {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [templateForm, setTemplateForm] = useState({
     name: '',
     subject: '',
@@ -19,15 +21,118 @@ const EmailTemplates = () => {
     content: '',
     status: 'draft'
   });
+  
+  const [lastFocusedField, setLastFocusedField] = useState('content'); // Track which field was last focused
 
-  const categories = emailTemplateService.getCategories();
+  const [customCategories, setCustomCategories] = useState([]);
+  const [categoryMetadata, setCategoryMetadata] = useState({}); // Maps template IDs to custom category labels
+  const defaultCategories = emailTemplateService.getCategories();
+  const categories = [...defaultCategories, ...customCategories];
   const statuses = emailTemplateService.getStatuses();
+
+  // Helper to check if category is custom
+  const isCustomCategory = (categoryValue) => {
+    return !defaultCategories.some(cat => cat.value === categoryValue);
+  };
 
   // Load templates and merge fields on component mount
   useEffect(() => {
     loadTemplates();
     loadMergeFields();
+    loadCustomCategories();
   }, []);
+
+  const loadCustomCategories = () => {
+    // Load custom categories from localStorage
+    const saved = localStorage.getItem('emailTemplateCustomCategories');
+    if (saved) {
+      try {
+        setCustomCategories(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load custom categories:', e);
+      }
+    }
+    
+    // Load category metadata
+    const metadata = localStorage.getItem('emailTemplateCategoryMetadata');
+    if (metadata) {
+      try {
+        setCategoryMetadata(JSON.parse(metadata));
+      } catch (e) {
+        console.error('Failed to load category metadata:', e);
+      }
+    }
+  };
+
+  const saveCustomCategories = (categories) => {
+    localStorage.setItem('emailTemplateCustomCategories', JSON.stringify(categories));
+    setCustomCategories(categories);
+  };
+
+  const saveCategoryMetadata = (metadata) => {
+    localStorage.setItem('emailTemplateCategoryMetadata', JSON.stringify(metadata));
+    setCategoryMetadata(metadata);
+  };
+
+  const handleDeleteCategory = (categoryValue) => {
+    if (!window.confirm(`Are you sure you want to delete the "${getCategoryLabel(categoryValue)}" category? Templates using this category will be moved to "General".`)) {
+      return;
+    }
+
+    // Remove from custom categories
+    const updated = customCategories.filter(cat => cat.value !== categoryValue);
+    saveCustomCategories(updated);
+
+    // If currently selected in form, reset to general
+    if (templateForm.category === categoryValue) {
+      setTemplateForm(prev => ({ ...prev, category: 'general' }));
+    }
+  };
+
+  const getCategoryLabel = (categoryValue) => {
+    const category = categories.find(cat => cat.value === categoryValue);
+    return category?.label || categoryValue;
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+
+    const categoryValue = newCategoryName.toLowerCase().replace(/\s+/g, '-');
+    const categoryLabel = newCategoryName.trim();
+
+    // Check if category already exists
+    const allCategories = [...defaultCategories, ...customCategories];
+    if (allCategories.some(cat => cat.value === categoryValue)) {
+      alert('This category already exists');
+      return;
+    }
+
+    const newCategory = {
+      value: categoryValue,
+      label: categoryLabel
+    };
+
+    const updated = [...customCategories, newCategory];
+    saveCustomCategories(updated);
+    
+    // Set the new category as selected in the form
+    setTemplateForm(prev => ({ ...prev, category: categoryValue }));
+    
+    setNewCategoryName('');
+    setShowAddCategoryModal(false);
+  };
+
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowAddCategoryModal(true);
+    } else {
+      setTemplateForm(prev => ({ ...prev, category: value }));
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -65,10 +170,15 @@ const EmailTemplates = () => {
 
   const handleEditTemplate = (template) => {
     setEditingTemplate(template);
+    
+    // Check if template has custom category metadata
+    const metadata = categoryMetadata[template.id];
+    const categoryToUse = metadata?.customCategory || template.category;
+    
     setTemplateForm({
       name: template.name,
       subject: template.subject,
-      category: template.category,
+      category: categoryToUse,
       content: template.content,
       status: template.status
     });
@@ -93,10 +203,31 @@ const EmailTemplates = () => {
     e.preventDefault();
     
     try {
+      // Prepare template data
+      const templateData = {
+        ...templateForm,
+        // If it's a custom category, map it to 'general' for backend
+        // but store the custom category label in metadata
+        category: isCustomCategory(templateForm.category) ? 'general' : templateForm.category
+      };
+
+      let savedTemplate;
       if (editingTemplate) {
-        await emailTemplateService.updateTemplate(editingTemplate.id, templateForm);
+        savedTemplate = await emailTemplateService.updateTemplate(editingTemplate.id, templateData);
       } else {
-        await emailTemplateService.createTemplate(templateForm);
+        savedTemplate = await emailTemplateService.createTemplate(templateData);
+      }
+
+      // If custom category, save metadata
+      if (isCustomCategory(templateForm.category)) {
+        const newMetadata = {
+          ...categoryMetadata,
+          [savedTemplate.id]: {
+            customCategory: templateForm.category,
+            categoryLabel: getCategoryLabel(templateForm.category)
+          }
+        };
+        saveCategoryMetadata(newMetadata);
       }
       
       setShowTemplateModal(false);
@@ -113,20 +244,39 @@ const EmailTemplates = () => {
   };
 
   const insertMergeField = (field) => {
-    const textarea = document.getElementById('template-content');
-    const start = textarea?.selectionStart;
-    const end = textarea?.selectionEnd;
-    const text = templateForm?.content;
-    const before = text?.substring(0, start);
-    const after = text?.substring(end, text?.length);
-    const newContent = before + field + after;
+    // Use the last focused field to determine where to insert
+    const subjectInput = document.getElementById('template-subject');
+    const contentTextarea = document.getElementById('template-content');
     
-    setTemplateForm(prev => ({ ...prev, content: newContent }));
+    let targetElement, currentText, fieldType;
     
-    // Focus back to textarea and set cursor position
+    if (lastFocusedField === 'subject') {
+      targetElement = subjectInput;
+      currentText = templateForm?.subject || '';
+      fieldType = 'subject';
+    } else {
+      targetElement = contentTextarea;
+      currentText = templateForm?.content || '';
+      fieldType = 'content';
+    }
+    
+    const start = targetElement?.selectionStart || 0;
+    const end = targetElement?.selectionEnd || 0;
+    const before = currentText.substring(0, start);
+    const after = currentText.substring(end, currentText.length);
+    const newText = before + field + after;
+    
+    // Update the appropriate field
+    if (fieldType === 'subject') {
+      setTemplateForm(prev => ({ ...prev, subject: newText }));
+    } else {
+      setTemplateForm(prev => ({ ...prev, content: newText }));
+    }
+    
+    // Focus back to the target element and set cursor position
     setTimeout(() => {
-      textarea?.focus();
-      textarea?.setSelectionRange(start + field?.length, start + field?.length);
+      targetElement?.focus();
+      targetElement?.setSelectionRange(start + field.length, start + field.length);
     }, 0);
   };
 
@@ -144,11 +294,15 @@ const EmailTemplates = () => {
     );
   };
 
-  const getCategoryBadge = (category) => {
-    const categoryObj = categories?.find(c => c?.value === category);
+  const getCategoryBadge = (template) => {
+    // Check if template has custom category metadata
+    const metadata = categoryMetadata[template.id];
+    const displayCategory = metadata?.customCategory || template.category;
+    const categoryLabel = metadata?.categoryLabel || getCategoryLabel(template.category);
+    
     return (
       <span className="px-2 py-1 text-xs bg-primary-50 text-primary border border-primary-100 rounded">
-        {categoryObj?.label || category}
+        {categoryLabel}
       </span>
     );
   };
@@ -197,7 +351,6 @@ const EmailTemplates = () => {
                   <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Subject</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Category</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Status</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Usage</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Modified</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Actions</th>
                 </tr>
@@ -219,9 +372,8 @@ const EmailTemplates = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-text-secondary max-w-xs truncate">{template.subject}</td>
-                      <td className="py-3 px-4">{getCategoryBadge(template.category)}</td>
+                      <td className="py-3 px-4">{getCategoryBadge(template)}</td>
                       <td className="py-3 px-4">{getStatusBadge(template.status)}</td>
-                      <td className="py-3 px-4 text-sm text-text-secondary">{template.usage_count} times</td>
                       <td className="py-3 px-4 text-sm text-text-secondary">
                         {new Date(template.updated_at).toLocaleDateString()}
                       </td>
@@ -295,13 +447,39 @@ const EmailTemplates = () => {
                       <label className="block text-sm font-medium text-text-primary mb-1">Category</label>
                       <select
                         value={templateForm?.category}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, category: e?.target?.value }))}
+                        onChange={handleCategoryChange}
                         className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                       >
                         {categories?.map(category => (
                           <option key={category?.value} value={category?.value}>{category?.label}</option>
                         ))}
+                        <option value="__add_new__" className="text-primary font-semibold">+ Add New Category</option>
                       </select>
+                      
+                      {/* Show custom categories with delete option */}
+                      {customCategories.length > 0 && (
+                        <div className="mt-2 p-2 bg-background border border-border rounded-lg">
+                          <p className="text-xs text-text-secondary mb-2">Custom Categories:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {customCategories.map(category => (
+                              <div
+                                key={category.value}
+                                className="inline-flex items-center space-x-1 px-2 py-1 bg-primary-50 text-primary rounded border border-primary-100"
+                              >
+                                <span className="text-xs">{category.label}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategory(category.value)}
+                                  className="text-primary hover:text-error transition-colors"
+                                  title="Delete category"
+                                >
+                                  <Icon name="X" size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -319,13 +497,18 @@ const EmailTemplates = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">Subject Line</label>
+                    <label className="block text-sm font-medium text-text-primary mb-1">
+                      Subject Line
+                      <span className="text-xs text-text-tertiary ml-2 font-normal">(Click subject field, then click merge fields to insert)</span>
+                    </label>
                     <input
+                      id="template-subject"
                       type="text"
                       value={templateForm?.subject}
                       onChange={(e) => setTemplateForm(prev => ({ ...prev, subject: e?.target?.value }))}
+                      onFocus={() => setLastFocusedField('subject')}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-                      placeholder="Enter email subject"
+                      placeholder="Enter email subject (e.g., Hello {{first_name}}!)"
                       required
                     />
                   </div>
@@ -337,6 +520,7 @@ const EmailTemplates = () => {
                         id="template-content"
                         value={templateForm?.content}
                         onChange={(e) => setTemplateForm(prev => ({ ...prev, content: e?.target?.value }))}
+                        onFocus={() => setLastFocusedField('content')}
                         className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
                         rows={12}
                         placeholder="Enter email content..."
@@ -345,25 +529,77 @@ const EmailTemplates = () => {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-text-primary mb-1">Merge Fields</label>
+                      <label className="block text-sm font-medium text-text-primary mb-1">
+                        Merge Fields
+                        <span className="text-xs text-text-tertiary ml-2 font-normal block mt-1">Click in Subject or Content field first, then click a merge field to insert</span>
+                      </label>
                       <div className="bg-background border border-border rounded-lg p-3 max-h-80 overflow-y-auto">
-                        <div className="space-y-2">
-                          {mergeFields?.map((merge) => (
-                            <button
-                              key={merge?.field}
-                              type="button"
-                              onClick={() => insertMergeField(merge?.field)}
-                              className="w-full text-left p-2 rounded hover:bg-surface-hover transition-colors duration-150 group"
-                            >
-                              <div className="text-xs font-mono text-primary group-hover:text-primary-600">
-                                {merge?.field}
-                              </div>
-                              <div className="text-xs text-text-tertiary mt-1">
-                                {merge?.description}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                        {(() => {
+                          // Group merge fields by category
+                          const grouped = (mergeFields || []).reduce((acc, field) => {
+                            const category = field?.category || 'General';
+                            if (!acc[category]) {
+                              acc[category] = [];
+                            }
+                            acc[category].push(field);
+                            return acc;
+                          }, {});
+                          
+                          // Define category order for better UX
+                          const categoryOrder = [
+                            'Contact Fields',
+                            'Company Fields',
+                            'Deal Fields',
+                            'System Fields',
+                            'Contact Custom Fields',
+                            'Company Custom Fields',
+                            'Deal Custom Fields',
+                            'Activity Custom Fields',
+                            'General'
+                          ];
+                          
+                          // Sort categories according to defined order
+                          const sortedCategories = Object.keys(grouped).sort((a, b) => {
+                            const indexA = categoryOrder.indexOf(a);
+                            const indexB = categoryOrder.indexOf(b);
+                            if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+                            if (indexA === -1) return 1;
+                            if (indexB === -1) return -1;
+                            return indexA - indexB;
+                          });
+                          
+                          return (
+                            <div className="space-y-3">
+                              {sortedCategories.map((category) => (
+                                <details key={category} open={category === 'Contact Fields' || category === 'System Fields'}>
+                                  <summary className="cursor-pointer text-sm font-medium text-text-primary hover:text-primary px-2 py-1 rounded hover:bg-surface-hover transition-colors duration-150">
+                                    {category} ({grouped[category].length})
+                                  </summary>
+                                  <div className="mt-2 space-y-1 pl-2">
+                                    {grouped[category].map((merge) => (
+                                      <button
+                                        key={merge?.field}
+                                        type="button"
+                                        onClick={() => insertMergeField(merge?.field)}
+                                        className="w-full text-left p-2 rounded hover:bg-surface-hover transition-colors duration-150 group"
+                                      >
+                                        <div className="text-xs font-mono text-primary group-hover:text-primary-600">
+                                          {merge?.field}
+                                        </div>
+                                        <div className="text-xs text-text-tertiary mt-1">
+                                          {merge?.description}
+                                          {merge?.example && (
+                                            <span className="ml-2 italic">e.g., {merge?.example}</span>
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </details>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -435,6 +671,74 @@ const EmailTemplates = () => {
           </div>
         </div>
       )}
+
+      {/* Add New Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-1300 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowAddCategoryModal(false)}></div>
+            <div className="bg-surface rounded-lg shadow-xl max-w-md w-full relative z-1400">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-text-primary">Add New Category</h3>
+                  <button
+                    onClick={() => setShowAddCategoryModal(false)}
+                    className="text-text-secondary hover:text-text-primary transition-colors duration-150"
+                  >
+                    <Icon name="X" size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      Category Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCategory();
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+                      placeholder="e.g., Customer Support, Sales Follow-up"
+                      autoFocus
+                    />
+                    <p className="text-xs text-text-tertiary mt-1">
+                      Enter a descriptive name for the new category
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddCategoryModal(false);
+                        setNewCategoryName('');
+                      }}
+                      className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth"
+                    >
+                      Add Category
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Usage Guidelines */}
       <div className="bg-background border border-border rounded-lg p-4">
         <div className="flex items-start space-x-3">

@@ -46,9 +46,15 @@ const ContactManagement = () => {
 
       setContacts(contactsData || []);
       
-      // Set first contact as selected by default for desktop view
+      // Set first contact as selected by default for desktop view with full data
       if (contactsData?.length > 0 && window.innerWidth >= 1024 && !selectedContact) {
-        setSelectedContact(contactsData?.[0]);
+        try {
+          const fullContactData = await contactsService?.getContactById(contactsData[0].id);
+          setSelectedContact(fullContactData);
+        } catch (err) {
+          console.error('Error loading full contact data:', err);
+          setSelectedContact(contactsData?.[0]);
+        }
       }
     } catch (err) {
       console.error('Error loading contacts:', err);
@@ -93,16 +99,26 @@ const ContactManagement = () => {
     return true; // 'all' tab
   });
 
-  const handleContactSelect = (contact) => {
+  const handleContactSelect = async (contact) => {
     
     console.log('handleContactSelect called with:', contact);
     try {
-      setSelectedContact(contact);
+      // Fetch full contact data including custom fields
+      if (contact?.id) {
+        const fullContactData = await contactsService?.getContactById(contact.id);
+        setSelectedContact(fullContactData);
+      } else {
+        setSelectedContact(contact);
+      }
       setIsAddingContact(false);
       setIsEditingContact(false);
     } catch (error) {
       console.error('Error in handleContactSelect:', error);
-      setError('Something went wrong while selecting the contact. Please try again.');
+      // Fallback to the basic contact data if fetch fails
+      setSelectedContact(contact);
+      setIsAddingContact(false);
+      setIsEditingContact(false);
+      setError('Could not load full contact details. Showing basic information.');
     }
   };
 

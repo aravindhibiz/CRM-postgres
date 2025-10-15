@@ -76,11 +76,15 @@ const emailTemplateService = {
   },
 
   // Preview template with merge data
-  previewTemplate: async (templateId, mergeData) => {
+  previewTemplate: async (templateId, mergeData, contactId = null, dealId = null, activityId = null, taskId = null) => {
     try {
       const { data, error } = await apiClient.post('/api/v1/email-templates/preview', {
         template_id: templateId,
-        merge_data: mergeData
+        merge_data: mergeData,
+        contact_id: contactId,
+        deal_id: dealId,
+        activity_id: activityId,
+        task_id: taskId
       });
       
       if (error) throw error;
@@ -94,10 +98,30 @@ const emailTemplateService = {
   // Send email using template
   sendEmail: async (emailData) => {
     try {
-      const { data, error } = await apiClient.post('/api/v1/email-templates/send', emailData);
+      // Check if emailData is FormData (has attachments)
+      const isFormData = emailData instanceof FormData;
       
-      if (error) throw error;
-      return data;
+      if (isFormData) {
+        // Use the attachments endpoint
+        const { data, error } = await apiClient.post(
+          '/api/v1/email-templates/send-with-attachments', 
+          emailData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            }
+          }
+        );
+        
+        if (error) throw error;
+        return data;
+      } else {
+        // Use regular JSON endpoint
+        const { data, error } = await apiClient.post('/api/v1/email-templates/send', emailData);
+        
+        if (error) throw error;
+        return data;
+      }
     } catch (error) {
       console.error('Error sending email:', error);
       throw error;

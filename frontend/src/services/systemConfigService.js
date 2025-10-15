@@ -16,6 +16,17 @@ export const systemConfigService = {
     return data || {};
   },
 
+  // Get company email for email sending
+  async getCompanyEmail() {
+    try {
+      const grouped = await this.getConfigurationsGrouped();
+      return grouped?.general?.company_email || 'noreply@company.com';
+    } catch (error) {
+      console.error('Failed to get company email:', error);
+      return 'noreply@company.com';
+    }
+  },
+
   // Get configurations organized by categories with metadata
   async getConfigurationsByCategories() {
     const { data, error } = await apiClient.get('/api/v1/system-config/categories');

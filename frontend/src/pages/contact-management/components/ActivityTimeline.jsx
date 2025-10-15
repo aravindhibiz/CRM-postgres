@@ -158,17 +158,35 @@ const ActivityTimeline = ({ activities, contact, onActivityAdded, onActivityUpda
                 {/* Activity content */}
                 <div className="card p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-medium text-text-primary">
                         {activity?.type === 'email' && 'Email: '}
                         {activity?.type === 'call' && 'Call: '}
                         {activity?.type === 'meeting' && 'Meeting: '}
                         {activity?.subject || activity?.summary}
                       </h4>
-                      <p className="text-sm text-text-tertiary">
-                        {formatDateTime(activity?.scheduled_at || activity?.created_at)}
-                        {activity?.duration_minutes && ` • ${activity?.duration_minutes} minutes`}
-                      </p>
+                      <div className="flex items-center space-x-2 text-sm text-text-tertiary mt-1">
+                        <span>{formatDateTime(activity?.scheduled_at || activity?.created_at)}</span>
+                        {activity?.duration_minutes && (
+                          <>
+                            <span>•</span>
+                            <span>{activity?.duration_minutes} minutes</span>
+                          </>
+                        )}
+                        {activity?.user && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center space-x-1">
+                              <Icon name="User" size={12} />
+                              <span>
+                                {typeof activity.user === 'string' 
+                                  ? activity.user 
+                                  : `${activity.user.first_name} ${activity.user.last_name}`}
+                              </span>
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="flex space-x-2">
                       <button

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Integration settings
     INTEGRATION_ENCRYPTION_KEY: Optional[str] = None
 
+    # SendGrid settings
+    SENDGRID_API_KEY: Optional[str] = None
+
     class Config:
         # Look for .env file in the backend directory
         env_file = Path(__file__).parent.parent.parent / ".env"

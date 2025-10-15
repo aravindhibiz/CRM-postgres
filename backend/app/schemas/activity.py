@@ -5,12 +5,21 @@ import uuid
 from .user import UserResponse
 
 
+class CompanyForActivity(BaseModel):
+    id: uuid.UUID
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
 class ContactForActivity(BaseModel):
     id: uuid.UUID
     first_name: str
     last_name: str
     email: Optional[str] = None
     company_id: Optional[uuid.UUID] = None
+    company: Optional[CompanyForActivity] = None
 
     class Config:
         from_attributes = True
@@ -18,7 +27,7 @@ class ContactForActivity(BaseModel):
 
 class DealForActivity(BaseModel):
     id: uuid.UUID
-    title: str
+    name: str
     value: Optional[float] = None
     stage: Optional[str] = None
 

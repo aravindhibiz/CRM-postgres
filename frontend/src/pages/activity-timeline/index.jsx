@@ -11,6 +11,7 @@ import AddActivityModal from './components/AddActivityModal';
 import ActivityInsights from './components/ActivityInsights';
 import BulkActionsBar from './components/BulkActionsBar';
 import ActivityTemplateModal from './components/ActivityTemplateModal';
+import ActivityListView from './components/ActivityListView';
 
 const ActivityTimeline = () => {
   const { user, hasAnyPermission } = useAuth();
@@ -31,6 +32,7 @@ const ActivityTimeline = () => {
   const [selectedActivities, setSelectedActivities] = useState(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [viewMode, setViewMode] = useState('timeline'); // 'timeline' or 'insights'
+  const [displayMode, setDisplayMode] = useState('auto'); // 'auto', 'list', or 'timeline'
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -122,6 +124,10 @@ const ActivityTimeline = () => {
     try {
       switch (action) {
         case 'delete':
+          // Confirmation dialog for bulk delete
+          if (!window.confirm(`Are you sure you want to delete ${activityIds.length} activities? This action cannot be undone.`)) {
+            return;
+          }
           // Implementation for bulk delete
           await Promise.all(activityIds.map(id => activitiesService.deleteActivity(id)));
           setActivities(prev => prev.filter(activity => !activityIds.includes(activity.id)));
@@ -130,12 +136,16 @@ const ActivityTimeline = () => {
           // Implementation for bulk export
           const selectedActivitiesData = activities.filter(activity => activityIds.includes(activity.id));
           const exportData = selectedActivitiesData.map(activity => ({
+            id: activity.id,
             timestamp: activity.created_at,
             type: activity.type,
             subject: activity.subject,
             description: activity.description,
             contact: activity.contact ? `${activity.contact.first_name} ${activity.contact.last_name}` : 'N/A',
-            company: activity.contact?.company?.name || 'N/A'
+            company: activity.contact?.company?.name || 'N/A',
+            user: activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'N/A',
+            duration_minutes: activity.duration_minutes || null,
+            scheduled_at: activity.scheduled_at || null
           }));
           
           const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -303,49 +313,33 @@ const ActivityTimeline = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mt-4 lg:mt-0">
-              {/* View Mode Toggle */}
-              {/* <div className="flex items-center bg-surface border border-border rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('timeline')}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-all duration-150 ${
-                    viewMode === 'timeline' 
-                      ? 'bg-primary text-white' 
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <Icon name="List" size={16} className="inline mr-1" />
-                  Timeline
-                </button>
-                <button
-                  onClick={() => setViewMode('insights')}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-all duration-150 ${
-                    viewMode === 'insights' 
-                      ? 'bg-primary text-white' 
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <Icon name="BarChart3" size={16} className="inline mr-1" />
-                  Insights
-                </button>
-              </div> */}
-
-              {/* Auto-refresh Toggle */}
-              {/* <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setAutoRefresh(!autoRefresh)}
-                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-150 ${
-                    autoRefresh 
-                      ? 'bg-primary text-white' 
-                      : 'border border-border text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }`}
-                >
-                  <Icon name="RefreshCw" size={14} className={autoRefresh ? 'animate-spin' : ''} />
-                  <span>Auto-refresh</span>
-                </button>
-                <span className="text-xs text-text-tertiary">
-                  Last: {lastRefresh.toLocaleTimeString()}
-                </span>
-              </div> */}
+              {/* Display Mode Toggle - Show when contact is selected */}
+              {selectedFilters.teamMember !== 'all' && (
+                <div className="flex items-center bg-surface border border-border rounded-lg p-1">
+                  <button
+                    onClick={() => setDisplayMode('timeline')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-all duration-150 flex items-center space-x-1 ${
+                      displayMode === 'timeline' 
+                        ? 'bg-primary text-white' 
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    <Icon name="GitBranch" size={16} />
+                    <span>Timeline</span>
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('list')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-all duration-150 flex items-center space-x-1 ${
+                      displayMode === 'list' 
+                        ? 'bg-primary text-white' 
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    <Icon name="List" size={16} />
+                    <span>List</span>
+                  </button>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center space-x-3">
@@ -432,6 +426,7 @@ const ActivityTimeline = () => {
               {showBulkActions && (
                 <BulkActionsBar
                   selectedCount={selectedActivities.size}
+                  selectedIds={Array.from(selectedActivities)}
                   onBulkAction={handleBulkAction}
                   onClearSelection={() => {
                     setSelectedActivities(new Set());
@@ -445,6 +440,21 @@ const ActivityTimeline = () => {
                 <div className="flex items-center space-x-4">
                   <div className="text-sm text-text-secondary">
                     Showing {filteredActivities.length} of {activities.length} activities
+                    {selectedFilters.teamMember === 'all' && (
+                      <span className="ml-2 text-xs text-text-tertiary">
+                        • List view (all contacts)
+                      </span>
+                    )}
+                    {selectedFilters.teamMember !== 'all' && displayMode === 'timeline' && (
+                      <span className="ml-2 text-xs text-text-tertiary">
+                        • Timeline view
+                      </span>
+                    )}
+                    {selectedFilters.teamMember !== 'all' && displayMode === 'list' && (
+                      <span className="ml-2 text-xs text-text-tertiary">
+                        • List view
+                      </span>
+                    )}
                   </div>
                   
                   {filteredActivities.length > 0 && (
@@ -490,20 +500,35 @@ const ActivityTimeline = () => {
                       <p className="text-text-secondary">Loading activities...</p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <>
                       {filteredActivities.length > 0 ? (
-                        filteredActivities.map((activity, index) => (
-                          <ActivityCard
-                            key={activity.id}
-                            activity={activity}
-                            isLast={index === filteredActivities.length - 1}
-                            isSelected={selectedActivities.has(activity.id)}
-                            onSelectionChange={(isSelected) => handleActivitySelection(activity.id, isSelected)}
-                            showCheckbox={true}
+                        // Show list view for all contacts, or when list mode is selected
+                        // Show timeline view only when a specific contact is selected AND displayMode is 'timeline'
+                        (selectedFilters.teamMember === 'all' || displayMode === 'list') ? (
+                          <ActivityListView
+                            activities={filteredActivities}
+                            selectedActivities={selectedActivities}
+                            onActivitySelection={handleActivitySelection}
                             onEdit={handleEditActivity}
                             onDelete={handleDeleteActivity}
+                            onSelectAll={handleSelectAll}
                           />
-                        ))
+                        ) : (
+                          <div className="space-y-6">
+                            {filteredActivities.map((activity, index) => (
+                              <ActivityCard
+                                key={activity.id}
+                                activity={activity}
+                                isLast={index === filteredActivities.length - 1}
+                                isSelected={selectedActivities.has(activity.id)}
+                                onSelectionChange={(isSelected) => handleActivitySelection(activity.id, isSelected)}
+                                showCheckbox={true}
+                                onEdit={handleEditActivity}
+                                onDelete={handleDeleteActivity}
+                              />
+                            ))}
+                          </div>
+                        )
                       ) : (
                         <div className="text-center py-12">
                           <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -521,7 +546,7 @@ const ActivityTimeline = () => {
                           </button>
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </>
               )}

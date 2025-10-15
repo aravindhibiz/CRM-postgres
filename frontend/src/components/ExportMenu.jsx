@@ -213,27 +213,6 @@ const ExportMenu = ({
             </button>
           ))}
 
-          {/* Email Report Button */}
-          <button
-            onClick={() => setShowEmailModal(true)}
-            disabled={exportStatus.loading && exportStatus.type === 'email'}
-            className="w-full flex items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 bg-indigo-50 hover:bg-indigo-100 hover:border-gray-200"
-          >
-            <div className="p-2 rounded-lg bg-indigo-50 mr-3">
-              {exportStatus.loading && exportStatus.type === 'email' ? (
-                <Icon name="Loader2" size={20} className="animate-spin text-gray-600" />
-              ) : (
-                <Icon name="Mail" size={20} className="text-indigo-600" />
-              )}
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-medium text-gray-900">Schedule Email Report</div>
-              <div className="text-sm text-gray-600">Set up automated delivery</div>
-            </div>
-            {exportStatus.success && exportStatus.type === 'email' && (
-              <Icon name="Check" size={16} className="text-green-600" />
-            )}
-          </button>
         </div>
 
         {/* Status Messages */}

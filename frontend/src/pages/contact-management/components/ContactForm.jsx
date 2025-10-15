@@ -28,8 +28,8 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
     lead_source: 'website',
     notes: '',
     tags: [],
-    linkedin_url: '',
-    twitter_url: '',
+    social_linkedin: '',
+    social_twitter: '',
     owner_id: user?.id || ''
   });
   const [errors, setErrors] = useState({});
@@ -57,8 +57,8 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         lead_source: contact?.lead_source || 'website',
         notes: contact?.notes || '',
         tags: contact?.tags || [],
-        linkedin_url: contact?.linkedin_url || '',
-        twitter_url: contact?.twitter_url || '',
+        social_linkedin: contact?.social_linkedin || '',
+        social_twitter: contact?.social_twitter || '',
         owner_id: contact?.owner_id || user?.id || ''
       });
 
@@ -483,8 +483,8 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           </label>
           <input
             type="url"
-            value={formData?.linkedin_url}
-            onChange={(e) => handleInputChange('linkedin_url', e?.target?.value)}
+            value={formData?.social_linkedin}
+            onChange={(e) => handleInputChange('social_linkedin', e?.target?.value)}
             className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="https://linkedin.com/in/johndoe"
           />
@@ -496,8 +496,8 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
           </label>
           <input
             type="url"
-            value={formData?.twitter_url}
-            onChange={(e) => handleInputChange('twitter_url', e?.target?.value)}
+            value={formData?.social_twitter}
+            onChange={(e) => handleInputChange('social_twitter', e?.target?.value)}
             className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
             placeholder="https://twitter.com/johndoe"
           />

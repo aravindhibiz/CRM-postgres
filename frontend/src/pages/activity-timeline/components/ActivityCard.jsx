@@ -210,7 +210,7 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-sm">
-                  <span className="text-sm font-semibold text-white">
+                  <span className="text-sm font-bold text-black">
                     {getContactName().split(' ').map(n => n[0]).join('').substr(0, 2)}
                   </span>
                 </div>

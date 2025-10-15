@@ -34,7 +34,8 @@ const Permissions = () => {
         { name: 'Edit Own Deals', key: 'deals.edit_own' },
         { name: 'Delete All Deals', key: 'deals.delete_all' },
         { name: 'Delete Own Deals', key: 'deals.delete_own' },
-        { name: 'Move Pipeline Stages', key: 'deals.move_stages' }
+        { name: 'Move Pipeline Stages', key: 'deals.move_stages' },
+        { name: 'Export Deals', key: 'deals.export' }
       ]
     },
     {

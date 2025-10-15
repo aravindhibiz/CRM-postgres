@@ -213,6 +213,69 @@ class DealRepository(BaseRepository[Deal]):
 
         return query
 
+    def get_pipeline_filtered_query(
+        self,
+        base_query: Optional[Query] = None,
+        *,
+        date_range: Optional[str] = None,
+        owner_id: Optional[UUID] = None
+    ) -> Query:
+        """
+        Build a filtered query for pipeline deals (uses created_at for date filtering).
+
+        Args:
+            base_query: Optional base query to build on
+            date_range: Date range filter (thisquarter, thisyear, lastyear)
+            owner_id: Owner ID filter
+
+        Returns:
+            Filtered query
+        """
+        query = base_query if base_query is not None else self.db.query(
+            self.model)
+
+        # Apply date range filter on created_at (for pipeline view)
+        if date_range:
+            now = datetime.now()
+
+            if date_range == 'thisquarter':
+                current_quarter = (now.month - 1) // 3 + 1
+                quarter_start = datetime(
+                    now.year, (current_quarter - 1) * 3 + 1, 1)
+                query = query.filter(Deal.created_at >= quarter_start)
+            elif date_range == 'lastquarter':
+                current_quarter = (now.month - 1) // 3 + 1
+                last_quarter = current_quarter - 1 if current_quarter > 1 else 4
+                last_quarter_year = now.year if current_quarter > 1 else now.year - 1
+                quarter_start = datetime(
+                    last_quarter_year, (last_quarter - 1) * 3 + 1, 1)
+                quarter_end = datetime(
+                    now.year if current_quarter > 1 else now.year, (current_quarter - 1) * 3 + 1, 1)
+                query = query.filter(
+                    and_(
+                        Deal.created_at >= quarter_start,
+                        Deal.created_at < quarter_end
+                    )
+                )
+            elif date_range == 'thisyear':
+                year_start = datetime(now.year, 1, 1)
+                query = query.filter(Deal.created_at >= year_start)
+            elif date_range == 'lastyear':
+                year_start = datetime(now.year - 1, 1, 1)
+                year_end = datetime(now.year, 1, 1)
+                query = query.filter(
+                    and_(
+                        Deal.created_at >= year_start,
+                        Deal.created_at < year_end
+                    )
+                )
+
+        # Owner filtering
+        if owner_id:
+            query = query.filter(Deal.owner_id == owner_id)
+
+        return query
+
     def get_analytics_filtered_query(
         self,
         base_query: Optional[Query] = None,
@@ -252,6 +315,23 @@ class DealRepository(BaseRepository[Deal]):
                 quarter_start = datetime(
                     now.year, (current_quarter - 1) * 3 + 1, 1)
                 query = query.filter(Deal.actual_close_date >= quarter_start)
+            elif date_range == 'lastquarter':
+                current_quarter = (now.month - 1) // 3 + 1
+                last_quarter = current_quarter - 1 if current_quarter > 1 else 4
+                last_quarter_year = now.year if current_quarter > 1 else now.year - 1
+                quarter_start = datetime(
+                    last_quarter_year, (last_quarter - 1) * 3 + 1, 1)
+                quarter_end = datetime(
+                    now.year if current_quarter > 1 else now.year, (current_quarter - 1) * 3 + 1, 1)
+                query = query.filter(
+                    and_(
+                        Deal.actual_close_date >= quarter_start,
+                        Deal.actual_close_date < quarter_end
+                    )
+                )
+            elif date_range == 'thisyear':
+                year_start = datetime(now.year, 1, 1)
+                query = query.filter(Deal.actual_close_date >= year_start)
             elif date_range == 'lastyear':
                 year_start = datetime(now.year - 1, 1, 1)
                 year_end = datetime(now.year, 1, 1)

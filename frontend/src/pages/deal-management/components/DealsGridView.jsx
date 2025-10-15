@@ -3,7 +3,7 @@ import Icon from 'components/AppIcon';
 import { configService } from '../../../services/configService';
 import { useAuth } from '../../../contexts/AuthContext';
 
-const DealsGridView = ({ deals, stages, onEditDeal }) => {
+const DealsGridView = ({ deals, stages, onEditDeal, onCloneDeal, onDeleteDeal }) => {
   const { hasAnyPermission } = useAuth();
   // Load system configuration on component mount
   useEffect(() => {
@@ -98,21 +98,53 @@ const DealsGridView = ({ deals, stages, onEditDeal }) => {
               )}
             </div>
 
-            {/* Action Button */}
-            {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
-              <div className="mt-4 pt-4 border-t border-border">
+            {/* Action Buttons */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-center space-x-2">
+                {/* Edit Button */}
+                {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditDeal(deal);
+                    }}
+                    className="flex items-center space-x-1 px-3 py-2 text-primary hover:bg-primary-50 rounded-lg transition-colors duration-150"
+                    title="Edit deal"
+                  >
+                    <Icon name="Edit" size={16} />
+                    <span className="text-sm font-medium">Edit</span>
+                  </button>
+                )}
+                
+                {/* Clone Button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onEditDeal(deal);
+                    onCloneDeal(deal);
                   }}
-                  className="w-full text-sm text-primary hover:text-primary-600 font-medium flex items-center justify-center space-x-1"
+                  className="flex items-center space-x-1 px-3 py-2 text-text-secondary hover:bg-surface-hover rounded-lg transition-colors duration-150"
+                  title="Clone deal"
                 >
-                  <Icon name="Edit" size={14} />
-                  <span>Edit Deal</span>
+                  <Icon name="Copy" size={16} />
+                  <span className="text-sm font-medium">Clone</span>
                 </button>
+                
+                {/* Delete Button */}
+                {hasAnyPermission(['deals.delete_all', 'deals.delete_own']) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteDeal(deal);
+                    }}
+                    className="flex items-center space-x-1 px-3 py-2 text-error hover:bg-error-50 rounded-lg transition-colors duration-150"
+                    title="Delete deal"
+                  >
+                    <Icon name="Trash2" size={16} />
+                    <span className="text-sm font-medium">Delete</span>
+                  </button>
+                )}
               </div>
-            )}
+            </div>
           </div>
         );
       })}

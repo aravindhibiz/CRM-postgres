@@ -386,60 +386,6 @@ const SalesDashboard = () => {
                 Last updated: {lastUpdated?.toLocaleTimeString()} • Auto-refresh every 5 minutes
               </p>
             </div>
-            
-            {/* Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 mt-4 lg:mt-0">
-              <select
-                value={selectedDateRange}
-                onChange={(e) => setSelectedDateRange(e?.target?.value)}
-                className="input-field text-sm"
-              >
-                <option value="thisWeek">This Week</option>
-                <option value="thisMonth">This Month</option>
-                <option value="thisQuarter">This Quarter</option>
-                <option value="thisYear">This Year</option>
-                <option value="all">All Time</option>
-              </select>
-              
-              <select
-                value={selectedProbability}
-                onChange={(e) => setSelectedProbability(e?.target?.value)}
-                className="input-field text-sm"
-              >
-                <option value="all">All Probabilities</option>
-                <option value="high">High (&gt;70%)</option>
-                <option value="medium">Medium (30-70%)</option>
-                <option value="low">Low (&lt;30%)</option>
-              </select>
-              
-              {/* Owner filter - only show for managers/admins */}
-              {(user?.role === 'admin' || user?.role === 'sales_manager') && (
-                <select
-                  value={selectedOwner}
-                  onChange={(e) => setSelectedOwner(e?.target?.value)}
-                  className="input-field text-sm"
-                >
-                  <option value="all">All Team Members</option>
-                  <option value="me">My Deals Only</option>
-                  {/* TODO: Load actual team members */}
-                </select>
-              )}
-
-              {/* Clear Filters Button */}
-              {(selectedDateRange !== 'all' || selectedProbability !== 'all' || selectedOwner !== 'all') && (
-                <button
-                  onClick={() => {
-                    setSelectedDateRange('all');
-                    setSelectedProbability('all');
-                    setSelectedOwner('all');
-                  }}
-                  className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-surface-hover transition-colors"
-                  title="Clear all filters"
-                >
-                  <Icon name="X" size={16} />
-                </button>
-              )}
-            </div>
           </div>
 
          

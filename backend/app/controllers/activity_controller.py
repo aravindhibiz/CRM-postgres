@@ -47,7 +47,7 @@ class ActivityController:
         self,
         current_user: UserProfile,
         limit: int = 50
-    ) -> List[ActivityResponse]:
+    ) -> List[ActivityWithRelations]:
         """
         Get all activities for the current user based on permissions.
 
@@ -56,7 +56,7 @@ class ActivityController:
             limit: Maximum number of activities to return
 
         Returns:
-            List of activities
+            List of activities with relations
         """
         # Get base query with permission filtering
         base_query = self.db.query(Activity)
@@ -66,8 +66,8 @@ class ActivityController:
             base_query
         )
 
-        # Get activities through service
-        activities = self.service.get_activities(
+        # Get activities through service with relations
+        activities = self.service.get_activities_with_relations(
             filtered_query=filtered_query,
             limit=limit
         )

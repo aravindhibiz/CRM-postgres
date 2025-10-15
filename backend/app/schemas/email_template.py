@@ -55,6 +55,7 @@ class SendEmailResponse(BaseModel):
     success: bool
     message: str
     email_log_id: Optional[uuid.UUID] = None
+    sender_email: Optional[str] = None  # The email address used as sender
 
 
 class EmailLogResponse(BaseModel):
@@ -75,6 +76,7 @@ class MergeField(BaseModel):
     field: str
     description: str
     example: Optional[str] = None
+    category: Optional[str] = "General"  # Category for grouping fields
 
 
 class MergeFieldsResponse(BaseModel):
@@ -84,6 +86,10 @@ class MergeFieldsResponse(BaseModel):
 class TemplatePreviewRequest(BaseModel):
     template_id: uuid.UUID
     merge_data: dict
+    contact_id: Optional[uuid.UUID] = None
+    deal_id: Optional[uuid.UUID] = None
+    activity_id: Optional[uuid.UUID] = None
+    task_id: Optional[uuid.UUID] = None
 
 
 class TemplatePreviewResponse(BaseModel):

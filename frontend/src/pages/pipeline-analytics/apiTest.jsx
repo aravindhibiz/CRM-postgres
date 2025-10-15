@@ -72,7 +72,7 @@ const PipelineAnalyticsAPI = () => {
         setDataStatus('✅ Performance data fetched');
         
         setDataStatus('🔄 Fetching win rate data...');
-        const winRate = await dealsService.getWinRateData();
+        const winRate = await dealsService.getWinRateData(filters); // Updated to use filters
         setDataStatus('✅ All data fetched successfully');
         
       } catch (err) {

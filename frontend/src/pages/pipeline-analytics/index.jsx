@@ -26,7 +26,6 @@ const PipelineAnalytics = () => {
   const [compareRevenueTrendData, setCompareRevenueTrendData] = useState([]);
   const [winRateData, setWinRateData] = useState([]);
   const [velocityMetrics, setVelocityMetrics] = useState([]);
-  const [territoryData, setTerritoryData] = useState([]);
   const [repPerformanceData, setRepPerformanceData] = useState([]);
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +44,9 @@ const PipelineAnalytics = () => {
   // Memoize filter options to prevent unnecessary recalculations
   const dateRangeOptions = useMemo(() => [
     { value: 'all', label: 'All Time' },
-    { value: 'last7days', label: 'Last 7 Days' },
-    { value: 'last30days', label: 'Last 30 Days' },
-    { value: 'last90days', label: 'Last 90 Days' },
     { value: 'thisquarter', label: 'This Quarter' },
+    { value: 'lastquarter', label: 'Last Quarter' },
+    { value: 'thisyear', label: 'This Year' },
     { value: 'lastyear', label: 'Last Year' }
   ], []);
 
@@ -65,10 +63,9 @@ const PipelineAnalytics = () => {
       pipelineFunnelData,
       winRateData,
       forecastData,
-      repPerformanceData,
-      territoryData
+      repPerformanceData
     };
-  }, [velocityMetrics, revenueTrendData, pipelineFunnelData, winRateData, forecastData, repPerformanceData, territoryData]);
+  }, [velocityMetrics, revenueTrendData, pipelineFunnelData, winRateData, forecastData, repPerformanceData]);
 
   // Prepare filter information for export
   const exportFilters = useMemo(() => {
@@ -131,7 +128,7 @@ const PipelineAnalytics = () => {
           dealsService.getPipelineDeals(filters),
           dealsService.getRevenueData(filters),
           dealsService.getPerformanceMetrics(filters),
-          dealsService.getWinRateData(),
+          dealsService.getWinRateData(filters), // Now passing filters
         ]);
 
         // Transform pipeline data for funnel chart with safety checks
@@ -172,62 +169,152 @@ const PipelineAnalytics = () => {
           setCompareRevenueTrendData(compareData);
         }
 
-        // Enhanced velocity metrics with more insights and safety checks
+        // Calculate dynamic metrics with real data
+        
+        // 1. Calculate average deal size across ALL deals in pipeline
+        // This gives a holistic view of average deal value regardless of stage
+        const allDealsInPipeline = Object.values(pipeline).flatMap(stage => stage?.deals || []);
+        const totalPipelineValue = allDealsInPipeline.reduce((sum, deal) => sum + (deal?.value || 0), 0);
+        const avgDealSizeAllDeals = allDealsInPipeline.length > 0 
+          ? totalPipelineValue / allDealsInPipeline.length 
+          : (performance?.avgDealSize || 0);
+
+        // 2. Get win rate from backend performance data
+        // Win Rate = (Won Deals / Total Closed Deals) * 100
+        const conversionRateValue = performance?.conversionRate || 0;
+
+        // 3. Calculate average sales cycle (days from created to close for won deals)
+        const calculateSalesCycle = (deals) => {
+          const wonDeals = Object.values(deals)
+            .flatMap(stage => stage?.deals || [])
+            .filter(deal => deal?.stage === 'closed_won' && deal?.close_date && deal?.created_at);
+          
+          if (wonDeals.length === 0) return 0;
+          
+          const totalDays = wonDeals.reduce((sum, deal) => {
+            const created = new Date(deal.created_at);
+            const closed = new Date(deal.close_date);
+            const days = Math.round((closed - created) / (1000 * 60 * 60 * 24));
+            return sum + Math.max(days, 0);
+          }, 0);
+          
+          return Math.round(totalDays / wonDeals.length);
+        };
+
+        const salesCycleDays = calculateSalesCycle(pipeline);
+
+        // 4. Calculate pipeline velocity (revenue generated per day)
+        // Pipeline Velocity = Total Achieved Revenue / Average Sales Cycle Days
+        const pipelineVelocity = salesCycleDays > 0 
+          ? (performance?.achieved || 0) / salesCycleDays 
+          : 0;
+
+        // Enhanced velocity metrics with dynamic calculations
         setVelocityMetrics([
           { 
             metric: 'Avg Deal Size', 
-            value: performance?.avgDealSize || 0, // Store raw value with fallback
-            change: '+12%',
-            trend: 'up',
-            previousValue: Math.round((performance?.avgDealSize || 0) * 0.88) // Store raw value
+            value: avgDealSizeAllDeals,
+            change: null, // Will be calculated from historical data
+            trend: 'neutral'
           },
           { 
             metric: 'Win Rate', 
-            value: `${performance?.conversionRate || 0}%`, 
-            change: '+3.2%',
-            trend: 'up',
-            previousValue: `${Math.round((performance?.conversionRate || 0) - 3.2)}%`
+            value: `${conversionRateValue}%`,
+            change: null,
+            trend: conversionRateValue >= 50 ? 'up' : 'down'
           },
           { 
             metric: 'Sales Cycle', 
-            value: '47 days', 
-            change: '-5 days',
-            trend: 'up',
-            previousValue: '52 days'
+            value: salesCycleDays > 0 ? `${salesCycleDays} days` : 'N/A',
+            change: null,
+            trend: 'neutral'
           },
           { 
             metric: 'Pipeline Velocity', 
-            value: Math.round((performance?.achieved || 0) / 30), // Store raw value with fallback
-            change: '+18%',
-            trend: 'up',
-            previousValue: Math.round(((performance?.achieved || 0) / 30) * 0.82) // Store raw value
+            value: Math.round(pipelineVelocity),
+            change: null,
+            trend: 'neutral'
           },
         ]);
 
-        // Enhanced territory and rep data
-        setTerritoryData([
-          { 
-            name: 'Global Territory', 
-            revenue: performance.achieved, 
-            deals: performance.dealsWon + performance.dealsLost, 
-            winRate: performance.conversionRate,
-            avgDealSize: performance.avgDealSize,
-            growth: '+15%',
-            target: performance.quota
-          },
-        ]);
+        // Rep performance data - fetch for all reps or show selected rep
+        if (selectedRep === 'all') {
+          // When showing all reps, fetch performance for each available rep
+          const repsToShow = filterOptions.reps || [];
+          
+          if (repsToShow.length > 0) {
+            // Fetch performance for each rep in parallel
+            const repPerformancePromises = repsToShow.map(async (rep) => {
+              try {
+                const repFilters = {
+                  dateRange: filters.dateRange,
+                  ownerId: rep.value
+                };
+                const repPerf = await dealsService.getPerformanceMetrics(repFilters);
+                const repPipeline = await dealsService.getPipelineDeals(repFilters);
+                
+                // Calculate total deals for this rep
+                const repDealsCount = Object.values(repPipeline).reduce((sum, stage) => 
+                  sum + (stage?.deals?.length || 0), 0
+                );
+                
+                return {
+                  name: rep.label,
+                  revenue: repPerf.achieved || 0,
+                  deals: repDealsCount,
+                  quota: repPerf.quota || 0,
+                  attainment: repPerf.percentage || 0,
+                  avgDealSize: repPerf.avgDealSize || 0,
+                  conversionRate: repPerf.conversionRate || 0
+                };
+              } catch (error) {
+                console.error(`Error fetching performance for ${rep.label}:`, error);
+                return {
+                  name: rep.label,
+                  revenue: 0,
+                  deals: 0,
+                  quota: 0,
+                  attainment: 0,
+                  avgDealSize: 0,
+                  conversionRate: 0
+                };
+              }
+            });
 
-        setRepPerformanceData([
-          { 
-            name: 'Current User', 
-            revenue: performance.achieved, 
-            deals: performance.dealsWon, 
-            quota: performance.quota, 
-            attainment: performance.percentage,
-            activities: Math.floor(Math.random() * 50) + 100,
-            lastActivity: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000)
-          },
-        ]);
+            const allRepPerformance = await Promise.all(repPerformancePromises);
+            setRepPerformanceData(allRepPerformance);
+          } else {
+            // Fallback: show current data as single rep
+            const totalDeals = transformedPipeline.reduce((sum, stage) => sum + stage.count, 0);
+            setRepPerformanceData([
+              {
+                name: 'Current User',
+                revenue: performance.achieved || 0,
+                deals: totalDeals,
+                quota: performance.quota || 0,
+                attainment: performance.percentage || 0,
+                avgDealSize: performance.avgDealSize || 0,
+                conversionRate: performance.conversionRate || 0
+              }
+            ]);
+          }
+        } else {
+          // Show only the selected rep
+          const selectedRepInfo = filterOptions.reps?.find(r => r.value === selectedRep);
+          const totalDeals = transformedPipeline.reduce((sum, stage) => sum + stage.count, 0);
+          
+          setRepPerformanceData([
+            {
+              name: selectedRepInfo?.label || 'Selected Rep',
+              revenue: performance.achieved || 0,
+              deals: totalDeals,
+              quota: performance.quota || 0,
+              attainment: performance.percentage || 0,
+              avgDealSize: performance.avgDealSize || 0,
+              conversionRate: performance.conversionRate || 0
+            }
+          ]);
+        }
 
       } catch (err) {
         console.error("Failed to fetch analytics data:", err);
@@ -364,45 +451,6 @@ const PipelineAnalytics = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mt-4 lg:mt-0">
-                {/* Auto-refresh Controls */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-text-secondary">Auto-refresh:</span>
-                  <div className="flex items-center bg-surface border border-border rounded-lg p-1">
-                    <button
-                      onClick={() => toggleAutoRefresh(5)}
-                      className={`px-2 py-1 text-xs rounded transition-all duration-150 ${
-                        refreshInterval === 5 
-                          ? 'bg-primary text-white' 
-                          : 'text-text-secondary hover:text-text-primary'
-                      }`}
-                    >
-                      5m
-                    </button>
-                    <button
-                      onClick={() => toggleAutoRefresh(15)}
-                      className={`px-2 py-1 text-xs rounded transition-all duration-150 ${
-                        refreshInterval === 15 
-                          ? 'bg-primary text-white' 
-                          : 'text-text-secondary hover:text-text-primary'
-                      }`}
-                    >
-                      15m
-                    </button>
-                    <button
-                      onClick={() => toggleAutoRefresh(null)}
-                      className={`px-2 py-1 text-xs rounded transition-all duration-150 ${
-                        !refreshInterval 
-                          ? 'bg-primary text-white' 
-                          : 'text-text-secondary hover:text-text-primary'
-                      }`}
-                    >
-                      Off
-                    </button>
-                  </div>
-                </div>
-
-              
-
                 {/* Enhanced Export Menu */}
                 <div className="relative">
                   <button
@@ -512,25 +560,17 @@ const PipelineAnalytics = () => {
                     <div key={metric?.metric} className="card p-6 hover:shadow-lg transition-shadow duration-200">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-normal text-text-secondary">{metric?.metric}</h3>
-                        <div className={`flex items-center space-x-1 ${
-                          metric?.trend === 'up' ? 'text-success' : 'text-error'
-                        }`}>
-                          <Icon name={metric?.trend === 'up' ? 'TrendingUp' : 'TrendingDown'} size={14} />
-                          <span className="text-xs font-normal">{metric?.change}</span>
-                        </div>
+                        {metric?.change && (
+                          <div className={`flex items-center space-x-1 ${
+                            metric?.trend === 'up' ? 'text-success' : metric?.trend === 'down' ? 'text-error' : 'text-text-tertiary'
+                          }`}>
+                            <Icon name={metric?.trend === 'up' ? 'TrendingUp' : metric?.trend === 'down' ? 'TrendingDown' : 'Minus'} size={14} />
+                            <span className="text-xs font-normal">{metric?.change}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <p className="text-2xl font-bold text-text-primary">{formatMetricValue(metric)}</p>
-                        {compareMode && metric?.previousValue && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-text-tertiary">Previous: {formatMetricPreviousValue(metric)}</span>
-                            <span className={`px-2 py-1 rounded-full ${
-                              metric?.trend === 'up' ? 'bg-success-50 text-success' : 'bg-error-50 text-error'
-                            }`}>
-                              {metric?.change}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -614,17 +654,153 @@ const PipelineAnalytics = () => {
 
                 {/* Win Rate Analysis */}
                 <div className="card p-6">
-                  <h3 className="text-lg font-normal text-text-primary mb-6">Win Rate Analysis</h3>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-normal text-text-primary">Win Rate Analysis</h3>
+                    <div className="text-sm text-text-secondary">
+                      Quarterly Performance
+                    </div>
+                  </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={winRateData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                        <XAxis dataKey="period" stroke="#6B7280" />
-                        <YAxis stroke="#6B7280" tickFormatter={(value) => `${value}%`} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="winRate" fill="#3B82F6" name="Win Rate %" />
+                        <XAxis 
+                          dataKey="period" 
+                          stroke="#6B7280" 
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis 
+                          stroke="#6B7280" 
+                          tickFormatter={(value) => `${value}%`}
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload[0]) {
+                              const data = payload[0].payload;
+                              const hasData = data.total && data.total > 0;
+                              
+                              return (
+                                <div className="bg-white p-3 border border-border rounded-lg shadow-lg">
+                                  <p className="font-semibold text-text-primary mb-1">{data.period}</p>
+                                  {hasData ? (
+                                    <>
+                                      <p className="text-xl font-bold text-primary">{data.winRate?.toFixed(1)}%</p>
+                                      <p className="text-sm text-text-secondary mt-1">
+                                        {data.won} won, {data.lost} lost
+                                      </p>
+                                      <p className="text-xs text-text-tertiary">
+                                        {data.total} total deals
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="text-sm text-text-tertiary">No closed deals</p>
+                                  )}
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar 
+                          dataKey="winRate" 
+                          name="Win Rate %"
+                          radius={[8, 8, 0, 0]}
+                        >
+                          {winRateData?.map((entry, index) => {
+                            const hasData = entry.total && entry.total > 0;
+                            let fillColor = '#e5e7eb'; // Gray for no data
+                            
+                            if (hasData) {
+                              if (entry.winRate >= 70) fillColor = '#10b981'; // Green
+                              else if (entry.winRate >= 50) fillColor = '#3b82f6'; // Blue
+                              else if (entry.winRate >= 30) fillColor = '#f59e0b'; // Orange
+                              else fillColor = '#ef4444'; // Red
+                            }
+                            
+                            return (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={fillColor}
+                              />
+                            );
+                          })}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Win Rate Insights */}
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-text-secondary mb-1">Overall Win Rate</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {(() => {
+                            const totalWon = winRateData?.reduce((sum, q) => sum + (q.won || 0), 0) || 0;
+                            const totalClosed = winRateData?.reduce((sum, q) => sum + (q.total || 0), 0) || 0;
+                            return totalClosed > 0 ? `${((totalWon / totalClosed) * 100).toFixed(1)}%` : '0%';
+                          })()}
+                        </p>
+                        <p className="text-xs text-text-tertiary mt-1">
+                          {winRateData?.reduce((sum, q) => sum + (q.won || 0), 0)} won / {winRateData?.reduce((sum, q) => sum + (q.total || 0), 0)} closed
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-text-secondary mb-1">Best Quarter</p>
+                        <p className="text-2xl font-bold text-success">
+                          {(() => {
+                            const quartersWithData = winRateData?.filter(q => q.total > 0) || [];
+                            if (quartersWithData.length === 0) return 'N/A';
+                            const best = quartersWithData.reduce((best, q) => q.winRate > best.winRate ? q : best);
+                            return best.period;
+                          })()}
+                        </p>
+                        <p className="text-xs text-text-tertiary mt-1">
+                          {(() => {
+                            const quartersWithData = winRateData?.filter(q => q.total > 0) || [];
+                            if (quartersWithData.length === 0) return 'No data';
+                            const best = quartersWithData.reduce((best, q) => q.winRate > best.winRate ? q : best);
+                            return `${best.winRate?.toFixed(1)}% win rate`;
+                          })()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-text-secondary mb-1">Active Quarters</p>
+                        <p className="text-2xl font-bold text-text-primary">
+                          {winRateData?.filter(q => q.total > 0).length || 0}/4
+                        </p>
+                        <p className="text-xs text-text-tertiary mt-1">
+                          with closed deals
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-blue-300">
+                      <div className="flex items-center space-x-4 text-xs">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-green-500 rounded"></div>
+                          <span className="text-text-tertiary">≥70% Great</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                          <span className="text-text-tertiary">50-70% Good</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                          <span className="text-text-tertiary">30-50% Fair</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-red-500 rounded"></div>
+                          <span className="text-text-tertiary">&lt;30% Poor</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-gray-300 rounded"></div>
+                          <span className="text-text-tertiary">No data</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -660,52 +836,55 @@ const PipelineAnalytics = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-text-secondary">Weighted Pipeline</span>
-                        <span className="text-lg font-normal text-text-primary">{formatCurrency((pipelineFunnelData || []).reduce((sum, stage) => sum + ((stage?.value || 0) * (stage?.name === 'Leads' ? 0.1 : stage?.name === 'Qualified' ? 0.25 : stage?.name === 'Proposal' ? 0.5 : stage?.name === 'Negotiation' ? 0.75 : 1)), 0))}</span>
+                        <span className="text-lg font-normal text-text-primary">{formatCurrency(
+                          (pipelineFunnelData || []).reduce((sum, stage) => {
+                            // Sum up all deals' value * probability for this stage
+                            const stageWeightedValue = (stage?.deals || []).reduce((dealSum, deal) => {
+                              return dealSum + ((deal?.value || 0) * ((deal?.probability || 0) / 100));
+                            }, 0);
+                            return sum + stageWeightedValue;
+                          }, 0)
+                        )}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-text-secondary">Best Case</span>
-                        <span className="text-lg font-normal text-success">{formatCurrency((pipelineFunnelData || []).reduce((sum, stage) => sum + (stage?.value || 0), 0) * 1.1)}</span>
+                        <span className="text-lg font-normal text-success">{formatCurrency(
+                          (pipelineFunnelData || []).reduce((sum, stage) => {
+                            // Sum all deals with probability >= 70%
+                            const stageBestCase = (stage?.deals || []).reduce((dealSum, deal) => {
+                              return dealSum + ((deal?.probability || 0) >= 70 ? (deal?.value || 0) : 0);
+                            }, 0);
+                            return sum + stageBestCase;
+                          }, 0)
+                        )}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-text-secondary">Worst Case</span>
-                        <span className="text-lg font-normal text-error">{formatCurrency((pipelineFunnelData || []).reduce((sum, stage) => sum + (stage?.value || 0), 0) * 0.8)}</span>
+                        <span className="text-lg font-normal text-error">{formatCurrency(
+                          (pipelineFunnelData || []).reduce((sum, stage) => {
+                            // Sum all deals with probability <= 30%
+                            const stageWorstCase = (stage?.deals || []).reduce((dealSum, deal) => {
+                              return dealSum + ((deal?.probability || 0) <= 30 ? (deal?.value || 0) : 0);
+                            }, 0);
+                            return sum + stageWorstCase;
+                          }, 0)
+                        )}</span>
                       </div>
                       <div className="pt-4 border-t border-border">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-text-secondary">Coverage Ratio</span>
-                          <span className="text-lg font-normal text-primary">{((pipelineFunnelData || []).reduce((sum, stage) => sum + (stage?.value || 0), 0) / 2500000).toFixed(1)}x</span>
+                          <span className="text-lg font-normal text-primary">{
+                            (() => {
+                              const totalPipeline = (pipelineFunnelData || []).reduce((sum, stage) => sum + (stage?.value || 0), 0);
+                              // Calculate target as the sum of all "target" values from revenue trend data
+                              const revenueTarget = (revenueTrendData || []).reduce((sum, month) => sum + (month?.target || 0), 0);
+                              const target = revenueTarget > 0 ? revenueTarget : 2500000; // Fallback to 2.5M if no target
+                              return (totalPipeline / target).toFixed(1);
+                            })()
+                          }x</span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Territory Performance */}
-                <div className="card p-6">
-                  <h3 className="text-lg font-normal text-text-primary mb-6">Territory Performance</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-3 px-4 text-sm font-normal text-text-secondary">Territory</th>
-                          <th className="text-right py-3 px-4 text-sm font-normal text-text-secondary">Revenue</th>
-                          <th className="text-right py-3 px-4 text-sm font-normal text-text-secondary">Deals</th>
-                          <th className="text-right py-3 px-4 text-sm font-normal text-text-secondary">Win Rate</th>
-                          <th className="text-right py-3 px-4 text-sm font-normal text-text-secondary">Avg Deal Size</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {territoryData?.map((territory) => (
-                          <tr key={territory?.name} className="border-b border-border-light hover:bg-surface-hover">
-                            <td className="py-3 px-4 text-sm font-normal text-text-primary">{territory?.name}</td>
-                            <td className="py-3 px-4 text-sm text-text-primary text-right">{formatCurrency(territory?.revenue)}</td>
-                            <td className="py-3 px-4 text-sm text-text-primary text-right">{territory?.deals}</td>
-                            <td className="py-3 px-4 text-sm text-text-primary text-right">{formatPercentage(territory?.winRate)}</td>
-                            <td className="py-3 px-4 text-sm text-text-primary text-right">{formatCurrency(territory?.avgDealSize || (territory?.revenue / territory?.deals) || 0)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
                   </div>
                 </div>
               </div>
@@ -781,7 +960,32 @@ const PipelineAnalytics = () => {
                             outerRadius={100}
                             fill="#3B82F6"
                             dataKey="revenue"
-                            label={({ name, percent }) => `${name}: ${(percent * 100)?.toFixed(0)}%`}
+                            label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+                              // Only show label if percentage is significant (>5%)
+                              if (percent < 0.05) return null;
+                              
+                              const RADIAN = Math.PI / 180;
+                              const radius = outerRadius + 25;
+                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                              
+                              return (
+                                <text
+                                  x={x}
+                                  y={y}
+                                  fill="#64748b"
+                                  textAnchor={x > cx ? 'start' : 'end'}
+                                  dominantBaseline="central"
+                                  fontSize="12"
+                                >
+                                  {`${name}: ${(percent * 100).toFixed(0)}%`}
+                                </text>
+                              );
+                            }}
+                            labelLine={{
+                              stroke: '#cbd5e1',
+                              strokeWidth: 1
+                            }}
                           >
                             {repPerformanceData?.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={`hsl(${220 + index * 30}, 70%, ${50 + index * 10}%)`} />

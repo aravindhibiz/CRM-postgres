@@ -30,9 +30,9 @@ Author: CRM System
 Date: 2024
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..core.auth import get_current_user
@@ -75,9 +75,10 @@ router = APIRouter(tags=["Email Templates"])
     - 500: Internal server error
     """
 )
-async def get_merge_fields():
+async def get_merge_fields(db: Session = Depends(get_db)):
     """Get available merge fields for templates"""
-    controller = EmailTemplateController(None)  # No DB needed for static data
+    controller = EmailTemplateController(
+        db)  # Pass DB session to fetch custom fields
     return controller.get_merge_fields()
 
 
@@ -376,6 +377,65 @@ async def send_email(
 ):
     controller = EmailTemplateController(db)
     return controller.send_email(email_data, current_user)
+
+
+@router.post(
+    "/send-with-attachments",
+    response_model=SendEmailResponse,
+    summary="Send email with attachments",
+    description="""
+    Send an email with file attachments.
+    
+    This endpoint accepts multipart/form-data to support file uploads.
+    Email content should already be merged/prepared on the frontend.
+    
+    **Form Fields:**
+    - to (required): Recipient email address
+    - subject (required): Email subject
+    - content (required): Email content/body
+    - cc (optional): CC recipients (can send multiple)
+    - bcc (optional): BCC recipients (can send multiple)
+    - attachments (optional): Files to attach (can send multiple)
+    
+    **File Limits:**
+    - Max file size: 10MB per file
+    - Multiple files supported
+    
+    **Returns:**
+    - Success status
+    - Email log ID for tracking
+    - Sender email address
+    
+    **Errors:**
+    - 400: Validation error
+    - 401: Not authenticated
+    - 413: File too large
+    - 500: Failed to send email
+    """
+)
+async def send_email_with_attachments(
+    to: str = Form(...),
+    subject: str = Form(...),
+    content: str = Form(...),
+    cc: Optional[List[str]] = Form(None),
+    bcc: Optional[List[str]] = Form(None),
+    attachments: Optional[List[UploadFile]] = File(None),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Send email with file attachments"""
+    # Create SendEmailRequest from form data
+    email_data = SendEmailRequest(
+        to=to,
+        subject=subject,
+        content=content,
+        cc=cc,
+        bcc=bcc
+    )
+
+    controller = EmailTemplateController(db)
+    # Pass attachments to controller
+    return await controller.send_email_with_attachments(email_data, current_user, attachments)
 
 
 @router.get(
