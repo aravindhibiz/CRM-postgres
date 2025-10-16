@@ -69,7 +69,7 @@ const SettingsNavigation = ({ activeSection, onSectionChange }) => {
                 onClick={() => onSectionChange?.(item?.id)}
                 className={`w-full text-left p-4 rounded-lg transition-all duration-150 ease-smooth group ${
                   activeSection === item?.id
-                    ? 'bg-primary-50 border border-primary-100 text-primary' :'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                    ? 'bg-primary-50 border border-primary-100 text-primary' :'text-text-secondary hover:text-primary'
                 }`}
               >
                 <div className="flex items-start space-x-3">
@@ -78,7 +78,7 @@ const SettingsNavigation = ({ activeSection, onSectionChange }) => {
                     size={20}
                     className={`mt-0.5 ${
                       activeSection === item?.id
-                        ? 'text-primary' :'text-text-tertiary group-hover:text-text-secondary'
+                        ? 'text-primary' :'text-text-tertiary group-hover:text-primary'
                     }`}
                   />
                   <div className="flex-1">

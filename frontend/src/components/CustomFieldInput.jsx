@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, Phone, Mail, Link } from 'lucide-react';
+import Select from './ui/Select';
 
 const CustomFieldInput = ({ 
   field, 
@@ -220,34 +221,27 @@ const CustomFieldInput = ({
         );
 
       case 'multi_select':
+        const multiSelectOptions = field_config.options?.map(option => ({
+          value: option.value,
+          label: option.label
+        })) || [];
+        
+        const multiSelectValue = value ? (value || '').split(',').filter(v => v) : [];
+        
         return (
-          <div className="space-y-2">
-            {field_config.options?.map((option, index) => (
-              <div key={index} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`${field.field_key}_${option.value}`}
-                  checked={(value || '').split(',').includes(option.value)}
-                  onChange={(e) => {
-                    const currentValues = (value || '').split(',').filter(v => v);
-                    if (e.target.checked) {
-                      handleChange([...currentValues, option.value].join(','));
-                    } else {
-                      handleChange(currentValues.filter(v => v !== option.value).join(','));
-                    }
-                  }}
-                  disabled={disabled}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label 
-                  htmlFor={`${field.field_key}_${option.value}`}
-                  className="ml-2 text-sm text-gray-900"
-                >
-                  {option.label}
-                </label>
-              </div>
-            ))}
-          </div>
+          <Select
+            multiple={true}
+            options={multiSelectOptions}
+            value={multiSelectValue}
+            onChange={(newValue) => {
+              // Convert array back to comma-separated string
+              handleChange(Array.isArray(newValue) ? newValue.join(',') : '');
+            }}
+            placeholder="Select options..."
+            disabled={disabled}
+            searchable={multiSelectOptions.length > 5}
+            className={error ? 'border-red-500' : ''}
+          />
         );
 
       default:

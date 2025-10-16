@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Icon from 'components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
 import { activitiesService } from '../../../services/activitiesService';
+import { useNavigate } from 'react-router-dom';
 
 const RecentActivity = () => {
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -176,7 +178,10 @@ const RecentActivity = () => {
           ))}
           
           <div className="pt-3 border-t border-border">
-            <button className="text-sm text-primary hover:text-primary-600 font-medium">
+            <button
+              onClick={() => navigate('/activity-timeline')}
+              className="text-sm text-primary hover:text-primary-600 font-medium"
+            >
               View all activity →
             </button>
           </div>

@@ -1,5 +1,5 @@
 // components/ui/Select.jsx - Shadcn style Select
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronDown, Check, Search, X } from "lucide-react";
 import { cn } from "../../utils/cn";
 import Button from "./Button";
@@ -28,9 +28,29 @@ const Select = React.forwardRef(({
 }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const selectRef = useRef(null);
 
     // Generate unique ID if not provided
     const selectId = id || `select-${Math.random()?.toString(36)?.substr(2, 9)}`;
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (selectRef.current && !selectRef.current.contains(event.target)) {
+                setIsOpen(false);
+                onOpenChange?.(false);
+                setSearchTerm("");
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen, onOpenChange]);
 
     // Filter options based on search
     const filteredOptions = searchable && searchTerm
@@ -47,8 +67,8 @@ const Select = React.forwardRef(({
         if (multiple) {
             const selectedOptions = options?.filter(opt => value?.includes(opt?.value));
             if (selectedOptions?.length === 0) return placeholder;
-            if (selectedOptions?.length === 1) return selectedOptions?.[0]?.label;
-            return `${selectedOptions?.length} items selected`;
+            // Join all selected labels with commas
+            return selectedOptions?.map(opt => opt?.label)?.join(', ');
         }
 
         const selectedOption = options?.find(opt => opt?.value === value);
@@ -99,7 +119,7 @@ const Select = React.forwardRef(({
     const hasValue = multiple ? value?.length > 0 : value !== undefined && value !== '';
 
     return (
-        <div className={cn("relative", className)}>
+        <div ref={selectRef} className={cn("relative", className)}>
             {label && (
                 <label
                     htmlFor={selectId}
@@ -173,11 +193,11 @@ const Select = React.forwardRef(({
 
                 {/* Dropdown */}
                 {isOpen && (
-                    <div className="absolute z-50 w-full mt-1 bg-white text-black border border-border rounded-md shadow-md">
+                    <div className="absolute z-50 w-full mt-1 bg-white text-black border border-gray-200 rounded-md shadow-lg animate-in fade-in-0 zoom-in-95">
                         {searchable && (
-                            <div className="p-2 border-b">
+                            <div className="p-2 border-b border-gray-100">
                                 <div className="relative">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                                     <Input
                                         placeholder="Search options..."
                                         value={searchTerm}
@@ -190,7 +210,7 @@ const Select = React.forwardRef(({
 
                         <div className="py-1 max-h-60 overflow-auto">
                             {filteredOptions?.length === 0 ? (
-                                <div className="px-3 py-2 text-sm text-muted-foreground">
+                                <div className="px-3 py-2 text-sm text-gray-500">
                                     {searchTerm ? 'No options found' : 'No options available'}
                                 </div>
                             ) : (
@@ -198,15 +218,33 @@ const Select = React.forwardRef(({
                                     <div
                                         key={option?.value}
                                         className={cn(
-                                            "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                            isSelected(option?.value) && "bg-primary text-primary-foreground",
+                                            "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none transition-colors",
+                                            multiple 
+                                                ? "hover:bg-gray-100" 
+                                                : isSelected(option?.value) 
+                                                    ? "bg-blue-50 text-blue-900" 
+                                                    : "hover:bg-gray-100",
                                             option?.disabled && "pointer-events-none opacity-50"
                                         )}
                                         onClick={() => !option?.disabled && handleOptionSelect(option)}
                                     >
+                                        {multiple && (
+                                            <div className="flex items-center mr-2">
+                                                <div className={cn(
+                                                    "w-4 h-4 border-2 rounded flex items-center justify-center transition-colors",
+                                                    isSelected(option?.value) 
+                                                        ? "bg-blue-600 border-blue-600" 
+                                                        : "border-gray-300 bg-white"
+                                                )}>
+                                                    {isSelected(option?.value) && (
+                                                        <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <span className="flex-1">{option?.label}</span>
-                                        {multiple && isSelected(option?.value) && (
-                                            <Check className="h-4 w-4" />
+                                        {!multiple && isSelected(option?.value) && (
+                                            <Check className="h-4 w-4 text-blue-600" />
                                         )}
                                         {option?.description && (
                                             <span className="text-xs text-muted-foreground ml-2">

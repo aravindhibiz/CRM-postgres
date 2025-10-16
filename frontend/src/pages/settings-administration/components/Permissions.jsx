@@ -1,9 +1,12 @@
 // src/pages/settings-administration/components/Permissions.jsx
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import Icon from '../../../components/AppIcon';
 import { rolesService } from '../../../services/rolesService';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const Permissions = () => {
+  const { refreshPermissions } = useAuth();
   const [selectedRole, setSelectedRole] = useState('Admin');
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -207,6 +210,27 @@ const Permissions = () => {
     }
   };
 
+  const handleRefreshPermissions = async () => {
+    try {
+      setError('');
+      setSuccess('');
+      
+      await refreshPermissions();
+      toast.success('Permissions refreshed successfully!');
+      setSuccess('Your permissions have been refreshed. The page will reload to apply changes.');
+      
+      // Reload the page to apply new permissions
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error('Error refreshing permissions:', err);
+      setError('Failed to refresh permissions. Please try again.');
+      toast.error('Failed to refresh permissions. Please try again.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
   const getPermissionCount = (role) => {
     const permissions = rolePermissions?.[role] || {};
     return Object.values(permissions)?.filter(Boolean)?.length;
@@ -221,6 +245,14 @@ const Permissions = () => {
           <p className="text-text-secondary mt-1">Configure role-based access control</p>
         </div>
         <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRefreshPermissions}
+            className="bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth flex items-center space-x-2"
+            title="Refresh your current permissions"
+          >
+            <Icon name="RefreshCw" size={16} />
+            <span>Refresh Permissions</span>
+          </button>
           <button
             onClick={handleRestoreDefaults}
             className="bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth flex items-center space-x-2"

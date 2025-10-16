@@ -130,7 +130,7 @@ const CustomFieldsManager = () => {
             <h2 className="text-xl font-semibold">
               {field ? 'Edit Custom Field' : 'Create Custom Field'}
             </h2>
-            <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onCancel} className="text-text-secondary hover:text-text-primary">
               <X size={20} />
             </button>
           </div>
@@ -272,7 +272,7 @@ const CustomFieldsManager = () => {
                     <button
                       type="button"
                       onClick={() => removeSelectOption(index)}
-                      className="px-3 py-2 text-red-600 hover:text-red-800"
+                      className="px-3 py-2 text-error hover:text-error-600"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -281,7 +281,7 @@ const CustomFieldsManager = () => {
                 <button
                   type="button"
                   onClick={addSelectOption}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
+                  className="text-primary hover:text-primary-600 text-sm"
                 >
                   + Add Option
                 </button>
@@ -528,13 +528,13 @@ const CustomFieldsManager = () => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setEditingField(field)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-primary hover:text-primary-600"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => deleteField(field.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-error hover:text-error-600"
                       >
                         <Trash2 size={16} />
                       </button>

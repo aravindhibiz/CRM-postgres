@@ -27,7 +27,6 @@ const Header = () => {
 
   const userMenuItems = [
   { label: 'Settings', path: '/settings-administration', icon: 'Settings', requiredPermission: 'settings.view_profile' },
-  { label: 'Refresh Permissions', action: 'refresh', icon: 'RefreshCw', requiredPermission: 'settings.view_profile' },
   { label: 'Logout', action: 'logout', icon: 'LogOut' }
   ];
 
@@ -78,25 +77,9 @@ const Header = () => {
     }
   };
 
-  const handleRefreshPermissions = async () => {
-    console.log('Refreshing permissions...');
-    try {
-      setIsUserMenuOpen(false);
-      await refreshPermissions();
-      toast.success('Permissions refreshed successfully!');
-      // Optionally reload the current page to apply new permissions
-      window.location.reload();
-    } catch (error) {
-      console.error('Refresh permissions error:', error);
-      toast.error('Failed to refresh permissions. Please try again.');
-    }
-  };
-
   const handleMenuItemClick = (item) => {
     if (item.action === 'logout') {
       handleLogout();
-    } else if (item.action === 'refresh') {
-      handleRefreshPermissions();
     } else {
       handleNavigation();
     }
@@ -129,7 +112,7 @@ const Header = () => {
                   onClick={handleNavigation}
                   className={`px-6 py-4 rounded-lg text-sm font-medium transition-all duration-150 ease-smooth flex items-center space-x-2 ${
                     isActiveRoute(item?.path)
-                      ? 'bg-primary-50 text-primary border border-primary-100' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                      ? 'bg-primary-50 text-primary border border-primary-100' : 'text-text-secondary hover:text-primary'
                   }`}
                   title={item?.tooltip}
                 >
@@ -177,18 +160,7 @@ const Header = () => {
                             <div
                               key={item.label}
                               onClick={handleLogout}
-                              className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 ease-smooth cursor-pointer"
-                            >
-                              <Icon name={item?.icon} size={16} />
-                              <span>{item?.label}</span>
-                            </div>
-                          );
-                        } else if (item.action === 'refresh') {
-                          return (
-                            <div
-                              key={item.label}
-                              onClick={handleRefreshPermissions}
-                              className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 ease-smooth cursor-pointer"
+                              className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-primary "
                             >
                               <Icon name={item?.icon} size={16} />
                               <span>{item?.label}</span>
@@ -200,7 +172,7 @@ const Header = () => {
                               key={item?.path}
                               to={item?.path}
                               onClick={() => handleMenuItemClick(item)}
-                              className="flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 ease-smooth"
+                              className="flex items-center space-x-3 px-4 py-2 text-sm text-text-secondary hover:text-primary "
                             >
                               <Icon name={item?.icon} size={16} />
                               <span>{item?.label}</span>
@@ -272,7 +244,7 @@ const Header = () => {
                       <div
                         key={item.label}
                         onClick={handleLogout}
-                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary hover:bg-surface-hover dark:hover:bg-surface-hover transition-all duration-150 ease-smooth cursor-pointer"
+                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-smooth cursor-pointer"
                       >
                         <Icon name={item?.icon} size={20} />
                         <span>{item?.label}</span>
@@ -284,7 +256,7 @@ const Header = () => {
                         key={item?.path}
                         to={item?.path}
                         onClick={() => handleMenuItemClick(item)}
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary hover:bg-surface-hover dark:hover:bg-surface-hover transition-all duration-150 ease-smooth"
+                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-smooth"
                       >
                         <Icon name={item?.icon} size={20} />
                         <span>{item?.label}</span>

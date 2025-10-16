@@ -858,7 +858,7 @@ const DealManagement = () => {
                           className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                             !isGridView
                               ? 'bg-white text-primary shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900'
+                              : 'text-text-secondary hover:text-text-primary'
                           }`}
                         >
                           <Icon name="List" size={16} />
@@ -869,7 +869,7 @@ const DealManagement = () => {
                           className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                             isGridView
                               ? 'bg-white text-primary shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900'
+                              : 'text-text-secondary hover:text-text-primary'
                           }`}
                         >
                           <Icon name="Grid" size={16} />
@@ -978,7 +978,7 @@ const DealManagement = () => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-surface-hover transition-colors"
                               onClick={() => handleSort('name')}
                             >
                               <div className="flex items-center space-x-1">
@@ -993,7 +993,7 @@ const DealManagement = () => {
                               </div>
                             </th>
                             <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-surface-hover transition-colors"
                               onClick={() => handleSort('stage')}
                             >
                               <div className="flex items-center space-x-1">
@@ -1008,7 +1008,7 @@ const DealManagement = () => {
                               </div>
                             </th>
                             <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-surface-hover transition-colors"
                               onClick={() => handleSort('value')}
                             >
                               <div className="flex items-center space-x-1">
@@ -1023,7 +1023,7 @@ const DealManagement = () => {
                               </div>
                             </th>
                             <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-surface-hover transition-colors"
                               onClick={() => handleSort('probability')}
                             >
                               <div className="flex items-center space-x-1">
@@ -1038,7 +1038,7 @@ const DealManagement = () => {
                               </div>
                             </th>
                             <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider cursor-pointer hover:bg-surface-hover transition-colors"
                               onClick={() => handleSort('created_at')}
                             >
                               <div className="flex items-center space-x-1">
@@ -1057,7 +1057,7 @@ const DealManagement = () => {
                         </thead>
                         <tbody className="bg-white divide-y divide-border">
                           {paginatedDeals.map((deal) => (
-                            <tr key={deal.id} className="hover:bg-gray-50">
+                            <tr key={deal.id} className="hover:bg-surface-hover transition-colors duration-150">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
                                   <div className="text-sm font-medium text-text-primary">{deal.name || 'Untitled Deal'}</div>

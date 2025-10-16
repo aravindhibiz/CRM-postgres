@@ -441,12 +441,13 @@ export const dealsService = {
 
         const achieved = wonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
         const quota = Math.max(achieved * 1.3, 500000); // Assume quota is 30% higher than achieved
-        const avgDealSize = wonDeals.length > 0 ? achieved / wonDeals.length : 25000;
+        const avgDealSize = wonDeals.length > 0 ? achieved / wonDeals.length : 0;
         const conversionRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
 
         return {
           achieved,
-          quota,
+          quota, 
+          quota, 
           percentage: Math.round((achieved / quota) * 100),
           avgDealSize: Math.round(avgDealSize),
           conversionRate,

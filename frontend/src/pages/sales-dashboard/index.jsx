@@ -292,7 +292,7 @@ const SalesDashboard = () => {
                   <p className="text-blue-800 font-medium">Preview Mode</p>
                   <p className="text-blue-700 text-sm">
                     This is how the sales dashboard looks when authenticated.{' '}
-                    <a href="/login" className="font-medium underline hover:text-blue-800">
+                    <a href="/login" className="font-medium underline hover:text-primary-600">
                       Sign in to access real data
                     </a>
                   </p>
@@ -535,9 +535,6 @@ const SalesDashboard = () => {
                 {/* Right Sidebar */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  
-                  {/* Upcoming Tasks */}
-                  <UpcomingTasks />
                   
                   {/* Recent Activity */}
                   <RecentActivity />

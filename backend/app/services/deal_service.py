@@ -115,7 +115,7 @@ class DealService:
 
         return [
             self._build_deal_response_with_relations(
-                deal, include_custom_fields=False)
+                deal, include_custom_fields=True)
             for deal in deals
         ]
 
@@ -432,7 +432,7 @@ class DealService:
         achieved = self.repository.calculate_total_value(won_deals)
         # Assume quota is 30% higher than achieved
         quota = max(achieved * 1.3, 500000)
-        avg_deal_size = achieved / len(won_deals) if won_deals else 25000
+        avg_deal_size = achieved / len(won_deals) if won_deals else 0
         conversion_rate = round(
             (len(won_deals) / total_closed) * 100) if total_closed > 0 else 0
 
@@ -840,5 +840,6 @@ class DealService:
             updated_at=deal.updated_at,
             custom_fields=custom_fields_dict,
             owner=deal.owner,
-            contact=deal.contact
+            contact=deal.contact,
+            company=deal.company
         )

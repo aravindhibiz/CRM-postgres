@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Icon from 'components/AppIcon';
+import { dealsService } from '../../../services/dealsService';
 
 const ExportDealsModal = ({ deals, onClose, filters }) => {
   const [exportFormat, setExportFormat] = useState('csv');
@@ -10,8 +11,11 @@ const ExportDealsModal = ({ deals, onClose, filters }) => {
     setIsExporting(true);
     
     try {
+      // Fetch fresh data from export API to ensure we have all relationships
+      const exportDeals = await dealsService.exportDeals(filters || {});
+      
       // Prepare export data based on format
-      const exportData = prepareExportData(deals);
+      const exportData = prepareExportData(exportDeals);
       
       if (exportFormat === 'csv') {
         downloadCSV(exportData);
@@ -32,21 +36,33 @@ const ExportDealsModal = ({ deals, onClose, filters }) => {
   };
 
   const prepareExportData = (deals) => {
-    return deals.map(deal => ({
-      name: deal.name || '',
-      stage: deal.stage || '',
-      value: deal.value || 0,
-      probability: deal.probability || 0,
-      expected_close_date: deal.expected_close_date || '',
-      company: deal.company?.name || '',
-      contact: deal.contact?.name || '',
-      owner: deal.owner?.name || '',
-      description: deal.description || '',
-      source: deal.source || '',
-      next_action: deal.next_action || '',
-      created_at: deal.created_at || '',
-      updated_at: deal.updated_at || ''
-    }));
+    return deals.map(deal => {
+      // Helper to get full name from user/contact object
+      const getFullName = (person) => {
+        if (!person) return '';
+        const firstName = person.first_name || '';
+        const lastName = person.last_name || '';
+        return `${firstName} ${lastName}`.trim();
+      };
+
+      return {
+        name: deal.name || '',
+        stage: deal.stage || '',
+        value: deal.value || 0,
+        probability: deal.probability || 0,
+        expected_close_date: deal.expected_close_date || '',
+        company: deal.company?.name || '',
+        contact: getFullName(deal.contact),
+        owner: getFullName(deal.owner),
+        description: deal.description || '',
+        source: deal.source || '',
+        next_action: deal.next_action || '',
+        created_at: deal.created_at || '',
+        updated_at: deal.updated_at || '',
+        // Include custom fields if they exist
+        ...(deal.custom_fields || {})
+      };
+    });
   };
 
   const downloadCSV = (data) => {

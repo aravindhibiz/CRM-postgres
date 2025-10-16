@@ -174,7 +174,7 @@ const ExportMenu = ({
             <h3 className="text-lg font-semibold text-gray-900">Export Analytics</h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-text-secondary hover:text-text-primary transition-colors"
             >
               <Icon name="X" size={20} />
             </button>
@@ -262,7 +262,7 @@ const ExportMenu = ({
                   <h3 className="text-lg font-semibold text-gray-900">Schedule Email Report</h3>
                   <button
                     onClick={() => setShowEmailModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-text-secondary hover:text-text-primary"
                   >
                     <Icon name="X" size={20} />
                   </button>

@@ -150,7 +150,7 @@ class CompanyController:
             company_id: UUID of the company to update
             company_data: Company update data
             db: Session
-            current_user: The authenticated user
+            current_user: The authenticate      d user
 
         Returns:
             Updated company
