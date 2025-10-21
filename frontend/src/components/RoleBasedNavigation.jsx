@@ -23,7 +23,7 @@ const RoleBasedNavigation = ({ children, requiredRoles = [], requiredPermission 
 
   // Check multiple permissions (user needs ANY of these)
   if (requiredPermissions && requiredPermissions.length > 0) {
-    if (!hasAnyPermission(requiredPermissions)) {
+    if (!hasAnyPermission(requiredPermissions)) { 
       return fallback;
     }
   }

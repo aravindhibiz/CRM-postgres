@@ -55,6 +55,25 @@ async def get_user_contacts(
 
 
 @router.get(
+    "/activity-filters",
+    summary="Get contacts for activity filters",
+    description="Retrieve contacts sorted by activity count for activity filter dropdowns"
+)
+async def get_contacts_for_activity_filters(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Retrieve contacts sorted by activity count for use in activity filters.
+
+    Returns active contacts sorted by number of activities (most active first).
+    Includes activity_count field for each contact.
+    """
+    controller = ContactController(db)
+    return await controller.get_contacts_for_activity_filters(current_user)
+
+
+@router.get(
     "/{contact_id}",
     response_model=ContactWithRelations,
     summary="Get contact by ID",

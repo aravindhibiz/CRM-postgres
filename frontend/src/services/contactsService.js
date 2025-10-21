@@ -15,6 +15,20 @@ export const contactsService = {
     return data || [];
   },
 
+  // Get contacts sorted by activity count for activity filters
+  async getContactsForActivityFilters() {
+    console.log('[contactsService] Fetching contacts for activity filters...');
+    const { data, error } = await apiClient.get('/api/v1/contacts/activity-filters');
+
+    if (error) {
+      console.error('[contactsService] Error fetching contacts for activity filters:', error);
+      throw error;
+    }
+    
+    console.log(`[contactsService] Fetched ${data?.length || 0} contacts with activity counts`);
+    return data || [];
+  },
+
   // Get a specific contact by ID
   async getContactById(contactId) {
     const { data, error } = await apiClient.get(`/api/v1/contacts/${contactId}`);

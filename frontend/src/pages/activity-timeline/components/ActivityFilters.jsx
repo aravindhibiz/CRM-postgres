@@ -14,14 +14,15 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
       try {
         setLoading(true);
         console.log('Loading contacts for activity filters...');
-        const contacts = await contactsService.getUserContacts();
-        console.log('Loaded contacts:', contacts);
+        const contacts = await contactsService.getContactsForActivityFilters();
+        console.log('Loaded contacts with activity counts:', contacts);
         
         const contactOptions = [
           { value: 'all', label: 'All Contacts' },
           ...contacts.map(contact => ({
             value: contact.id,
-            label: `${contact.first_name} ${contact.last_name}`
+            label: `${contact.first_name} ${contact.last_name}`,
+            activityCount: contact.activity_count || 0
           }))
         ];
         
@@ -93,22 +94,21 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
                   onChange={(e) => handleFilterChange('teamMember', e?.target?.value)}
                   className="w-4 h-4 text-primary border-border focus:ring-primary-500"
                 />
-                <div className="flex flex-col">
-                  <span className="text-sm text-text-secondary">{member?.label}</span>
-                  {member?.value !== 'all' && (
-                    <div className="text-xs text-text-tertiary space-y-1">
-                      {member?.company && (
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-text-secondary">{member?.label}</span>
+                    {member?.value !== 'all' && member?.activityCount !== undefined && (
+                      <div className="text-xs text-text-tertiary">
                         <div className="flex items-center space-x-1">
-                          <Icon name="Building" size={10} />
-                          <span>{member?.company}</span>
+                          <Icon name="Activity" size={10} />
+                          <span>{member.activityCount} activities</span>
                         </div>
-                      )}
-                      {member?.email && (
-                        <div className="flex items-center space-x-1">
-                          <Icon name="Mail" size={10} />
-                          <span>{member?.email}</span>
-                        </div>
-                      )}
+                      </div>
+                    )}
+                  </div>
+                  {member?.value !== 'all' && member?.activityCount !== undefined && (
+                    <div className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
+                      {member.activityCount}
                     </div>
                   )}
                 </div>

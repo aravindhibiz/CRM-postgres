@@ -79,6 +79,29 @@ class ContactController:
 
         return contacts
 
+    async def get_contacts_for_activity_filters(
+        self,
+        current_user: UserProfile
+    ) -> List[Dict[str, Any]]:
+        """
+        Get contacts for activity filters, sorted by activity count.
+        Counts only activities that would be shown in the current timeline.
+
+        Args:
+            current_user: Authenticated user
+
+        Returns:
+            List of contacts with activity counts sorted by activity count
+        """
+        # Get contacts sorted by activity count (from recent activities only)
+        # Uses the same permission and filtering logic as activity timeline
+        contacts = self.service.get_contacts_for_activity_filters(
+            current_user=current_user,
+            activity_limit=50  # Same limit as activity timeline
+        )
+
+        return contacts
+
     async def get_contact(
         self,
         contact_id: UUID,

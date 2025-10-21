@@ -28,7 +28,8 @@ class ContactService:
         search: Optional[str] = None,
         status: Optional[str] = None,
         company_ids: Optional[List[UUID]] = None,
-        owner_id: Optional[UUID] = None
+        owner_id: Optional[UUID] = None,
+        sort_by_activity_count: bool = False
     ) -> List[Contact]:
         """
         Get all contacts with optional filters.
@@ -38,16 +39,109 @@ class ContactService:
             status: Filter by status
             company_ids: Filter by company IDs
             owner_id: Filter by owner
+            sort_by_activity_count: Whether to sort by activity count
 
         Returns:
             List of contacts with relations
         """
-        return self.repository.search_contacts(
-            search_term=search,
-            status=status,
-            company_ids=company_ids,
-            owner_id=owner_id
-        )
+        if sort_by_activity_count:
+            # Return contacts with activity counts as dictionaries
+            return self.repository.search_contacts_with_activity_counts(
+                search_term=search,
+                status=status,
+                company_ids=company_ids,
+                owner_id=owner_id,
+                sort_by_activity_count=sort_by_activity_count
+            )
+        else:
+            return self.repository.search_contacts(
+                search_term=search,
+                status=status,
+                company_ids=company_ids,
+                owner_id=owner_id
+            )
+
+    def get_contacts_for_activity_filters(self, current_user, activity_limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Get contacts sorted by activity count for use in activity filters.
+        Counts only activities that would be shown in the current timeline view.
+
+        Args:
+            current_user: Current authenticated user (for permissions)
+            activity_limit: Limit for activities (same as timeline)
+
+        Returns:
+            List of contacts with activity counts, sorted by activity count descending
+        """
+        from ..models.activity import Activity
+        from ..core.auth_helpers import get_activities_query_filter, get_contacts_query_filter
+        from ..models.contact import Contact
+
+        # Get contacts using the same permission logic
+        contact_query = self.db.query(Contact)
+        filtered_contact_query = get_contacts_query_filter(
+            self.db, current_user, contact_query)
+        contacts = filtered_contact_query.filter(
+            Contact.status == 'active').all()
+
+        # Get activities using the same permission logic as activity timeline
+        activity_query = self.db.query(Activity)
+        filtered_activity_query = get_activities_query_filter(
+            self.db, current_user, activity_query)
+
+        # Order by created_at desc and limit (same as timeline)
+        recent_activities = filtered_activity_query.order_by(
+            Activity.created_at.desc()).limit(activity_limit).all()
+
+        # Count activities per contact from the recent activities
+        contact_activity_counts = {}
+        for activity in recent_activities:
+            if activity.contact_id:
+                contact_activity_counts[activity.contact_id] = contact_activity_counts.get(
+                    activity.contact_id, 0) + 1
+
+        # Build result with activity counts from recent activities only
+        contacts_with_counts = []
+        for contact in contacts:
+            activity_count = contact_activity_counts.get(contact.id, 0)
+
+            contact_dict = {
+                'id': contact.id,
+                'first_name': contact.first_name,
+                'last_name': contact.last_name,
+                'email': contact.email,
+                'phone': contact.phone,
+                'mobile': contact.mobile,
+                'position': contact.position,
+                'status': contact.status,
+                'notes': contact.notes,
+                'social_linkedin': contact.social_linkedin,
+                'social_twitter': contact.social_twitter,
+                'company_id': contact.company_id,
+                'owner_id': contact.owner_id,
+                'created_at': contact.created_at,
+                'updated_at': contact.updated_at,
+                'activity_count': activity_count,
+                'company': {
+                    'id': contact.company.id,
+                    'name': contact.company.name,
+                    'industry': contact.company.industry,
+                    'website': contact.company.website
+                } if contact.company else None,
+                'owner': {
+                    'id': contact.owner.id,
+                    'first_name': contact.owner.first_name,
+                    'last_name': contact.owner.last_name,
+                    'email': contact.owner.email
+                } if contact.owner else None
+            }
+            contacts_with_counts.append(contact_dict)
+
+        # Sort by activity count (highest first)
+        contacts_with_counts.sort(
+            key=lambda x: x['activity_count'], reverse=True)
+
+        return contacts_with_counts
 
     def get_contact_by_id(self, contact_id: UUID) -> Optional[Contact]:
         """
