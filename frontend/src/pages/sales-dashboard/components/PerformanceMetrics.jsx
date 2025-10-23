@@ -213,7 +213,7 @@ const PerformanceMetrics = ({ data, revenueData = [] }) => {
         </div>
       </div>
       {/* Monthly Performance Trend */}
-      <div className="mt-8 pt-6 border-t border-border">
+      {/* <div className="mt-8 pt-6 border-t border-border">
         <h3 className="text-lg font-medium text-text-primary mb-4">Monthly Performance Trend</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -234,7 +234,7 @@ const PerformanceMetrics = ({ data, revenueData = [] }) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -242,7 +242,7 @@ const ActivityListView = ({
                   {/* Actions */}
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-end space-x-2">
-                      {hasAnyPermission(['activities.update_all', 'activities.update_own']) && (
+                      {hasAnyPermission(['activities.edit_all', 'activities.edit_own']) && (
                         <button
                           onClick={() => onEdit(activity)}
                           className="p-1.5 text-text-tertiary hover:text-primary hover:bg-primary-50 rounded transition-colors duration-150"

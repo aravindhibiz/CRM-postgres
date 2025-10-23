@@ -5,11 +5,14 @@ Clean endpoint definitions using the controller layer.
 
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from ..controllers.deal_controller import DealController
 from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelations
+from ..schemas.deal_document import DealDocumentResponse
+from ..services.deal_document_service import DealDocumentService
 from ..core.database import get_db
 from ..core.auth import get_current_user, require_any_authenticated
 from ..models.user import UserProfile
@@ -471,3 +474,103 @@ async def delete_deal(
         db=db,
         current_user=current_user
     )
+
+
+# Document Management Endpoints
+
+@router.get("/{deal_id}/documents", response_model=List[DealDocumentResponse])
+async def get_deal_documents(
+    deal_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get all documents for a specific deal.
+
+    **Required Permission:** deals.view_own or deals.view_all
+
+    Returns a list of all documents associated with the deal.
+    """
+    service = DealDocumentService(db)
+    return service.get_deal_documents(deal_id)
+
+
+@router.post("/{deal_id}/documents", response_model=DealDocumentResponse, status_code=201)
+async def upload_deal_document(
+    deal_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Upload a document for a deal.
+
+    **Required Permission:** deals.edit_own or deals.edit_all
+
+    **Parameters:**
+    - file: The file to upload (multipart/form-data)
+
+    **Supported file types:** PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, images, etc.
+    **Max file size:** 10MB
+    """
+    # Check file size (10MB limit)
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:  # 10MB
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File size exceeds 10MB limit"
+        )
+
+    # Reset file pointer
+    await file.seek(0)
+
+    service = DealDocumentService(db)
+    return await service.upload_document(deal_id, file, current_user)
+
+
+@router.get("/documents/{document_id}/download")
+async def download_document(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Download a document by its ID.
+
+    **Required Permission:** deals.view_own or deals.view_all
+
+    Returns the file for download.
+    """
+    service = DealDocumentService(db)
+    document = service.get_document(document_id)
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    return FileResponse(
+        path=document.file_path,
+        filename=document.name,
+        media_type=document.mime_type or "application/octet-stream"
+    )
+
+
+@router.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Delete a document.
+
+    **Required Permission:** deals.edit_own or deals.edit_all
+
+    Deletes both the database record and the physical file.
+    """
+    service = DealDocumentService(db)
+    service.delete_document(document_id)
+
+    return {"message": "Document deleted successfully"}

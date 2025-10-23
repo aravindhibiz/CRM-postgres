@@ -9,7 +9,6 @@ import Pagination from 'components/Pagination';
 import { configService } from '../../services/configService';
 
 import DealForm from './components/DealForm';
-import ActivityTimeline from './components/ActivityTimeline';
 import DocumentsSection from './components/DocumentsSection';
 import DealsGridView from './components/DealsGridView';
 import ExportDealsModal from '../sales-dashboard/components/ExportDealsModal';
@@ -17,7 +16,6 @@ import ExportDealsModal from '../sales-dashboard/components/ExportDealsModal';
 import { dealsService } from '../../services/dealsService';
 import { contactsService } from '../../services/contactsService';
 import { companiesService } from '../../services/companiesService';
-import { dealActivitiesService } from '../../services/dealActivitiesService';
 import { dealDocumentsService } from '../../services/dealDocumentsService';
 
 const DealManagement = () => {
@@ -642,13 +640,11 @@ const DealManagement = () => {
   };
 
   // Handle deleting document
-  const handleDeleteDocument = async (documentId, filePath) => {
+  const handleDeleteDocument = async (documentId) => {
     try {
-      await dealDocumentsService?.deleteDocument(documentId, filePath);
-      
-      // Optimistically remove from local state
+      // The delete is already done in the child component
+      // Just update the local state
       setDocuments(prev => prev?.filter(doc => doc?.id !== documentId));
-      
     } catch (err) {
       console.error('Error deleting document:', err);
       setError('Failed to delete document. Please try again.');
@@ -1166,17 +1162,9 @@ const DealManagement = () => {
                   )}
                 </div>
 
-                {/* Right Panel - Activity & Documents */}
-                {selectedDeal?.id && !isLoading && (
+                {/* Right Panel - Documents */}
+                {!isLoading && (
                   <div className="xl:col-span-4 space-y-6">
-                    <ActivityTimeline
-                      activities={activities}
-                      loading={isLoadingActivities}
-                      contact={selectedDeal?.contact}
-                      onAddActivity={handleAddActivity}
-                      onDeleteActivity={handleDeleteActivity}
-                    />
-                    
                     <DocumentsSection
                       documents={documents}
                       loading={isLoadingDocuments}

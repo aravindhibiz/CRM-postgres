@@ -179,26 +179,24 @@ const ActivityCard = ({ activity, isLast, isSelected, onSelectionChange, showChe
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className="flex items-center space-x-1 flex-shrink-0">
                 {hasAnyPermission(['activities.edit_all', 'activities.edit_own']) && (
                   <button
                     onClick={() => onEdit && onEdit(activity)}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-border"
+                    className="p-2 text-text-tertiary hover:text-primary hover:bg-primary-50 rounded transition-colors duration-150"
                     title="Edit activity"
                   >
-                    <Icon name="Edit" size={14} />
-                    <span className="hidden sm:inline">Edit</span>
+                    <Icon name="Edit2" size={16} />
                   </button>
                 )}
 
                 {hasAnyPermission(['activities.delete_all', 'activities.delete_own']) && (
                   <button
                     onClick={() => onDelete && onDelete(activity.id)}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-white hover:bg-error rounded-lg transition-all duration-150 ease-out border border-transparent hover:border-error"
+                    className="p-2 text-text-tertiary hover:text-error hover:bg-error-50 rounded transition-colors duration-150"
                     title="Delete activity"
                   >
-                    <Icon name="Trash2" size={14} />
-                    <span className="hidden sm:inline">Delete</span>
+                    <Icon name="Trash2" size={16} />
                   </button>
                 )}
               </div>

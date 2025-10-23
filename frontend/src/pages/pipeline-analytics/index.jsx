@@ -223,18 +223,18 @@ const PipelineAnalytics = () => {
             change: null,
             trend: conversionRateValue >= 50 ? 'up' : 'down'
           },
-          { 
-            metric: 'Sales Cycle', 
-            value: salesCycleDays > 0 ? `${salesCycleDays} days` : 'N/A',
-            change: null,
-            trend: 'neutral'
-          },
-          { 
-            metric: 'Pipeline Velocity', 
-            value: Math.round(pipelineVelocity),
-            change: null,
-            trend: 'neutral'
-          },
+          // { 
+          //   metric: 'Sales Cycle', 
+          //   value: salesCycleDays > 0 ? `${salesCycleDays} days` : 'N/A',
+          //   change: null,
+          //   trend: 'neutral'
+          // }, 
+          // { 
+          //   metric: 'Pipeline Velocity', 
+          //   value: Math.round(pipelineVelocity),
+          //   change: null,
+          //   trend: 'neutral'
+          // },
         ]);
 
         // Rep performance data - fetch for all reps or show selected rep
@@ -373,7 +373,7 @@ const PipelineAnalytics = () => {
     { id: 'overview', label: 'Overview', icon: 'BarChart3' },
     { id: 'pipeline', label: 'Pipeline', icon: 'TrendingUp' },
     { id: 'performance', label: 'Performance', icon: 'Target' },
-    { id: 'forecasting', label: 'Forecasting', icon: 'Calendar' }
+    // { id: 'forecasting', label: 'Forecasting', icon: 'Calendar' }
   ];
 
   const formatCurrency = (value) => {
@@ -581,14 +581,14 @@ const PipelineAnalytics = () => {
                   {/* Pipeline Funnel */}
                   <div className="card p-6">
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-normal text-text-primary">Pipeline Funnel</h3>
-                      <button
+                      <h3 className="text-lg font-normal text-text-primary">Pipeline Funnel by stage</h3>
+                      {/* <button
                         onClick={() => handleChartClick(pipelineFunnelData, 'funnel')}
                         className="text-sm text-primary hover:text-primary-700 flex items-center space-x-1"
                       >
                         <Icon name="Maximize2" size={14} />
                         <span>Drill down</span>
-                      </button>
+                      </button> */}
                     </div>
                     <div className="h-80" ref={pipelineChartRef}>
                       <ResponsiveContainer width="100%" height="100%">
@@ -1102,9 +1102,9 @@ const PipelineAnalytics = () => {
       
       {/* Drill-down Modal */}
       {showDrillDown && drillDownData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-surface rounded-lg shadow-xl w-full max-w-4xl my-8 flex flex-col max-h-[calc(100vh-4rem)]">
+            <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
               <h2 className="text-xl font-semibold text-text-primary">
                 Detailed Analysis - {drillDownData.chartType.replace('-', ' ').toUpperCase()}
               </h2>
@@ -1116,7 +1116,7 @@ const PipelineAnalytics = () => {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            <div className="p-6 overflow-y-auto flex-1">
               {drillDownData.chartType === 'funnel-stage' && (
                 <div>
                   <h3 className="text-lg font-semibold mb-4">{drillDownData.data.name} Stage Details</h3>
@@ -1190,7 +1190,7 @@ const PipelineAnalytics = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-surface">
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-surface flex-shrink-0">
               <button
                 onClick={() => setShowDrillDown(false)}
                 className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors duration-150"

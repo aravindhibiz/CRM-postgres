@@ -19,18 +19,24 @@ export const dealDocumentsService = {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('deal_id', dealId);
-      if (fileName) {
-        formData.append('file_name', fileName);
-      }
 
-      const { data, error } = await apiClient.post(`/api/v1/deals/${dealId}/documents`, formData, {
+      // Use axios directly to avoid JSON serialization issues
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/api/v1/deals/${dealId}/documents`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type - let browser set it automatically with boundary
         },
+        body: formData,
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Upload failed');
+      }
+
+      const data = await response.json();
       return data;
     } catch (err) {
       console.error('Error uploading deal document:', err);
@@ -106,6 +112,48 @@ export const dealDocumentsService = {
 
   getFileExtension(filename) {
     return filename.split('.').pop().toLowerCase();
+  },
+
+  getFileIcon(filename) {
+    const extension = this.getFileExtension(filename);
+    const iconMap = {
+      // Documents
+      pdf: 'FileText',
+      doc: 'FileText',
+      docx: 'FileText',
+      txt: 'FileText',
+      
+      // Spreadsheets
+      xls: 'FileSpreadsheet',
+      xlsx: 'FileSpreadsheet',
+      csv: 'FileSpreadsheet',
+      
+      // Presentations
+      ppt: 'Presentation',
+      pptx: 'Presentation',
+      
+      // Images
+      jpg: 'Image',
+      jpeg: 'Image',
+      png: 'Image',
+      gif: 'Image',
+      svg: 'Image',
+      
+      // Archives
+      zip: 'FileArchive',
+      rar: 'FileArchive',
+      '7z': 'FileArchive',
+      
+      // Default
+      default: 'File'
+    };
+    
+    return iconMap[extension] || iconMap.default;
+  },
+
+  async getDocumentUrl(documentId) {
+    // Return the download URL for a document
+    return `/api/v1/deals/documents/${documentId}/download`;
   }
 };
 
