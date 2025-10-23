@@ -52,28 +52,28 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
   };
 
   return (
-    <div className={`rounded-lg border-2 border-dashed p-4 ${getStageColor(stage?.id)}`}>
+    <div className={`rounded-lg border-2 border-dashed p-3 h-full ${getStageColor(stage?.id)}`}>
       {/* Stage Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
-          <Icon name={getStageIcon(stage?.id)} size={16} className="text-text-secondary" />
-          <h3 className="font-medium text-text-primary">{stage?.title}</h3>
+          <Icon name={getStageIcon(stage?.id)} size={14} className="text-text-secondary" />
+          <h3 className="font-semibold text-sm text-text-primary">{stage?.title}</h3>
         </div>
-        <span className="text-sm font-medium text-text-secondary">
+        <span className="text-xs font-semibold text-text-secondary bg-surface px-2 py-0.5 rounded-full">
           {stage?.deals?.length}
         </span>
       </div>
       {/* Stage Metrics */}
-      <div className="mb-4 space-y-1">
+      <div className="mb-3 space-y-1 pb-3 border-b border-border">
         <div className="flex justify-between text-xs">
           <span className="text-text-secondary">Total:</span>
-          <span className="font-medium text-text-primary">
+          <span className="font-semibold text-text-primary">
             {formatCurrencyShort(totalValue)}
           </span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-text-secondary">Weighted:</span>
-          <span className="font-medium text-text-primary">
+          <span className="font-semibold text-text-primary">
             {formatCurrencyShort(weightedValue)}
           </span>
         </div>
@@ -84,9 +84,10 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
           <div
             ref={provided?.innerRef}
             {...provided?.droppableProps}
-            className={`min-h-[200px] space-y-3 ${
-              snapshot?.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700/50' : ''
+            className={`max-h-[500px] overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${
+              snapshot?.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20 rounded' : ''
             }`}
+            style={{ minHeight: stage?.deals?.length === 0 ? '120px' : '200px' }}
           >
             {stage?.deals?.map((deal, index) => (
               <Draggable key={deal?.id} draggableId={deal?.id} index={index}>
@@ -95,24 +96,24 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
                     ref={provided?.innerRef}
                     {...provided?.draggableProps}
                     {...provided?.dragHandleProps}
-                    className={`bg-surface rounded-lg p-3 border border-border shadow-sm cursor-move transition-all duration-150 hover:shadow-md ${
-                      snapshot?.isDragging ? 'rotate-2 shadow-lg' : ''
+                    className={`bg-surface rounded-lg p-2.5 border border-border shadow-sm cursor-move transition-all duration-150 hover:shadow-md hover:border-primary ${
+                      snapshot?.isDragging ? 'rotate-2 shadow-lg ring-2 ring-primary' : ''
                     }`}
                   >
                     {/* Deal Header */}
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-sm font-medium text-text-primary line-clamp-2">
+                      <h4 className="text-xs font-semibold text-text-primary line-clamp-2 flex-1 pr-1">
                         {deal?.title}
                       </h4>
-                      <Icon name="GripVertical" size={14} className="text-text-tertiary mt-1" />
+                      <Icon name="GripVertical" size={12} className="text-text-tertiary flex-shrink-0" />
                     </div>
 
                     {/* Deal Value */}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-semibold text-text-primary">
+                      <span className="text-sm font-bold text-text-primary">
                         {formatCurrencyShort(deal?.value)}
                       </span>
-                      <span className="text-xs px-2 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-400 rounded-full">
+                      <span className="text-xs px-1.5 py-0.5 bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-400 rounded-full font-medium">
                         {deal?.probability}%
                       </span>
                     </div>
@@ -122,7 +123,7 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
                       <Image
                         src={deal?.avatar}
                         alt={deal?.contact}
-                        className="w-6 h-6 rounded-full object-cover"
+                        className="w-5 h-5 rounded-full object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-text-primary truncate">
@@ -135,9 +136,9 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
                     </div>
 
                     {/* Deal Metadata */}
-                    <div className="flex items-center justify-between text-xs text-text-secondary">
-                      <span>{deal?.daysInStage} days in stage</span>
-                      <span>{deal?.lastActivity}</span>
+                    <div className="flex items-center justify-between text-xs text-text-tertiary pt-2 border-t border-border">
+                      <span className="truncate">{deal?.daysInStage}d</span>
+                      <span className="truncate">{deal?.lastActivity}</span>
                     </div>
                   </div>
                 )}
@@ -147,8 +148,8 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
             
             {/* Empty State */}
             {stage?.deals?.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 text-text-tertiary">
-                <Icon name="Plus" size={24} className="mb-2" />
+              <div className="flex flex-col items-center justify-center py-6 text-text-tertiary">
+                <Icon name="Plus" size={20} className="mb-1" />
                 <span className="text-xs">Drop deals here</span>
               </div>
             )}

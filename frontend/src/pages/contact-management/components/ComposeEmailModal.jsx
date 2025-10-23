@@ -736,7 +736,7 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
                 >
                   {showCcBcc ? 'Hide' : 'Show'} Cc/Bcc
                 </button>
-                {/* <button
+                <button
                   type="button"
                   onClick={handleGenerateEmail}
                   disabled={isGenerating}
@@ -753,7 +753,7 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
                       Generate Email
                     </>
                   )}
-                </button> */}
+                </button>
                 
                 {/* File Attachment Button */}
                 <div className="relative">

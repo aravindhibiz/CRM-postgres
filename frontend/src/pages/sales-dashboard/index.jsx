@@ -474,7 +474,7 @@ const SalesDashboard = () => {
                 <div className="xl:col-span-3 space-y-8">
                   {/* Interactive Pipeline */}
                   <div className="card p-6">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xl font-normal text-text-primary">Sales Pipeline</h2>
                       <div className="flex items-center space-x-4">
                         {filtersLoading && (
@@ -483,7 +483,7 @@ const SalesDashboard = () => {
                             <span>Applying filters...</span>
                           </div>
                         )}
-                        <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                        <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
                           <Icon name="RefreshCw" size={16} />
                           <span>Drag deals to update stages</span>
                         </div>
@@ -491,15 +491,18 @@ const SalesDashboard = () => {
                     </div>
                     
                     <DragDropContext onDragEnd={onDragEnd}>
-                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                        {Object.values(pipelineData)?.map((stage) => (
-                          <PipelineStage
-                            key={stage?.id}
-                            stage={stage}
-                            totalValue={calculateStageTotal(stage)}
-                            weightedValue={calculateWeightedTotal(stage)}
-                          />
-                        ))}
+                      <div className="overflow-x-auto pb-2 -mx-6 px-6">
+                        <div className="flex gap-4 min-w-max">
+                          {Object.values(pipelineData)?.map((stage) => (
+                            <div key={stage?.id} className="w-72 flex-shrink-0">
+                              <PipelineStage
+                                stage={stage}
+                                totalValue={calculateStageTotal(stage)}
+                                weightedValue={calculateWeightedTotal(stage)}
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </DragDropContext>
                   </div>
@@ -518,8 +521,39 @@ const SalesDashboard = () => {
                             return `${symbol}${value / 1000}K`;
                           }} />
                           <Tooltip 
-                            formatter={(value) => [formatCurrency(value), '']}
-                            labelStyle={{ color: '#1F2937' }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length > 0) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-white p-3 border border-border rounded-lg shadow-lg">
+                                    <p className="font-semibold text-text-primary mb-2">{data.month}</p>
+                                    {payload.map((entry, index) => (
+                                      <div key={index} className="mb-1">
+                                        <div className="flex items-center justify-between gap-3">
+                                          <span className="text-sm text-text-secondary">{entry.name}:</span>
+                                          <span className="text-sm font-semibold" style={{ color: entry.color }}>
+                                            {formatCurrency(entry.value)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {data.actualDealsCount !== undefined && (
+                                      <div className="mt-2 pt-2 border-t border-border">
+                                        <p className="text-xs text-text-tertiary">
+                                          {data.actualDealsCount} {data.actualDealsCount === 1 ? 'deal' : 'deals'} closed
+                                        </p>
+                                        {data.totalDealsCount > 0 && (
+                                          <p className="text-xs text-text-tertiary">
+                                            {data.totalDealsCount} total {data.totalDealsCount === 1 ? 'deal' : 'deals'}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
                           />
                           <Bar dataKey="forecast" fill="var(--color-primary)" name="Forecast" />
                           <Bar dataKey="actual" fill="var(--color-success)" name="Actual" />

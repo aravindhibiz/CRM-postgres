@@ -258,7 +258,9 @@ class DealService:
                     "month": month_name,
                     "actual": int(actual),
                     "forecast": int(forecast),
-                    "target": int(target)
+                    "target": int(target),
+                    "actualDealsCount": len(won_month_deals),
+                    "totalDealsCount": len(month_deals)
                 })
 
                 # Move to next month
@@ -301,7 +303,9 @@ class DealService:
                     "month": month_name,
                     "actual": int(actual),
                     "forecast": int(forecast),
-                    "target": int(target)
+                    "target": int(target),
+                    "actualDealsCount": len(won_month_deals),
+                    "totalDealsCount": len(month_deals)
                 })
 
                 # Move to next month
@@ -334,7 +338,9 @@ class DealService:
                     "month": month_name,
                     "actual": int(actual),
                     "forecast": int(forecast),
-                    "target": int(target)
+                    "target": int(target),
+                    "actualDealsCount": len(won_month_deals),
+                    "totalDealsCount": len(month_deals)
                 })
 
         elif date_range == 'lastyear':
@@ -361,7 +367,9 @@ class DealService:
                     "month": month_name,
                     "actual": int(actual),
                     "forecast": int(forecast),
-                    "target": int(target)
+                    "target": int(target),
+                    "actualDealsCount": len(won_month_deals),
+                    "totalDealsCount": len(month_deals)
                 })
 
         else:
@@ -390,7 +398,9 @@ class DealService:
                     "month": month_name,
                     "actual": int(actual),
                     "forecast": int(forecast),
-                    "target": int(target)
+                    "target": int(target),
+                    "actualDealsCount": len(won_month_deals),
+                    "totalDealsCount": len(month_deals)
                 })
 
         return revenue_data

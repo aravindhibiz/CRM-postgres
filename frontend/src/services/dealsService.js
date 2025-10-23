@@ -388,9 +388,8 @@ export const dealsService = {
             return false;
           });
 
-          const actual = monthDeals
-            .filter(deal => deal.stage === 'closed_won')
-            .reduce((sum, deal) => sum + (deal.value || 0), 0);
+          const wonDeals = monthDeals.filter(deal => deal.stage === 'closed_won');
+          const actual = wonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
 
           // Generate forecast based on pipeline
           const forecast = actual > 0 ? actual * 1.1 : Math.random() * 50000 + 30000;
@@ -400,7 +399,9 @@ export const dealsService = {
             month,
             actual,
             forecast: Math.round(forecast),
-            target: Math.round(target)
+            target: Math.round(target),
+            actualDealsCount: wonDeals.length,
+            totalDealsCount: monthDeals.length
           });
         }
 

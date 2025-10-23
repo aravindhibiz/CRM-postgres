@@ -5,6 +5,7 @@ import Icon from 'components/AppIcon';
 import Header from 'components/ui/Header';
 import Breadcrumb from 'components/ui/Breadcrumb';
 import ContactList from './components/ContactList';
+import ContactGrid from './components/ContactGrid';
 import ContactDetail from './components/ContactDetail';
 import ContactForm from './components/ContactForm';
 import ImportContactsModal from './components/ImportContactsModal';
@@ -28,6 +29,7 @@ const ContactManagement = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'split'
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -46,8 +48,8 @@ const ContactManagement = () => {
 
       setContacts(contactsData || []);
       
-      // Set first contact as selected by default for desktop view with full data
-      if (contactsData?.length > 0 && window.innerWidth >= 1024 && !selectedContact) {
+      // Only set first contact as selected when in split view mode
+      if (contactsData?.length > 0 && viewMode === 'split' && !selectedContact) {
         try {
           const fullContactData = await contactsService?.getContactById(contactsData[0].id);
           setSelectedContact(fullContactData);
@@ -110,12 +112,15 @@ const ContactManagement = () => {
       } else {
         setSelectedContact(contact);
       }
+      // Switch to split view when a contact is selected
+      setViewMode('split');
       setIsAddingContact(false);
       setIsEditingContact(false);
     } catch (error) {
       console.error('Error in handleContactSelect:', error);
       // Fallback to the basic contact data if fetch fails
       setSelectedContact(contact);
+      setViewMode('split');
       setIsAddingContact(false);
       setIsEditingContact(false);
       setError('Could not load full contact details. Showing basic information.');
@@ -146,10 +151,18 @@ const ContactManagement = () => {
     }
   };
 
+  const handleBackToGrid = () => {
+    setViewMode('grid');
+    setSelectedContact(null);
+    setIsAddingContact(false);
+    setIsEditingContact(false);
+  };
+
   const handleAddContact = () => {
     setSelectedContact(null);
     setIsAddingContact(true);
     setIsEditingContact(false);
+    setViewMode('split');
   };
 
   const handleEditContact = async () => {
@@ -451,6 +464,32 @@ const ContactManagement = () => {
               </div>
               
               <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
+                {/* View Toggle */}
+                <div className="inline-flex items-center border border-border rounded-lg bg-surface">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`inline-flex items-center space-x-2 px-3 py-2 rounded-l-lg transition-all duration-150 ${
+                      viewMode === 'grid' 
+                        ? 'bg-primary text-white' 
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                    }`}
+                    title="Grid View"
+                  >
+                    <Icon name="Grid" size={18} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('split')}
+                    className={`inline-flex items-center space-x-2 px-3 py-2 rounded-r-lg transition-all duration-150 ${
+                      viewMode === 'split' 
+                        ? 'bg-primary text-white' 
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                    }`}
+                    title="List View"
+                  >
+                    <Icon name="List" size={18} />
+                  </button>
+                </div>
+
                 {permissionsService.hasPermission(user?.role, 'contacts', 'create') && (
                   <button
                     onClick={handleAddContact}
@@ -558,25 +597,31 @@ const ContactManagement = () => {
                   <span className="text-text-secondary">Loading contacts...</span>
                 </div>
               </div>
+            ) : viewMode === 'grid' ? (
+              /* Grid View - Show all contacts as cards */
+              <div className="bg-surface rounded-lg border border-border shadow-sm p-6">
+                <ContactGrid
+                  contacts={filteredContacts}
+                  onContactSelect={handleContactSelect}
+                  onDeleteContact={handleDeleteContact}
+                />
+              </div>
             ) : (
-              /* Main Content Area */
+              /* Split View - Contact List + Detail */
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Contact List (Left Panel) */}
                 <div className="w-full lg:w-1/3 xl:w-1/4">
                   <div className="bg-surface rounded-lg border border-border shadow-sm">
                     {/* List Header with Actions */}
                     <div className="p-4 border-b border-border flex items-center justify-between">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedContacts?.length === filteredContacts?.length && filteredContacts?.length > 0}
-                          onChange={handleSelectAll}
-                          className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
-                        />
-                        <span className="ml-3 text-sm text-text-secondary">
-                          {selectedContacts?.length > 0 ? `${selectedContacts?.length} selected` : `${filteredContacts?.length} contacts`}
-                        </span>
-                      </div>
+                      <button
+                        onClick={handleBackToGrid}
+                        className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors"
+                        title="Back to grid view"
+                      >
+                        <Icon name="ArrowLeft" size={16} />
+                        <span className="text-sm">Back to Grid</span>
+                      </button>
                       
                       {selectedContacts?.length > 0 && (
                         <div className="flex space-x-2">
