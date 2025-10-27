@@ -16,6 +16,11 @@ from ..schemas.company import (
 )
 from ..services.company_service import CompanyService
 from ..core.auth import has_permission
+from ..core.auth_helpers import (
+    get_companies_query_filter,
+    check_company_edit_permission,
+    check_company_delete_permission
+)
 
 
 class CompanyController:
@@ -48,16 +53,28 @@ class CompanyController:
         Raises:
             HTTPException: If user doesn't have permission
         """
-        # TODO: Add permission check when companies.view permission is added to database
-        # if not has_permission(db, current_user, "companies.view"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to view companies"
-        #     )
+        # Check view permissions
+        can_view_all = has_permission(db, current_user, "companies.view_all")
+        can_view_own = has_permission(db, current_user, "companies.view_own")
 
-        # Delegate to service
+        if not can_view_all and not can_view_own:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view companies"
+            )
+
+        # Delegate to service with permission-based filtering
         service = CompanyService(db)
-        return service.get_all_companies(skip=skip, limit=limit)
+
+        if can_view_all:
+            return service.get_all_companies(skip=skip, limit=limit)
+        else:
+            # Filter to only owner's companies
+            return service.get_all_companies(
+                skip=skip,
+                limit=limit,
+                owner_id=current_user.id
+            )
 
     @staticmethod
     def get_company(
@@ -79,12 +96,15 @@ class CompanyController:
         Raises:
             HTTPException: If company not found or user doesn't have permission
         """
-        # TODO: Add permission check when companies.view permission is added to database
-        # if not has_permission(db, current_user, "companies.view"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to view companies"
-        #     )
+        # Check view permissions
+        can_view_all = has_permission(db, current_user, "companies.view_all")
+        can_view_own = has_permission(db, current_user, "companies.view_own")
+
+        if not can_view_all and not can_view_own:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view companies"
+            )
 
         # Delegate to service
         service = CompanyService(db)
@@ -95,6 +115,14 @@ class CompanyController:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Company with id {company_id} not found"
             )
+
+        # Check ownership if user only has view_own permission
+        if not can_view_all and can_view_own:
+            if str(company.owner_id) != str(current_user.id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not authorized to view this company"
+                )
 
         return company
 
@@ -118,12 +146,12 @@ class CompanyController:
         Raises:
             HTTPException: If user doesn't have permission or creation fails
         """
-        # TODO: Add permission check when companies.create permission is added to database
-        # if not has_permission(db, current_user, "companies.create"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to create companies"
-        #     )
+        # Check create permission
+        if not has_permission(db, current_user, "companies.create"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to create companies"
+            )
 
         try:
             # Delegate to service
@@ -158,24 +186,26 @@ class CompanyController:
         Raises:
             HTTPException: If company not found, user doesn't have permission, or update fails
         """
-        # TODO: Add permission check when companies.edit permission is added to database
-        # if not has_permission(db, current_user, "companies.edit"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to update companies"
-        #     )
-
         try:
-            # Delegate to service
+            # Get existing company first to check permissions
             service = CompanyService(db)
-            company = service.update_company(company_id, company_data)
+            existing_company = service.get_company_by_id(company_id)
 
-            if not company:
+            if not existing_company:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Company with id {company_id} not found"
                 )
 
+            # Check edit permission
+            if not check_company_edit_permission(db, current_user, existing_company):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not authorized to update this company"
+                )
+
+            # Proceed with update
+            company = service.update_company(company_id, company_data)
             return company
 
         except HTTPException:
@@ -206,24 +236,26 @@ class CompanyController:
         Raises:
             HTTPException: If company not found, user doesn't have permission, or deletion fails
         """
-        # TODO: Add permission check when companies.delete permission is added to database
-        # if not has_permission(db, current_user, "companies.delete"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to delete companies"
-        #     )
-
         try:
-            # Delegate to service
+            # Get existing company first to check permissions
             service = CompanyService(db)
-            success = service.delete_company(company_id)
+            existing_company = service.get_company_by_id(company_id)
 
-            if not success:
+            if not existing_company:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Company with id {company_id} not found"
                 )
 
+            # Check delete permission
+            if not check_company_delete_permission(db, current_user, existing_company):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not authorized to delete this company"
+                )
+
+            # Proceed with deletion
+            success = service.delete_company(company_id)
             return {"message": "Company deleted successfully"}
 
         except HTTPException:
@@ -258,16 +290,29 @@ class CompanyController:
         Raises:
             HTTPException: If user doesn't have permission
         """
-        # TODO: Add permission check when companies.view permission is added to database
-        # if not has_permission(db, current_user, "companies.view"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to view companies"
-        #     )
+        # Check view permissions
+        can_view_all = has_permission(db, current_user, "companies.view_all")
+        can_view_own = has_permission(db, current_user, "companies.view_own")
 
-        # Delegate to service
+        if not can_view_all and not can_view_own:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view companies"
+            )
+
+        # Delegate to service with permission-based filtering
         service = CompanyService(db)
-        return service.search_companies(search_term, skip=skip, limit=limit)
+
+        if can_view_all:
+            return service.search_companies(search_term, skip=skip, limit=limit)
+        else:
+            # Filter to only owner's companies
+            return service.search_companies(
+                search_term,
+                skip=skip,
+                limit=limit,
+                owner_id=current_user.id
+            )
 
     @staticmethod
     def get_company_statistics(
@@ -287,13 +332,21 @@ class CompanyController:
         Raises:
             HTTPException: If user doesn't have permission
         """
-        # TODO: Add permission check when companies.view permission is added to database
-        # if not has_permission(db, current_user, "companies.view"):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not authorized to view company statistics"
-        #     )
+        # Check view permissions
+        can_view_all = has_permission(db, current_user, "companies.view_all")
+        can_view_own = has_permission(db, current_user, "companies.view_own")
+
+        if not can_view_all and not can_view_own:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view company statistics"
+            )
 
         # Delegate to service
         service = CompanyService(db)
-        return service.get_company_statistics()
+
+        if can_view_all:
+            return service.get_company_statistics()
+        else:
+            # Return statistics for only owner's companies
+            return service.get_company_statistics(owner_id=current_user.id)

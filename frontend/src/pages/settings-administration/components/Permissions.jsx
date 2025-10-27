@@ -56,6 +56,19 @@ const Permissions = () => {
       ]
     },
     {
+      category: 'Company Management',
+      items: [
+        { name: 'View All Companies', key: 'companies.view_all' },
+        { name: 'View Own Companies', key: 'companies.view_own' },
+        { name: 'Create Companies', key: 'companies.create' },
+        { name: 'Edit All Companies', key: 'companies.edit_all' },
+        { name: 'Edit Own Companies', key: 'companies.edit_own' },
+        { name: 'Delete All Companies', key: 'companies.delete_all' },
+        { name: 'Delete Own Companies', key: 'companies.delete_own' },
+        { name: 'Import/Export Companies', key: 'companies.import_export' }
+      ]
+    },
+    {
       category: 'Activity Management',
       items: [
         { name: 'View All Activities', key: 'activities.view_all' },

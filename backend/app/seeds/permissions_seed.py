@@ -75,6 +75,24 @@ def get_all_permissions():
         {"name": "contacts.export", "display_name": "Export Contacts",
             "description": "Export contacts to CSV/Excel", "category": "Contacts"},
 
+        # Company Permissions
+        {"name": "companies.view_all", "display_name": "View All Companies",
+            "description": "View all companies in the system", "category": "Companies"},
+        {"name": "companies.view_own", "display_name": "View Own Companies",
+            "description": "View only own companies", "category": "Companies"},
+        {"name": "companies.create", "display_name": "Create Companies",
+            "description": "Create new companies", "category": "Companies"},
+        {"name": "companies.edit_all", "display_name": "Edit All Companies",
+            "description": "Edit any company in the system", "category": "Companies"},
+        {"name": "companies.edit_own", "display_name": "Edit Own Companies",
+            "description": "Edit only own companies", "category": "Companies"},
+        {"name": "companies.delete_all", "display_name": "Delete All Companies",
+            "description": "Delete any company", "category": "Companies"},
+        {"name": "companies.delete_own", "display_name": "Delete Own Companies",
+            "description": "Delete only own companies", "category": "Companies"},
+        {"name": "companies.import_export", "display_name": "Import/Export Companies",
+            "description": "Import and export companies to CSV/JSON", "category": "Companies"},
+
         # Activity Permissions
         {"name": "activities.view_all", "display_name": "View All Activities",
             "description": "View all activities in the system", "category": "Activities"},
@@ -128,6 +146,7 @@ def get_default_role_permissions():
             "analytics.view_personal", "analytics.view_team", "analytics.export",
             "deals.view_all", "deals.view_own", "deals.create", "deals.edit_all", "deals.edit_own", "deals.delete_all", "deals.delete_own", "deals.move_stages", "deals.export",
             "contacts.view_all", "contacts.view_own", "contacts.create", "contacts.edit_all", "contacts.edit_own", "contacts.delete_all", "contacts.delete_own", "contacts.import", "contacts.export",
+            "companies.view_all", "companies.view_own", "companies.create", "companies.edit_all", "companies.edit_own", "companies.delete_all", "companies.delete_own", "companies.import_export",
             "activities.view_all", "activities.view_own", "activities.create_all", "activities.create_own", "activities.edit_all", "activities.edit_own", "activities.delete_all", "activities.delete_own", "activities.export",
             "settings.user_management", "settings.integrations", "settings.custom_fields", "settings.email_templates",
             "settings.view_profile", "settings.edit_profile"
@@ -138,6 +157,7 @@ def get_default_role_permissions():
             "analytics.view_personal",
             "deals.view_own", "deals.create", "deals.edit_own", "deals.move_stages",
             "contacts.view_own", "contacts.create", "contacts.edit_own",
+            "companies.view_own", "companies.create", "companies.edit_own",
             "activities.view_own", "activities.create_own", "activities.edit_own", "activities.delete_own",
             "settings.email_templates", "settings.view_profile", "settings.edit_profile"
         ],
@@ -146,6 +166,7 @@ def get_default_role_permissions():
             "dashboard.view_stats", "dashboard.pipeline_view",
             "deals.view_own",
             "contacts.view_own",
+            "companies.view_own",
             "activities.view_own",
             "settings.view_profile", "settings.edit_profile"
         ]

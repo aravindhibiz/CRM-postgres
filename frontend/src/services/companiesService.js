@@ -3,10 +3,17 @@ import apiClient from '../lib/apiClient';
 export const companiesService = {
   // Get all companies (public read access)
   async getAllCompanies() {
-    const { data, error } = await apiClient.get('/api/v1/companies');
+    console.log('DEBUG: companiesService.getAllCompanies() called');
+    try {
+      const { data, error } = await apiClient.get('/api/v1/companies');
+      console.log('DEBUG: getAllCompanies response - data:', data, 'error:', error);
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('DEBUG: getAllCompanies error:', error);
+      throw error;
+    }
   },
 
   // Get a specific company by ID
@@ -64,7 +71,7 @@ export const companiesService = {
 
   // Search companies
   async searchCompanies(searchQuery) {
-    const { data, error } = await apiClient.get(`/api/v1/companies?search=${encodeURIComponent(searchQuery)}`);
+    const { data, error } = await apiClient.get(`/api/v1/companies/search?q=${encodeURIComponent(searchQuery)}`);
 
     if (error) throw error;
     return data || [];
@@ -80,40 +87,50 @@ export const companiesService = {
 
   // Get company statistics
   async getCompanyStats() {
-    const { data, error } = await apiClient.get('/api/v1/companies/stats');
+    console.log('DEBUG: companiesService.getCompanyStats() called');
+    try {
+      const { data, error } = await apiClient.get('/api/v1/companies/statistics');
+      console.log('DEBUG: getCompanyStats response - data:', data, 'error:', error);
 
-    if (error) {
-      // Fallback: calculate stats from all companies
-      const companies = await this.getAllCompanies();
+      if (error) {
+        console.log('DEBUG: getCompanyStats API failed, using fallback');
+        // Fallback: calculate stats from all companies
+        const companies = await this.getAllCompanies();
 
-      const stats = {
-        total: companies.length || 0,
-        industries: {},
-        sizes: {},
-        recentlyAdded: companies.filter(company => {
-          const createdAt = new Date(company.created_at);
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          return createdAt > thirtyDaysAgo;
-        }).length
-      };
+        const stats = {
+          total: companies.length || 0,
+          industries: {},
+          sizes: {},
+          recentlyAdded: companies.filter(company => {
+            const createdAt = new Date(company.created_at);
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return createdAt > thirtyDaysAgo;
+          }).length
+        };
 
-      // Count by industry
-      companies.forEach(company => {
-        const industry = company.industry || 'unknown';
-        stats.industries[industry] = (stats.industries[industry] || 0) + 1;
-      });
+        // Count by industry
+        companies.forEach(company => {
+          const industry = company.industry || 'unknown';
+          stats.industries[industry] = (stats.industries[industry] || 0) + 1;
+        });
 
-      // Count by size
-      companies.forEach(company => {
-        const size = company.size || 'unknown';
-        stats.sizes[size] = (stats.sizes[size] || 0) + 1;
-      });
+        // Count by size
+        companies.forEach(company => {
+          const size = company.size || 'unknown';
+          stats.sizes[size] = (stats.sizes[size] || 0) + 1;
+        });
 
-      return stats;
+        console.log('DEBUG: getCompanyStats fallback result:', stats);
+        return stats;
+      }
+
+      console.log('DEBUG: getCompanyStats success result:', data);
+      return data;
+    } catch (error) {
+      console.error('DEBUG: getCompanyStats error:', error);
+      throw error;
     }
-
-    return data;
   },
 
   // Get companies with enriched data

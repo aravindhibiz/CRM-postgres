@@ -1,7 +1,11 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from datetime import datetime
 import uuid
+
+if TYPE_CHECKING:
+    from .contact import ContactResponse
+    from .deal import DealResponse
 
 
 class CompanyBase(BaseModel):
@@ -46,6 +50,19 @@ class CompanyResponse(CompanyBase):
     created_at: datetime
     updated_at: datetime
     custom_fields: Optional[Dict[str, Any]] = None
+    contacts: Optional[List[Dict[str, Any]]] = None
+    deals: Optional[List[Dict[str, Any]]] = None
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+# Lightweight company response without relationships (for nested responses)
+class CompanyBasicResponse(CompanyBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

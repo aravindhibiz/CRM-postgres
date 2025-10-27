@@ -78,12 +78,17 @@ def search_companies(
     current_user: UserProfile = Depends(get_current_user)
 ):
     """
-    Search companies by name.
+    Search companies by multiple fields including name, industry, location, and size.
 
     **Required Permission:** companies:view
 
-    Performs a case-insensitive search on company names.
-    Use this endpoint for autocomplete or search features.
+    Performs a case-insensitive search across multiple company fields:
+    - Company name
+    - Industry
+    - Location (city, state, country)
+    - Company size
+    
+    Use this endpoint for comprehensive search functionality.
     """
     return CompanyController.search_companies(
         search_term=q,

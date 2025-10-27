@@ -10,6 +10,7 @@ import Register from "pages/register";
 import SalesDashboard from "pages/sales-dashboard";
 import DealManagement from "pages/deal-management";
 import ContactManagement from "pages/contact-management";
+import CompanyManagement from "pages/company-management";
 import PipelineAnalytics from "pages/pipeline-analytics";
 import ActivityTimeline from "pages/activity-timeline";
 import SettingsAdministration from "pages/settings-administration";
@@ -97,6 +98,22 @@ const Routes = () => {
             element={
               <ProtectedRoute requiredPermission="contacts.view_own">
                 <ContactManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company-management"
+            element={
+              <ProtectedRoute requiredPermission="companies.view_own">
+                <CompanyManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company-management/:companyId"
+            element={
+              <ProtectedRoute requiredPermission="companies.view_own">
+                <CompanyManagement />
               </ProtectedRoute>
             }
           />

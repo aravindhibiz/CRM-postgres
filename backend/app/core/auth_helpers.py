@@ -89,6 +89,65 @@ def get_contacts_query_filter(db: Session, current_user: UserProfile, base_query
         return base_query.filter(Contact.owner_id == current_user.id)
 
 
+def get_companies_query_filter(db: Session, current_user: UserProfile, base_query):
+    """
+    Apply permission-based filtering to companies query
+
+    Returns filtered query based on user's permissions:
+    - companies.view_all: Can see all companies
+    - companies.view_own: Can only see own companies
+    """
+    can_view_all = has_permission(db, current_user, "companies.view_all")
+    can_view_own = has_permission(db, current_user, "companies.view_own")
+
+    if not can_view_all and not can_view_own:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. You don't have permission to view companies."
+        )
+
+    if can_view_all:
+        return base_query
+    else:
+        # Filter to own companies only
+        from ..models.company import Company
+        return base_query.filter(Company.owner_id == current_user.id)
+
+
+def check_company_edit_permission(
+    db: Session,
+    current_user: UserProfile,
+    company
+) -> bool:
+    """Check if user can edit a specific company"""
+    # Check if user has edit_all permission
+    if has_permission(db, current_user, "companies.edit_all"):
+        return True
+
+    # Check if user has edit_own permission and owns the company
+    if has_permission(db, current_user, "companies.edit_own") and str(current_user.id) == str(company.owner_id):
+        return True
+
+    return False
+
+
+def check_company_delete_permission(
+    db: Session,
+    current_user: UserProfile,
+    company
+) -> bool:
+    """Check if user can delete a specific company"""
+    # Check if user has delete_all permission
+    if has_permission(db, current_user, "companies.delete_all"):
+        return True
+
+    # Check if user has delete_own permission and owns the company
+    if has_permission(db, current_user, "companies.delete_own") and str(current_user.id) == str(company.owner_id):
+        return True
+
+    return False
+
+
 def check_contact_edit_permission(
     db: Session,
     current_user: UserProfile,

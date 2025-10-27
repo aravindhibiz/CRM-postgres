@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
@@ -171,8 +172,23 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
               </h2>
               <div className="flex items-center text-text-secondary">
                 <span>{contact?.position || 'No position'}</span>
-                <span className="mx-2">•</span>
-                <span>{contact?.company?.name || 'No Company'}</span>
+                {contact?.company && (
+                  <>
+                    <span className="mx-2">•</span>
+                    {contact?.company_id ? (
+                      <Link
+                        to={`/company-management/${contact.company_id}`}
+                        className="text-primary hover:underline flex items-center space-x-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Icon name="Building2" size={14} />
+                        <span>{contact.company.name}</span>
+                      </Link>
+                    ) : (
+                      <span>{contact.company.name}</span>
+                    )}
+                  </>
+                )}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {contact?.tags?.map((tag, index) => (

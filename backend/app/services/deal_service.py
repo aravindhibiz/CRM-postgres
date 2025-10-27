@@ -21,6 +21,9 @@ from ..schemas.deal import (
     DealResponse,
     DealWithRelations
 )
+from ..schemas.user import UserResponse
+from ..schemas.contact import ContactResponse
+from ..schemas.company import CompanyBasicResponse
 from .custom_field_service import CustomFieldService
 
 
@@ -831,6 +834,66 @@ class DealService:
                 entity_type=EntityType.DEAL
             )
 
+        # Serialize owner properly
+        owner_data = None
+        if deal.owner:
+            owner_data = UserResponse(
+                id=deal.owner.id,
+                email=deal.owner.email,
+                first_name=deal.owner.first_name,
+                last_name=deal.owner.last_name,
+                avatar_url=deal.owner.avatar_url,
+                is_active=deal.owner.is_active,
+                created_at=deal.owner.created_at,
+                updated_at=deal.owner.updated_at,
+                role=deal.owner.role if hasattr(deal.owner, 'role') else None,
+                phone=deal.owner.phone if hasattr(deal.owner, 'phone') else None
+            )
+
+        # Serialize contact properly
+        contact_data = None
+        if deal.contact:
+            contact_data = ContactResponse(
+                id=deal.contact.id,
+                first_name=deal.contact.first_name,
+                last_name=deal.contact.last_name,
+                email=deal.contact.email,
+                phone=deal.contact.phone,
+                mobile=deal.contact.mobile,
+                position=deal.contact.position,
+                status=deal.contact.status,
+                notes=deal.contact.notes,
+                social_linkedin=deal.contact.social_linkedin,
+                social_twitter=deal.contact.social_twitter,
+                company_id=deal.contact.company_id,
+                owner_id=deal.contact.owner_id,
+                created_at=deal.contact.created_at,
+                updated_at=deal.contact.updated_at,
+                custom_fields=None  # Don't load custom fields for nested objects
+            )
+
+        # Serialize company properly using CompanyBasicResponse to avoid circular refs
+        company_data = None
+        if deal.company:
+            company_data = CompanyBasicResponse(
+                id=deal.company.id,
+                name=deal.company.name,
+                industry=deal.company.industry,
+                size=deal.company.size,
+                website=deal.company.website,
+                phone=deal.company.phone,
+                email=deal.company.email,
+                address=deal.company.address,
+                city=deal.company.city,
+                state=deal.company.state,
+                zip_code=deal.company.zip_code,
+                country=deal.company.country,
+                description=deal.company.description,
+                revenue=deal.company.revenue,
+                created_at=deal.company.created_at,
+                updated_at=deal.company.updated_at
+            )
+
         return DealWithRelations(
             id=deal.id,
             name=deal.name,
@@ -849,7 +912,7 @@ class DealService:
             created_at=deal.created_at,
             updated_at=deal.updated_at,
             custom_fields=custom_fields_dict,
-            owner=deal.owner,
-            contact=deal.contact,
-            company=deal.company
+            owner=owner_data,
+            contact=contact_data,
+            company=company_data
         )

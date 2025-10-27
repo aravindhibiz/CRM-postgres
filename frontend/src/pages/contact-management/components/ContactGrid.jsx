@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import Icon from 'components/AppIcon';
 import Image from 'components/AppImage';
@@ -80,9 +81,19 @@ const ContactGrid = ({
             {contact?.company?.name && (
               <div className="flex items-center space-x-2">
                 <Icon name="Briefcase" size={14} className="text-text-tertiary flex-shrink-0" />
-                <span className="text-sm text-text-secondary truncate">
-                  {contact?.company?.name}
-                </span>
+                {contact?.company_id ? (
+                  <Link
+                    to={`/company-management/${contact.company_id}`}
+                    className="text-sm text-primary hover:underline truncate"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {contact.company.name}
+                  </Link>
+                ) : (
+                  <span className="text-sm text-text-secondary truncate">
+                    {contact.company.name}
+                  </span>
+                )}
               </div>
             )}
 

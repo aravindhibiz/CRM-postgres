@@ -5,7 +5,7 @@ from decimal import Decimal
 import uuid
 from .user import UserResponse
 from .contact import ContactResponse
-from .company import CompanyResponse
+from .company import CompanyBasicResponse
 
 
 class DealBase(BaseModel):
@@ -59,4 +59,4 @@ class DealResponse(DealBase):
 class DealWithRelations(DealResponse):
     owner: Optional[UserResponse] = None
     contact: Optional[ContactResponse] = None
-    company: Optional[CompanyResponse] = None
+    company: Optional[CompanyBasicResponse] = None

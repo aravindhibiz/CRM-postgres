@@ -28,6 +28,20 @@ class CompanyRepository(BaseRepository[Company]):
         """
         super().__init__(Company, db)
 
+    def count(self, owner_id: Optional[UUID] = None) -> int:
+        """
+        Count companies with optional owner filtering.
+
+        Args:
+            owner_id: Optional filter by owner ID
+
+        Returns:
+            Number of companies matching the criteria
+        """
+        if owner_id:
+            return super().count(filters={"owner_id": owner_id})
+        return super().count()
+
     def get_with_relations(self, company_id: UUID) -> Optional[Company]:
         """
         Retrieve a company with all its relationships loaded.
@@ -90,7 +104,8 @@ class CompanyRepository(BaseRepository[Company]):
         owner_id: UUID,
         *,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        load_relations: bool = True
     ) -> List[Company]:
         """
         Retrieve companies for a specific owner.
@@ -99,13 +114,22 @@ class CompanyRepository(BaseRepository[Company]):
             owner_id: UUID of the owner
             skip: Number of records to skip
             limit: Maximum number of records to return
+            load_relations: Whether to load related entities
 
         Returns:
             List of companies for the owner
         """
+        query = self.db.query(Company).filter(Company.owner_id == owner_id)
+
+        if load_relations:
+            query = query.options(
+                joinedload(Company.owner),
+                joinedload(Company.contacts),
+                joinedload(Company.deals)
+            )
+
         return (
-            self.db.query(Company)
-            .filter(Company.owner_id == owner_id)
+            query
             .order_by(asc(Company.name))
             .offset(skip)
             .limit(limit)
@@ -144,22 +168,52 @@ class CompanyRepository(BaseRepository[Company]):
         search_term: str,
         *,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        owner_id: Optional[UUID] = None,
+        load_relations: bool = True
     ) -> List[Company]:
         """
-        Search companies by name (case-insensitive partial match).
+        Search companies by multiple fields: name, industry, location (city/state/country), and size.
+        Uses case-insensitive partial matching across all fields.
 
         Args:
-            search_term: Search term to match against company names
+            search_term: Search term to match against multiple company fields
             skip: Number of records to skip
             limit: Maximum number of records to return
+            owner_id: Optional filter by owner ID
+            load_relations: Whether to load related entities
 
         Returns:
             List of matching companies
         """
+        from sqlalchemy import or_
+        
+        search_pattern = f"%{search_term}%"
+        
+        # Search across multiple fields: name, industry, city, state, country, size
+        query = self.db.query(Company).filter(
+            or_(
+                Company.name.ilike(search_pattern),
+                Company.industry.ilike(search_pattern),
+                Company.city.ilike(search_pattern),
+                Company.state.ilike(search_pattern),
+                Company.country.ilike(search_pattern),
+                Company.size.ilike(search_pattern)
+            )
+        )
+
+        if owner_id:
+            query = query.filter(Company.owner_id == owner_id)
+
+        if load_relations:
+            query = query.options(
+                joinedload(Company.owner),
+                joinedload(Company.contacts),
+                joinedload(Company.deals)
+            )
+
         return (
-            self.db.query(Company)
-            .filter(Company.name.ilike(f"%{search_term}%"))
+            query
             .order_by(asc(Company.name))
             .offset(skip)
             .limit(limit)
@@ -193,43 +247,51 @@ class CompanyRepository(BaseRepository[Company]):
             .all()
         )
 
-    def count_by_industry(self) -> dict:
+    def count_by_industry(self, owner_id: Optional[UUID] = None) -> dict:
         """
         Count companies grouped by industry.
+
+        Args:
+            owner_id: Optional filter by owner ID
 
         Returns:
             Dictionary of industry: count pairs
         """
         from sqlalchemy import func
 
-        results = (
-            self.db.query(
-                Company.industry,
-                func.count(Company.id).label('count')
-            )
-            .group_by(Company.industry)
-            .all()
+        query = self.db.query(
+            Company.industry,
+            func.count(Company.id).label('count')
         )
+
+        if owner_id:
+            query = query.filter(Company.owner_id == owner_id)
+
+        results = query.group_by(Company.industry).all()
 
         return {industry: count for industry, count in results if industry}
 
-    def count_by_size(self) -> dict:
+    def count_by_size(self, owner_id: Optional[UUID] = None) -> dict:
         """
         Count companies grouped by size.
+
+        Args:
+            owner_id: Optional filter by owner ID
 
         Returns:
             Dictionary of size: count pairs
         """
         from sqlalchemy import func
 
-        results = (
-            self.db.query(
-                Company.size,
-                func.count(Company.id).label('count')
-            )
-            .group_by(Company.size)
-            .all()
+        query = self.db.query(
+            Company.size,
+            func.count(Company.id).label('count')
         )
+
+        if owner_id:
+            query = query.filter(Company.owner_id == owner_id)
+
+        results = query.group_by(Company.size).all()
 
         return {size: count for size, count in results if size}
 
@@ -258,3 +320,25 @@ class CompanyRepository(BaseRepository[Company]):
             .limit(limit)
             .all()
         )
+
+    def count_recent(self, since_date, owner_id: Optional[UUID] = None) -> int:
+        """
+        Count companies created since a specific date.
+
+        Args:
+            since_date: Date to count from
+            owner_id: Optional filter by owner ID
+
+        Returns:
+            Number of companies created since the date
+        """
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(Company.id)).filter(
+            Company.created_at >= since_date
+        )
+
+        if owner_id:
+            query = query.filter(Company.owner_id == owner_id)
+
+        return query.scalar() or 0

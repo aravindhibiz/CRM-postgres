@@ -12,7 +12,9 @@ from ..models.contact import Contact
 from ..models.company import Company
 from ..models.custom_field import EntityType
 from ..models.user import UserProfile
-from ..schemas.contact import ContactCreate, ContactUpdate
+from ..schemas.contact import ContactCreate, ContactUpdate, ContactWithRelations
+from ..schemas.user import UserResponse
+from ..schemas.company import CompanyBasicResponse
 from ..services.custom_field_service import CustomFieldService
 
 
@@ -30,7 +32,7 @@ class ContactService:
         company_ids: Optional[List[UUID]] = None,
         owner_id: Optional[UUID] = None,
         sort_by_activity_count: bool = False
-    ) -> List[Contact]:
+    ) -> List[ContactWithRelations]:
         """
         Get all contacts with optional filters.
 
@@ -42,7 +44,7 @@ class ContactService:
             sort_by_activity_count: Whether to sort by activity count
 
         Returns:
-            List of contacts with relations
+            List of contacts with relations properly serialized
         """
         if sort_by_activity_count:
             # Return contacts with activity counts as dictionaries
@@ -54,12 +56,15 @@ class ContactService:
                 sort_by_activity_count=sort_by_activity_count
             )
         else:
-            return self.repository.search_contacts(
+            contacts = self.repository.search_contacts(
                 search_term=search,
                 status=status,
                 company_ids=company_ids,
                 owner_id=owner_id
             )
+
+            # Serialize contacts properly to avoid circular references
+            return [self._build_contact_response(contact) for contact in contacts]
 
     def get_contacts_for_activity_filters(self, current_user, activity_limit: int = 50) -> List[Dict[str, Any]]:
         """
@@ -155,7 +160,7 @@ class ContactService:
         """
         return self.repository.get_with_relations(contact_id)
 
-    def get_contact_with_custom_fields(self, contact_id: UUID) -> Optional[Dict[str, Any]]:
+    def get_contact_with_custom_fields(self, contact_id: UUID) -> Optional[ContactWithRelations]:
         """
         Get contact with custom fields populated.
 
@@ -163,82 +168,15 @@ class ContactService:
             contact_id: Contact UUID
 
         Returns:
-            Dictionary with contact data and custom fields
+            ContactWithRelations schema with contact data and custom fields
         """
         contact = self.repository.get_with_relations(contact_id)
 
         if not contact:
             return None
 
-        # Get custom fields
-        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
-            db=self.db,
-            entity_id=str(contact.id),
-            entity_type=EntityType.CONTACT
-        )
-
-        # Serialize company data properly
-        company_data = None
-        if contact.company:
-            company_data = {
-                "id": contact.company.id,
-                "name": contact.company.name,
-                "industry": contact.company.industry,
-                "size": contact.company.size,
-                "website": contact.company.website,
-                "phone": contact.company.phone,
-                "email": contact.company.email,
-                "address": contact.company.address,
-                "city": contact.company.city,
-                "state": contact.company.state,
-                "zip_code": contact.company.zip_code,
-                "country": contact.company.country,
-                "description": contact.company.description,
-                "revenue": contact.company.revenue,
-                "created_at": contact.company.created_at,
-                "updated_at": contact.company.updated_at
-            }
-
-        # Serialize owner data properly
-        owner_data = None
-        if contact.owner:
-            owner_data = {
-                "id": contact.owner.id,
-                "email": contact.owner.email,
-                "first_name": contact.owner.first_name,
-                "last_name": contact.owner.last_name,
-                "avatar_url": contact.owner.avatar_url,
-                "is_active": contact.owner.is_active,
-                "created_at": contact.owner.created_at,
-                "updated_at": contact.owner.updated_at,
-                "role": contact.owner.role if hasattr(contact.owner, 'role') else None,
-                "phone": contact.owner.phone if hasattr(contact.owner, 'phone') else None
-            }
-
-        # Build response dictionary
-        return {
-            "id": contact.id,
-            "first_name": contact.first_name,
-            "last_name": contact.last_name,
-            "email": contact.email,
-            "phone": contact.phone,
-            "mobile": contact.mobile,
-            "position": contact.position,
-            "status": contact.status,
-            "notes": contact.notes,
-            "social_linkedin": contact.social_linkedin,
-            "social_twitter": contact.social_twitter,
-            "company_id": contact.company_id,
-            "owner_id": contact.owner_id,
-            "created_at": contact.created_at,
-            "updated_at": contact.updated_at,
-            "custom_fields": custom_fields_dict if custom_fields_dict else None,
-            "owner": owner_data,
-            "company": company_data,
-            "deals": contact.deals,
-            "activities": contact.activities,
-            "tasks": contact.tasks
-        }
+        # Use the helper method to build properly serialized response
+        return self._build_contact_response(contact)
 
     def create_contact(
         self,
@@ -473,3 +411,80 @@ class ContactService:
             Dictionary with statistics
         """
         return self.repository.count_by_status(owner_id)
+
+    def _build_contact_response(self, contact: Contact) -> ContactWithRelations:
+        """
+        Build a properly serialized ContactWithRelations response.
+
+        Args:
+            contact: Contact model instance
+
+        Returns:
+            ContactWithRelations schema
+        """
+        # Get custom fields
+        custom_fields_dict = CustomFieldService.get_entity_custom_fields_dict(
+            db=self.db,
+            entity_id=str(contact.id),
+            entity_type=EntityType.CONTACT
+        )
+
+        # Serialize owner properly
+        owner_data = None
+        if contact.owner:
+            owner_data = UserResponse(
+                id=contact.owner.id,
+                email=contact.owner.email,
+                first_name=contact.owner.first_name,
+                last_name=contact.owner.last_name,
+                avatar_url=contact.owner.avatar_url,
+                is_active=contact.owner.is_active,
+                created_at=contact.owner.created_at,
+                updated_at=contact.owner.updated_at,
+                role=contact.owner.role if hasattr(contact.owner, 'role') else None,
+                phone=contact.owner.phone if hasattr(contact.owner, 'phone') else None
+            )
+
+        # Serialize company properly using CompanyBasicResponse to avoid circular refs
+        company_data = None
+        if contact.company:
+            company_data = CompanyBasicResponse(
+                id=contact.company.id,
+                name=contact.company.name,
+                industry=contact.company.industry,
+                size=contact.company.size,
+                website=contact.company.website,
+                phone=contact.company.phone,
+                email=contact.company.email,
+                address=contact.company.address,
+                city=contact.company.city,
+                state=contact.company.state,
+                zip_code=contact.company.zip_code,
+                country=contact.company.country,
+                description=contact.company.description,
+                revenue=contact.company.revenue,
+                created_at=contact.company.created_at,
+                updated_at=contact.company.updated_at
+            )
+
+        # Build ContactWithRelations response
+        return ContactWithRelations(
+            id=contact.id,
+            first_name=contact.first_name,
+            last_name=contact.last_name,
+            email=contact.email,
+            phone=contact.phone,
+            mobile=contact.mobile,
+            position=contact.position,
+            status=contact.status,
+            notes=contact.notes,
+            social_linkedin=contact.social_linkedin,
+            social_twitter=contact.social_twitter,
+            company_id=contact.company_id,
+            owner_id=contact.owner_id,
+            created_at=contact.created_at,
+            updated_at=contact.updated_at,
+            custom_fields=custom_fields_dict,
+            owner=owner_data,
+            company=company_data
+        )
