@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours instead of 30 minutes
 
     # Frontend URL for OAuth redirects
     FRONTEND_URL: str = "http://localhost:3000"

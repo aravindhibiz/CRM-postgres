@@ -108,8 +108,11 @@ class ApiClient {
         role: userData.role || 'sales_rep',
       });
 
-      const { user } = response.data;
+      const { access_token, user } = response.data;
+      this.setToken(access_token);
+      this.setCurrentUser(user);
 
+      console.log('Registration successful, token set:', access_token ? 'Yes' : 'No');
       return { user, error: null };
     } catch (error) {
       const errorMessage = error.response?.data?.detail || 'Registration failed';

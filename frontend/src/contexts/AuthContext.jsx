@@ -102,6 +102,8 @@ export const AuthProvider = ({ children }) => {
       if (user) {
         setUser(user)
         setUserProfile(user)
+        // Load permissions after successful registration
+        await loadUserPermissions()
         return { user, userProfile: user }
       }
     } catch (error) {
