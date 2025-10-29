@@ -164,36 +164,60 @@ const DealDetailView = ({ deal, contacts, companies, stages, onEdit }) => {
         </div>
 
         {/* Custom Fields */}
-        {deal?.custom_fields && Object.keys(deal.custom_fields).length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary mb-4">Custom Fields</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(deal.custom_fields).map(([key, value]) => {
-                // Handle different value types
-                let displayValue = 'N/A';
-                if (value !== null && value !== undefined) {
-                  if (typeof value === 'object') {
-                    // If it's an object with a 'value' property, use that
-                    displayValue = value.value || JSON.stringify(value);
-                  } else {
-                    displayValue = String(value);
-                  }
-                }
+        {deal?.custom_fields && Object.keys(deal.custom_fields).length > 0 && (() => {
+          // Filter and process custom fields to only show those with actual values
+          const validCustomFields = Object.entries(deal.custom_fields)
+            .map(([key, value]) => {
+              // Handle different value types
+              let displayValue = null;
+              let fieldName = key;
 
-                return (
+              if (value !== null && value !== undefined) {
+                if (typeof value === 'object') {
+                  // If it's an object with a 'value' property, use that
+                  const actualValue = value.value;
+
+                  // Use field_name if available, otherwise use the key
+                  if (value.field_name) {
+                    fieldName = value.field_name;
+                  }
+
+                  // Only set display value if there's an actual value
+                  if (actualValue !== null && actualValue !== undefined && actualValue !== '') {
+                    displayValue = String(actualValue);
+                  }
+                } else if (value !== '') {
+                  displayValue = String(value);
+                }
+              }
+
+              return displayValue ? { key, fieldName, displayValue } : null;
+            })
+            .filter(field => field !== null);
+
+          // Only render the section if there are valid custom fields to display
+          if (validCustomFields.length === 0) {
+            return null;
+          }
+
+          return (
+            <div>
+              <h3 className="text-lg font-semibold text-text-primary mb-4">Custom Fields</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {validCustomFields.map(({ key, fieldName, displayValue }) => (
                   <div key={key}>
                     <label className="block text-sm font-medium text-text-secondary mb-2">
-                      {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      {fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </label>
                     <p className="text-text-primary text-base">
                       {displayValue}
                     </p>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Metadata */}
         <div className="pt-4 border-t border-border">

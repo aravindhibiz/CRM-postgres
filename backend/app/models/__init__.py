@@ -1,5 +1,6 @@
 # Import all models so SQLAlchemy can create proper relationships
 from .user import UserProfile
+from .password_reset_token import PasswordResetToken
 from .contact import Contact
 from .company import Company
 from .deal import Deal
@@ -13,7 +14,7 @@ from .integration import Integration, IntegrationLog, IntegrationWebhook
 from .note import Note
 from .system_config import SystemConfiguration
 
-__all__ = ['UserProfile', 'Contact', 'Company',
+__all__ = ['UserProfile', 'PasswordResetToken', 'Contact', 'Company',
            'Deal', 'Activity', 'Task', 'DealDocument',
            'CustomField', 'CustomFieldValue', 'FieldType', 'EntityType', 'PlacementType',
            'Role', 'Permission',

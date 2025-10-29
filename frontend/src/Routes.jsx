@@ -7,6 +7,8 @@ import ProtectedRoute from "components/ProtectedRoute";
 // Page imports
 import Login from "pages/login";
 import Register from "pages/register";
+import ForgotPassword from "pages/forgot-password";
+import ResetPassword from "pages/reset-password";
 import SalesDashboard from "pages/sales-dashboard";
 import DealManagement from "pages/deal-management";
 import ContactManagement from "pages/contact-management";
@@ -45,6 +47,8 @@ const Routes = () => {
         <RouterRoutes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Login />} />
           
           {/* Debug Route - Remove in production */}

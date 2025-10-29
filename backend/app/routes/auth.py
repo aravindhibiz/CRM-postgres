@@ -7,7 +7,13 @@ from ..core.security import create_access_token, verify_password, get_password_h
 from ..core.config import settings
 from ..core.auth import get_current_user, get_user_permissions
 from ..models.user import UserProfile
-from ..schemas.user import UserCreate, UserLogin, Token, UserResponse
+from ..models.password_reset_token import PasswordResetToken
+from ..schemas.user import (
+    UserCreate, UserLogin, Token, UserResponse,
+    ForgotPasswordRequest, ForgotPasswordResponse,
+    ResetPasswordRequest, ResetPasswordResponse
+)
+from ..services.sendgrid_service import get_sendgrid_service
 
 router = APIRouter()
 
@@ -108,4 +114,222 @@ async def get_my_permissions(
         "permissions": permissions,
         "permissions_by_category": permissions_by_category,
         "role": current_user.role
+    }
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Request a password reset token.
+    Sends an email with a reset link to the user.
+    """
+    # Find user by email
+    user = db.query(UserProfile).filter(UserProfile.email == request.email).first()
+
+    # Always return success to prevent email enumeration attacks
+    # Don't reveal if the email exists or not
+    if not user:
+        return {
+            "message": "If an account exists with this email, you will receive a password reset link shortly.",
+            "email": request.email
+        }
+
+    # Check if user is active
+    if not user.is_active:
+        return {
+            "message": "If an account exists with this email, you will receive a password reset link shortly.",
+            "email": request.email
+        }
+
+    # Invalidate any existing tokens for this user
+    existing_tokens = db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.is_used == False
+    ).all()
+    for token in existing_tokens:
+        token.is_used = True
+
+    # Generate new reset token
+    reset_token = PasswordResetToken(
+        user_id=user.id,
+        token=PasswordResetToken.generate_token(),
+        expires_at=PasswordResetToken.get_expiration_time(hours=1)
+    )
+
+    db.add(reset_token)
+    db.commit()
+    db.refresh(reset_token)
+
+    # Send password reset email
+    try:
+        print(f"\n{'='*60}")
+        print(f"🔐 Password Reset Request")
+        print(f"User: {user.email} ({user.first_name} {user.last_name})")
+        print(f"Token: {reset_token.token}")
+        print(f"{'='*60}\n")
+
+        sendgrid_service = get_sendgrid_service()
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        reset_link = f"{frontend_url}/reset-password?token={reset_token.token}"
+
+        print(f"Reset link: {reset_link}")
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .button {{ display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+                .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Password Reset Request</h1>
+                </div>
+                <div class="content">
+                    <p>Hello {user.first_name},</p>
+                    <p>We received a request to reset your password for your SalesForce Lite account.</p>
+                    <p>Click the button below to reset your password:</p>
+                    <p style="text-align: center;">
+                        <a href="{reset_link}" class="button">Reset Password</a>
+                    </p>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="word-break: break-all; background: white; padding: 10px; border-radius: 5px;">{reset_link}</p>
+                    <p><strong>This link will expire in 1 hour.</strong></p>
+                    <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
+                    <p>Best regards,<br>The SalesForce Lite Team</p>
+                </div>
+                <div class="footer">
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        sendgrid_service.send_email(
+            from_email="aravind@hibizsolutions.com",
+            to_email=user.email,
+            subject="Reset Your Password - SalesForce Lite",
+            html_content=html_content
+        )
+    except Exception as e:
+        print(f"Failed to send password reset email: {str(e)}")
+        # Don't fail the request if email sending fails
+        # User can still use the token if they have it
+
+    return {
+        "message": "If an account exists with this email, you will receive a password reset link shortly.",
+        "email": request.email
+    }
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password using a valid reset token.
+    """
+    # Find the reset token
+    reset_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == request.token
+    ).first()
+
+    if not reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    # Validate the token
+    if not reset_token.is_valid():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    # Get the user
+    user = db.query(UserProfile).filter(UserProfile.id == reset_token.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Validate password strength (at least 5 characters)
+    if len(request.new_password) < 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 5 characters long"
+        )
+
+    # Update user's password
+    user.hashed_password = get_password_hash(request.new_password)
+
+    # Mark token as used
+    reset_token.mark_as_used()
+
+    db.commit()
+
+    # Send confirmation email (optional)
+    try:
+        sendgrid_service = get_sendgrid_service()
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .success {{ background: #4caf50; color: white; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; }}
+                .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Password Reset Successful</h1>
+                </div>
+                <div class="content">
+                    <div class="success">
+                        <strong>✓ Your password has been successfully reset!</strong>
+                    </div>
+                    <p>Hello {user.first_name},</p>
+                    <p>This is a confirmation that your password for your SalesForce Lite account has been successfully changed.</p>
+                    <p>If you did not make this change, please contact your administrator immediately.</p>
+                    <p>Best regards,<br>The SalesForce Lite Team</p>
+                </div>
+                <div class="footer">
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        sendgrid_service.send_email(
+            from_email="aravind@hibizsolutions.com",
+            to_email=user.email,
+            subject="Password Changed Successfully - SalesForce Lite",
+            html_content=html_content
+        )
+    except Exception as e:
+        print(f"Failed to send password confirmation email: {str(e)}")
+
+    return {
+        "message": "Password has been reset successfully. You can now log in with your new password."
     }

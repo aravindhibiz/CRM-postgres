@@ -48,9 +48,28 @@ class Token(BaseModel):
 
 class UserInvite(BaseModel):
     email: EmailStr
-    first_name: str
-    last_name: str
-    role: str = "sales_rep"
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request schema for forgot password"""
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Response schema for forgot password"""
+    message: str
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request schema for reset password"""
+    token: str
+    new_password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    """Response schema for reset password"""
+    message: str
 
 
 class UserStats(BaseModel):
