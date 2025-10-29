@@ -268,7 +268,9 @@ export const dealsService = {
           total_value: totalValue,
           won_value: wonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0),
           pipeline_value: activeDeals.reduce((sum, deal) => sum + (deal.value || 0), 0),
-          conversion_rate: deals.length > 0 ? Math.round((wonDeals.length / deals.length) * 100 * 100) / 100 : 0
+          // Fix: Use only closed deals (won + lost) for conversion rate calculation
+          conversion_rate: (wonDeals.length + lostDeals.length) > 0 ? 
+            Math.round((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100 * 100) / 100 : 0
         };
       }
 
@@ -443,7 +445,8 @@ export const dealsService = {
         const achieved = wonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
         const quota = Math.max(achieved * 1.3, 500000); // Assume quota is 30% higher than achieved
         const avgDealSize = wonDeals.length > 0 ? achieved / wonDeals.length : 0;
-        const conversionRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
+        // Fix: Don't round conversion rate to maintain precision
+        const conversionRate = totalDeals > 0 ? ((wonDeals.length / totalDeals) * 100) : 0;
 
         return {
           achieved,

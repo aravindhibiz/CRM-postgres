@@ -33,7 +33,6 @@ const ContactManagement = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Load contacts data from Supabase
   const loadContacts = async () => {
     try {
       setLoading(true);

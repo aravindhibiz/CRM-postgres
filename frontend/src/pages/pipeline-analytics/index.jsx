@@ -135,7 +135,10 @@ const PipelineAnalytics = () => {
         const transformedPipeline = pipeline && typeof pipeline === 'object' 
           ? Object.values(pipeline).map(stage => ({
               name: stage?.title || 'Unknown Stage',
-              value: (stage?.deals || []).reduce((sum, deal) => sum + (deal?.value || 0), 0),
+              value: (stage?.deals || []).reduce((sum, deal) => {
+                const dealValue = typeof deal?.value === 'string' ? parseFloat(deal.value) : (deal?.value || 0);
+                return sum + (isNaN(dealValue) ? 0 : dealValue);
+              }, 0),
               count: (stage?.deals || []).length,
               deals: stage?.deals || [], // Keep deals for drill-down
               fill: stage?.id === 'lead' ? '#3B82F6' :
@@ -174,14 +177,23 @@ const PipelineAnalytics = () => {
         // 1. Calculate average deal size across ALL deals in pipeline
         // This gives a holistic view of average deal value regardless of stage
         const allDealsInPipeline = Object.values(pipeline).flatMap(stage => stage?.deals || []);
-        const totalPipelineValue = allDealsInPipeline.reduce((sum, deal) => sum + (deal?.value || 0), 0);
+        const totalPipelineValue = allDealsInPipeline.reduce((sum, deal) => {
+          const dealValue = typeof deal?.value === 'string' ? parseFloat(deal.value) : (deal?.value || 0);
+          return sum + (isNaN(dealValue) ? 0 : dealValue);
+        }, 0);
         const avgDealSizeAllDeals = allDealsInPipeline.length > 0 
           ? totalPipelineValue / allDealsInPipeline.length 
           : (performance?.avgDealSize || 0);
 
-        // 2. Get win rate from backend performance data
-        // Win Rate = (Won Deals / Total Closed Deals) * 100
-        const conversionRateValue = performance?.conversionRate || 0;
+        // 2. Calculate win rate from the same data source as Win Rate Analysis
+        // This ensures consistency between overview and detailed analysis
+        const calculateOverallWinRate = () => {
+          if (!winRate || winRate.length === 0) return 0;
+          const totalWon = winRate.reduce((sum, q) => sum + (q.won || 0), 0);
+          const totalClosed = winRate.reduce((sum, q) => sum + (q.total || 0), 0);
+          return totalClosed > 0 ? ((totalWon / totalClosed) * 100) : 0;
+        };
+        const conversionRateValue = calculateOverallWinRate();
 
         // 3. Calculate average sales cycle (days from created to close for won deals)
         const calculateSalesCycle = (deals) => {
@@ -219,7 +231,7 @@ const PipelineAnalytics = () => {
           },
           { 
             metric: 'Win Rate', 
-            value: `${conversionRateValue}%`,
+            value: `${conversionRateValue.toFixed(1)}%`,
             change: null,
             trend: conversionRateValue >= 50 ? 'up' : 'down'
           },

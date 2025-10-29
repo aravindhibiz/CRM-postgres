@@ -45,6 +45,7 @@ export const companiesService = {
       country: companyData.country || null,
       description: companyData.description || null,
       revenue: companyData.revenue || null,
+      custom_fields: companyData.custom_fields || undefined,
     };
 
     const { data, error } = await apiClient.post('/api/v1/companies', cleanCompanyData);
@@ -55,7 +56,25 @@ export const companiesService = {
 
   // Update a company
   async updateCompany(companyId, updates) {
-    const { data, error } = await apiClient.put(`/api/v1/companies/${companyId}`, updates);
+    // Ensure we pass all the fields properly, similar to create
+    const cleanUpdateData = {
+      name: updates.name,
+      industry: updates.industry || null,
+      size: updates.size || null,
+      website: updates.website || null,
+      phone: updates.phone || null,
+      email: updates.email || null,
+      address: updates.address || null,
+      city: updates.city || null,
+      state: updates.state || null,
+      zip_code: updates.zip_code || null,
+      country: updates.country || null,
+      description: updates.description || null,
+      revenue: updates.revenue || null,
+      custom_fields: updates.custom_fields || undefined,
+    };
+
+    const { data, error } = await apiClient.put(`/api/v1/companies/${companyId}`, cleanUpdateData);
 
     if (error) throw error;
     return data;

@@ -245,7 +245,10 @@ const SalesDashboard = () => {
 
   // Calculate pipeline totals
   const calculateStageTotal = (stage) => {
-    return stage?.deals?.reduce((total, deal) => total + (deal?.value || 0), 0) || 0;
+    return stage?.deals?.reduce((total, deal) => {
+      const dealValue = typeof deal?.value === 'string' ? parseFloat(deal.value) : (deal?.value || 0);
+      return total + (isNaN(dealValue) ? 0 : dealValue);
+    }, 0) || 0;
   };
 
   const calculateWeightedTotal = (stage) => {

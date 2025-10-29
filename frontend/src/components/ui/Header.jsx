@@ -100,7 +100,7 @@ const Header = () => {
                     <path d="M9 21V13H15V21" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span className="text-xl font-semibold text-text-primary font-heading">SalesForce Pro</span>
+                <span className="text-xl font-semibold text-text-primary font-heading">SalesForce Lite</span>
               </Link>
             </div>
 
@@ -211,7 +211,7 @@ const Header = () => {
                       <path d="M9 21V13H15V21" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  <span className="text-xl font-semibold text-text-primary font-heading">SalesForce Pro</span>
+                  <span className="text-xl font-semibold text-text-primary font-heading">SalesForce Lite</span>
                 </div>
                 <button
                   onClick={handleMobileMenuToggle}

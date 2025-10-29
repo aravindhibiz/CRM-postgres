@@ -793,7 +793,7 @@ class DealService:
         return DealResponse(
             id=deal.id,
             name=deal.name,
-            value=deal.value,
+            value=float(deal.value) if deal.value is not None else None,
             stage=deal.stage,
             probability=deal.probability,
             expected_close_date=deal.expected_close_date,
@@ -847,7 +847,8 @@ class DealService:
                 created_at=deal.owner.created_at,
                 updated_at=deal.owner.updated_at,
                 role=deal.owner.role if hasattr(deal.owner, 'role') else None,
-                phone=deal.owner.phone if hasattr(deal.owner, 'phone') else None
+                phone=deal.owner.phone if hasattr(
+                    deal.owner, 'phone') else None
             )
 
         # Serialize contact properly

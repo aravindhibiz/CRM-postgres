@@ -30,7 +30,6 @@ const CompanyManagement = () => {
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'split'
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -91,7 +90,7 @@ const CompanyManagement = () => {
   };
 
   useEffect(() => {
-    console.log('DEBUG: useEffect triggered - user:', user, 'searchQuery:', searchQuery, 'filters:', filters, 'activeTab:', activeTab, 'companyId:', companyId);
+    console.log('DEBUG: useEffect triggered - user:', user, 'searchQuery:', searchQuery, 'filters:', filters, 'companyId:', companyId);
     if (user) {
       console.log('DEBUG: User exists, loading companies and stats');
       loadCompanies();
@@ -99,15 +98,12 @@ const CompanyManagement = () => {
     } else {
       console.log('DEBUG: No user, skipping load');
     }
-  }, [user, searchQuery, filters, activeTab, companyId]);
+  }, [user, searchQuery, filters, companyId]);
 
   // Filter companies based on active tab
   const filteredCompanies = companies?.filter(company => {
-    if (activeTab === 'my') {
-      return company?.owner_id === user?.id;
-    }
-    // Add more tab filters as needed
-    return true; // 'all' tab
+    // Only show all companies since we removed "My Companies" tab
+    return true;
   });
 
   const handleCompanySelect = async (company) => {
@@ -162,14 +158,21 @@ const CompanyManagement = () => {
   };
 
   const handleSaveCompany = async (companyData) => {
+    console.log('handleSaveCompany called with:', companyData);
+    console.log('isEditingCompany:', isEditingCompany, 'selectedCompany:', selectedCompany);
+    
     try {
       if (isEditingCompany && selectedCompany?.id) {
+        console.log('Updating company with ID:', selectedCompany.id);
         const updated = await companiesService.updateCompany(selectedCompany.id, companyData);
+        console.log('Company updated successfully:', updated);
         toast.success('Company updated successfully!');
         setSelectedCompany(updated);
         setIsEditingCompany(false);
       } else {
+        console.log('Creating new company');
         const created = await companiesService.createCompany(companyData);
+        console.log('Company created successfully:', created);
         toast.success('Company created successfully!');
         setSelectedCompany(created);
         setIsAddingCompany(false);
@@ -367,30 +370,6 @@ const CompanyManagement = () => {
                   </button>
                 )}
               </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex items-center space-x-6 border-b border-border">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`pb-3 px-1 border-b-2 transition-colors ${
-                  activeTab === 'all'
-                    ? 'border-primary text-primary font-medium'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                All Companies
-              </button>
-              <button
-                onClick={() => setActiveTab('my')}
-                className={`pb-3 px-1 border-b-2 transition-colors ${
-                  activeTab === 'my'
-                    ? 'border-primary text-primary font-medium'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                My Companies
-              </button>
             </div>
           </div>
 

@@ -87,7 +87,7 @@ def search_companies(
     - Industry
     - Location (city, state, country)
     - Company size
-    
+
     Use this endpoint for comprehensive search functionality.
     """
     return CompanyController.search_companies(

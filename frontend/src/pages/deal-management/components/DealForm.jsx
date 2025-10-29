@@ -24,13 +24,9 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
     contact_id: '',
     company_id: '',
     lead_source: 'website',
-    next_step: '',
-    competitor_info: '',
-    tags: [],
     owner_id: user?.id || ''
   });
   const [errors, setErrors] = useState({});
-  const [newTag, setNewTag] = useState('');
 
   // Populate form when deal prop changes
   useEffect(() => {
@@ -51,9 +47,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         contact_id: deal?.contact_id || '',
         company_id: deal?.company_id || '',
         lead_source: deal?.lead_source || 'website',
-        next_step: deal?.next_step || '',
-        competitor_info: deal?.competitor_info || '',
-        tags: deal?.tags || [],
         owner_id: deal?.owner_id || user?.id || ''
       });
 
@@ -85,9 +78,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         contact_id: '',
         company_id: '',
         lead_source: 'website',
-        next_step: '',
-        competitor_info: '',
-        tags: [],
         owner_id: user?.id || ''
       });
       setCustomFieldValues({});
@@ -281,23 +271,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         return newErrors;
       });
     }
-  };
-
-  const addTag = () => {
-    if (newTag?.trim() && !formData?.tags?.includes(newTag?.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev?.tags || []), newTag?.trim()]
-      }));
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev?.tags?.filter(tag => tag !== tagToRemove) || []
-    }));
   };
 
   // Handle contact change and auto-populate company
@@ -525,76 +498,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
           className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
           placeholder="Describe the deal, requirements, and key details..."
         />
-      </div>
-
-      {/* Next Step and Competitor Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">
-            Next Step
-          </label>
-          <input
-            type="text"
-            value={formData?.next_step}
-            onChange={(e) => handleInputChange('next_step', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
-            placeholder="Schedule demo, send proposal, etc."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">
-            Competitor Information
-          </label>
-          <input
-            type="text"
-            value={formData?.competitor_info}
-            onChange={(e) => handleInputChange('competitor_info', e?.target?.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
-            placeholder="Competing against..."
-          />
-        </div>
-      </div>
-
-      {/* Tags */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-1">
-          Tags
-        </label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {formData?.tags?.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="ml-1 text-primary-600 hover:text-primary-800"
-              >
-                <Icon name="X" size={12} />
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={newTag}
-            onChange={(e) => setNewTag(e?.target?.value)}
-            onKeyPress={(e) => e?.key === 'Enter' && (e?.preventDefault(), addTag())}
-            className="flex-1 px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
-            placeholder="Add a tag and press Enter"
-          />
-          <button
-            type="button"
-            onClick={addTag}
-            className="px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-150"
-          >
-            Add
-          </button>
-        </div>
       </div>
 
       {/* Custom Fields */}

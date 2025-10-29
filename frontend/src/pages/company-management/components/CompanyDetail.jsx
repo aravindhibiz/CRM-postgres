@@ -73,17 +73,33 @@ const CompanyDetail = ({ company, onEdit, onDelete, onClose }) => {
   };
 
   const calculateDealMetrics = () => {
-    const totalValue = companyDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
-    const wonDeals = companyDeals.filter(deal => deal.stage === 'won').length;
-    const lostDeals = companyDeals.filter(deal => deal.stage === 'lost').length;
-    const activeDeals = companyDeals.filter(deal => !['won', 'lost'].includes(deal.stage)).length;
+    const totalValue = companyDeals.reduce((sum, deal) => {
+      // Ensure deal.value is treated as a number, handle string values from backend
+      const dealValue = typeof deal.value === 'string' ? parseFloat(deal.value) : (deal.value || 0);
+      return sum + (isNaN(dealValue) ? 0 : dealValue);
+    }, 0);
+    // Use correct stage values that match the backend: 'closed_won', 'closed_lost'
+    const wonDeals = companyDeals.filter(deal => 
+      deal.stage && deal.stage.toLowerCase() === 'closed_won'
+    ).length;
+    const lostDeals = companyDeals.filter(deal => 
+      deal.stage && deal.stage.toLowerCase() === 'closed_lost'
+    ).length;
+    const activeDeals = companyDeals.filter(deal => 
+      !deal.stage || !['closed_won', 'closed_lost'].includes(deal.stage.toLowerCase())
+    ).length;
+    
+    // Calculate win rate correctly: Won Deals / (Won + Lost) * 100
+    // Only include closed deals (won + lost), exclude active deals
+    const closedDeals = wonDeals + lostDeals;
+    const winRate = closedDeals > 0 ? ((wonDeals / closedDeals) * 100).toFixed(1) : 0;
 
     return {
       totalValue,
       wonDeals,
       lostDeals,
       activeDeals,
-      winRate: companyDeals.length > 0 ? ((wonDeals / companyDeals.length) * 100).toFixed(1) : 0
+      winRate
     };
   };
 

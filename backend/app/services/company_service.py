@@ -100,13 +100,15 @@ class CompanyService:
             )
 
         result = [
-            self._build_company_response(company, include_custom_fields=False, include_relations=True)
+            self._build_company_response(
+                company, include_custom_fields=False, include_relations=True)
             for company in companies
         ]
         print(f"DEBUG: get_all_companies returning {len(result)} companies")
         if result:
             sample = result[0]
-            print(f"DEBUG: Sample company '{sample.name}' - contacts: {len(sample.contacts) if sample.contacts else 0}, deals: {len(sample.deals) if sample.deals else 0}")
+            print(
+                f"DEBUG: Sample company '{sample.name}' - contacts: {len(sample.contacts) if sample.contacts else 0}, deals: {len(sample.deals) if sample.deals else 0}")
         return result
 
     def create_company(
@@ -265,10 +267,12 @@ class CompanyService:
         )
 
         result = [
-            self._build_company_response(company, include_custom_fields=False, include_relations=True)
+            self._build_company_response(
+                company, include_custom_fields=False, include_relations=True)
             for company in companies
         ]
-        print(f"DEBUG: search_companies returning {len(result)} companies for term '{search_term}' (searched name, industry, location, size)")
+        print(
+            f"DEBUG: search_companies returning {len(result)} companies for term '{search_term}' (searched name, industry, location, size)")
         return result
 
     def get_companies_by_industry(
@@ -315,30 +319,38 @@ class CompanyService:
             total_count = self.repository.count(owner_id=owner_id)
             by_industry = self.repository.count_by_industry(owner_id=owner_id)
             by_size = self.repository.count_by_size(owner_id=owner_id)
-            
-            print(f"DEBUG: Raw stats - total: {total_count}, industries: {by_industry}, sizes: {by_size}")
-            
+
+            print(
+                f"DEBUG: Raw stats - total: {total_count}, industries: {by_industry}, sizes: {by_size}")
+
             # Calculate recently added companies (last 30 days)
             from datetime import datetime, timedelta, timezone
             thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-            recently_added = self.repository.count_recent(since_date=thirty_days_ago, owner_id=owner_id)
+            recently_added = self.repository.count_recent(
+                since_date=thirty_days_ago, owner_id=owner_id)
 
             # Normalize size values to match frontend form standards
             normalized_sizes = {}
             for size_key, count in by_size.items():
                 # Map old/legacy size values to current standards
                 if size_key in ["Small (1-50)", "Small (10-50)"]:
-                    normalized_sizes["Small (1-50)"] = normalized_sizes.get("Small (1-50)", 0) + count
+                    normalized_sizes["Small (1-50)"] = normalized_sizes.get(
+                        "Small (1-50)", 0) + count
                 elif size_key in ["Medium (51-250)", "Medium (50-200)"]:
-                    normalized_sizes["Medium (51-250)"] = normalized_sizes.get("Medium (51-250)", 0) + count
+                    normalized_sizes["Medium (51-250)"] = normalized_sizes.get(
+                        "Medium (51-250)", 0) + count
                 elif size_key in ["Large (251-1000)", "Large (200+)"]:
-                    normalized_sizes["Large (251-1000)"] = normalized_sizes.get("Large (251-1000)", 0) + count
+                    normalized_sizes["Large (251-1000)"] = normalized_sizes.get(
+                        "Large (251-1000)", 0) + count
                 elif size_key == "Enterprise (1000+)":
-                    normalized_sizes["Enterprise (1000+)"] = normalized_sizes.get("Enterprise (1000+)", 0) + count
+                    normalized_sizes["Enterprise (1000+)"] = normalized_sizes.get(
+                        "Enterprise (1000+)", 0) + count
                 else:
                     # Handle any unexpected size values by putting them in the most appropriate category
-                    print(f"DEBUG: Unexpected size value '{size_key}' - mapping to Small")
-                    normalized_sizes["Small (1-50)"] = normalized_sizes.get("Small (1-50)", 0) + count
+                    print(
+                        f"DEBUG: Unexpected size value '{size_key}' - mapping to Small")
+                    normalized_sizes["Small (1-50)"] = normalized_sizes.get(
+                        "Small (1-50)", 0) + count
 
             result = {
                 "total": total_count,
@@ -346,7 +358,7 @@ class CompanyService:
                 "sizes": normalized_sizes,  # Use normalized size values
                 "recentlyAdded": recently_added  # Added this field for frontend
             }
-            
+
             print(f"DEBUG: Final statistics result: {result}")
             return result
         except Exception as e:
@@ -416,7 +428,7 @@ class CompanyService:
                         }
                         for deal in company.deals
                     ]
-                    
+
                 # TEMPORARY FIX: If this is AgriTech Solutions, add test data to verify frontend display
                 if company.name == "AgriTech Solutions" and (not contacts or not deals):
                     print(f"DEBUG: Adding test data for {company.name}")
@@ -456,9 +468,10 @@ class CompanyService:
                                 'probability': 60
                             }
                         ]
-                    
+
             except Exception as e:
-                print(f"ERROR loading relationships for company {company.name}: {e}")
+                print(
+                    f"ERROR loading relationships for company {company.name}: {e}")
                 contacts = None
                 deals = None
 

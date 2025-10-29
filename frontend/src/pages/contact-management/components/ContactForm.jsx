@@ -26,14 +26,11 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
     companyName: '', // Keep for new company creation
     status: 'prospect',
     lead_source: 'website',
-    notes: '',
-    tags: [],
     social_linkedin: '',
     social_twitter: '',
     owner_id: user?.id || ''
   });
   const [errors, setErrors] = useState({});
-  const [newTag, setNewTag] = useState('');
 
 
 
@@ -55,8 +52,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         companyName: '',
         status: contact?.status || 'prospect',
         lead_source: contact?.lead_source || 'website',
-        notes: contact?.notes || '',
-        tags: contact?.tags || [],
         social_linkedin: contact?.social_linkedin || '',
         social_twitter: contact?.social_twitter || '',
         owner_id: contact?.owner_id || user?.id || ''
@@ -216,23 +211,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         return newErrors;
       });
     }
-  };
-
-  const addTag = () => {
-    if (newTag?.trim() && !formData?.tags?.includes(newTag?.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev?.tags || []), newTag?.trim()]
-      }));
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev?.tags?.filter(tag => tag !== tagToRemove) || []
-    }));
   };
 
   const leadSources = [
@@ -434,47 +412,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         </div>
       </div>
 
-      {/* Tags */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-1">
-          Tags
-        </label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {formData?.tags?.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="ml-1 text-primary-600 hover:text-primary-800"
-              >
-                <Icon name="X" size={12} />
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={newTag}
-            onChange={(e) => setNewTag(e?.target?.value)}
-            onKeyPress={(e) => e?.key === 'Enter' && (e?.preventDefault(), addTag())}
-            className="flex-1 px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
-            placeholder="Add a tag and press Enter"
-          />
-          <button
-            type="button"
-            onClick={addTag}
-            className="px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-150"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-
       {/* Social Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -502,20 +439,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
             placeholder="https://twitter.com/johndoe"
           />
         </div>
-      </div>
-
-      {/* Notes */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-1">
-          Notes
-        </label>
-        <textarea
-          value={formData?.notes}
-          onChange={(e) => handleInputChange('notes', e?.target?.value)}
-          rows={4}
-          className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-tertiary focus:ring-primary focus:border-primary"
-          placeholder="Additional notes about this contact..."
-        />
       </div>
 
       {/* Custom Fields */}

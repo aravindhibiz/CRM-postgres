@@ -187,9 +187,9 @@ class CompanyRepository(BaseRepository[Company]):
             List of matching companies
         """
         from sqlalchemy import or_
-        
+
         search_pattern = f"%{search_term}%"
-        
+
         # Search across multiple fields: name, industry, city, state, country, size
         query = self.db.query(Company).filter(
             or_(

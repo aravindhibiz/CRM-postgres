@@ -6,13 +6,15 @@ Clean endpoint definitions using the controller layer.
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
+from io import BytesIO
 
 from ..controllers.deal_controller import DealController
 from ..schemas.deal import DealCreate, DealUpdate, DealResponse, DealWithRelations
 from ..schemas.deal_document import DealDocumentResponse
 from ..services.deal_document_service import DealDocumentService
+from ..services.file_storage_factory import get_file_storage_service
 from ..core.database import get_db
 from ..core.auth import get_current_user, require_any_authenticated
 from ..models.user import UserProfile
@@ -513,19 +515,47 @@ async def upload_deal_document(
     **Supported file types:** PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, images, etc.
     **Max file size:** 10MB
     """
-    # Check file size (10MB limit)
-    contents = await file.read()
-    if len(contents) > 10 * 1024 * 1024:  # 10MB
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File size exceeds 10MB limit"
+    try:
+        # Check file size (10MB limit)
+        contents = await file.read()
+        if len(contents) > 10 * 1024 * 1024:  # 10MB
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="File size exceeds 10MB limit"
+            )
+
+        # Reset file pointer for the service to use
+        await file.seek(0)
+
+        service = DealDocumentService(db)
+        document = await service.upload_document(deal_id, file, current_user)
+
+        # Convert to response format manually if needed
+        return DealDocumentResponse(
+            id=document.id,
+            name=document.name,
+            file_path=document.file_path,
+            file_size=document.file_size,
+            mime_type=document.mime_type,
+            deal_id=document.deal_id,
+            uploaded_by=document.uploaded_by,
+            created_at=document.created_at,
+            updated_at=document.updated_at
         )
 
-    # Reset file pointer
-    await file.seek(0)
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Log the actual error for debugging
+        import traceback
+        print(f"Upload error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
 
-    service = DealDocumentService(db)
-    return await service.upload_document(deal_id, file, current_user)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload document: {str(e)}"
+        )
 
 
 @router.get("/documents/{document_id}/download")
@@ -535,7 +565,7 @@ async def download_document(
     current_user: UserProfile = Depends(require_any_authenticated())
 ):
     """
-    Download a document by its ID.
+    Download a document by its ID from any storage backend.
 
     **Required Permission:** deals.view_own or deals.view_all
 
@@ -550,11 +580,32 @@ async def download_document(
             detail="Document not found"
         )
 
-    return FileResponse(
-        path=document.file_path,
-        filename=document.name,
-        media_type=document.mime_type or "application/octet-stream"
-    )
+    # Get storage service and download file
+    storage_service = get_file_storage_service()
+
+    try:
+        file_content = storage_service.download_file(document.file_path)
+
+        # Create a BytesIO object for streaming
+        file_stream = BytesIO(file_content)
+
+        # Return as streaming response
+        return StreamingResponse(
+            iter([file_content]),
+            media_type=document.mime_type or "application/octet-stream",
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{document.name}\""
+            }
+        )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404 from storage service)
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download document: {str(e)}"
+        )
 
 
 @router.delete("/documents/{document_id}")

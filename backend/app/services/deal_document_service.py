@@ -11,6 +11,7 @@ from fastapi import UploadFile, HTTPException, status
 from ..models.deal_document import DealDocument
 from ..models.deal import Deal
 from ..models.user import UserProfile
+from .file_storage_factory import get_file_storage_service
 
 
 class DealDocumentService:
@@ -18,6 +19,7 @@ class DealDocumentService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.storage_service = get_file_storage_service()
 
     def get_deal_documents(self, deal_id: uuid.UUID) -> List[DealDocument]:
         """
@@ -41,16 +43,16 @@ class DealDocumentService:
         deal_id: uuid.UUID,
         file: UploadFile,
         current_user: UserProfile,
-        upload_dir: str = "uploads/deals"
+        folder: str = "deals"
     ) -> DealDocument:
         """
-        Upload a document for a deal.
+        Upload a document for a deal using the configured storage backend.
 
         Args:
             deal_id: UUID of the deal
             file: The uploaded file
             current_user: The user uploading the document
-            upload_dir: Directory to store uploaded files
+            folder: Folder/prefix for organizing files
 
         Returns:
             Created DealDocument object
@@ -63,47 +65,54 @@ class DealDocumentService:
                 detail="Deal not found"
             )
 
-        # Create upload directory if it doesn't exist
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = os.path.join(upload_dir, unique_filename)
-
-        # Save file to disk
         try:
+            # Read file content
             contents = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(contents)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to save file: {str(e)}"
+
+            # Generate unique filename
+            file_extension = os.path.splitext(file.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+
+            # Upload file using storage service
+            file_path = self.storage_service.upload_file(
+                file_content=contents,
+                blob_name=unique_filename,
+                content_type=file.content_type,
+                folder=folder
             )
 
-        # Get file size
-        file_size = len(contents)
+            # Get file size
+            file_size = len(contents)
 
-        # Create database record
-        document = DealDocument(
-            name=file.filename,
-            file_path=file_path,
-            file_size=str(file_size),
-            mime_type=file.content_type,
-            deal_id=deal_id,
-            uploaded_by=current_user.id
-        )
+            # Create database record
+            document = DealDocument(
+                name=file.filename,
+                file_path=file_path,
+                file_size=str(file_size),
+                mime_type=file.content_type,
+                deal_id=deal_id,
+                uploaded_by=current_user.id
+            )
 
-        self.db.add(document)
-        self.db.commit()
-        self.db.refresh(document)
+            self.db.add(document)
+            self.db.commit()
+            self.db.refresh(document)
 
-        return document
+            return document
+
+        except HTTPException:
+            # Re-raise HTTP exceptions as-is
+            raise
+        except Exception as e:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to upload document: {str(e)}"
+            )
 
     def delete_document(self, document_id: uuid.UUID) -> bool:
         """
-        Delete a document.
+        Delete a document using the configured storage backend.
 
         Args:
             document_id: UUID of the document to delete
@@ -123,12 +132,11 @@ class DealDocumentService:
                 detail="Document not found"
             )
 
-        # Delete file from disk
+        # Delete file from storage
         try:
-            if os.path.exists(document.file_path):
-                os.remove(document.file_path)
+            self.storage_service.delete_file(document.file_path)
         except Exception as e:
-            print(f"Warning: Failed to delete file from disk: {str(e)}")
+            print(f"Warning: Failed to delete file from storage: {str(e)}")
 
         # Delete database record
         self.db.delete(document)

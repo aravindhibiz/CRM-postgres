@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from decimal import Decimal
@@ -10,7 +10,8 @@ from .company import CompanyBasicResponse
 
 class DealBase(BaseModel):
     name: str
-    value: Optional[Decimal] = None
+    value: Optional[float] = Field(
+        None, description="Deal value as float for proper JSON serialization")
     stage: Optional[str] = "lead"
     probability: Optional[int] = 0
     expected_close_date: Optional[datetime] = None
@@ -27,7 +28,8 @@ class DealCreate(DealBase):
 
 class DealUpdate(BaseModel):
     name: Optional[str] = None
-    value: Optional[Decimal] = None
+    value: Optional[float] = Field(
+        None, description="Deal value as float for proper JSON serialization")
     stage: Optional[str] = None
     probability: Optional[int] = None
     expected_close_date: Optional[datetime] = None

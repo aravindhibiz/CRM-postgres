@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     # SendGrid settings
     SENDGRID_API_KEY: Optional[str] = None
 
+    # Azure Blob Storage settings
+    AZURE_STORAGE_ACCOUNT_NAME: Optional[str] = None
+    AZURE_STORAGE_ACCOUNT_KEY: Optional[str] = None
+    AZURE_STORAGE_CONNECTION_STRING: Optional[str] = None
+    AZURE_BLOB_CONTAINER_NAME: str = "crm-files"
+
+    # Storage backend configuration
+    STORAGE_BACKEND: str = "local"
+
     class Config:
         # Look for .env file in the backend directory
         env_file = Path(__file__).parent.parent.parent / ".env"
