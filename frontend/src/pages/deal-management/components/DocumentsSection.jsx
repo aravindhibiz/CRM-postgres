@@ -2,12 +2,13 @@ import React, { useState, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
 import dealDocumentsService from '../../../services/dealDocumentsService';
 
-const DocumentsSection = ({ 
-  documents = [], 
-  loading = false, 
-  dealId, 
-  onUploadDocument, 
-  onDeleteDocument 
+const DocumentsSection = ({
+  documents = [],
+  loading = false,
+  dealId,
+  onUploadDocument,
+  onDeleteDocument,
+  readOnly = false
 }) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -205,7 +206,7 @@ const DocumentsSection = ({
       <div className="p-6 border-b border-border">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-text-primary">Documents</h3>
-          {dealId && (
+          {dealId && !readOnly && (
             <button
               onClick={() => fileInputRef?.current?.click()}
               disabled={uploading}
@@ -229,40 +230,42 @@ const DocumentsSection = ({
         </div>
       ) : (
         <>
-          {/* Upload Area */}
-          <div className="p-6 border-b border-border">
-            <div
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onClick={() => fileInputRef?.current?.click()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-150 ${
-                dragOver 
-                  ? 'border-primary bg-primary-50' :'border-border hover:border-border-hover hover:bg-background'
-              }`}
-            >
-              <Icon 
-                name="Upload" 
-                size={24} 
-                className={`mx-auto mb-2 ${dragOver ? 'text-primary' : 'text-text-tertiary'}`} 
-              />
-              <p className="text-sm text-text-secondary">
-                Drop files here or click to browse
-              </p>
-              <p className="text-xs text-text-tertiary mt-1">
-                Maximum file size: 10MB
-              </p>
-            </div>
+          {/* Upload Area - Hide in read-only mode */}
+          {!readOnly && (
+            <div className="p-6 border-b border-border">
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef?.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-150 ${
+                  dragOver
+                    ? 'border-primary bg-primary-50' :'border-border hover:border-border-hover hover:bg-background'
+                }`}
+              >
+                <Icon
+                  name="Upload"
+                  size={24}
+                  className={`mx-auto mb-2 ${dragOver ? 'text-primary' : 'text-text-tertiary'}`}
+                />
+                <p className="text-sm text-text-secondary">
+                  Drop files here or click to browse
+                </p>
+                <p className="text-xs text-text-tertiary mt-1">
+                  Maximum file size: 10MB
+                </p>
+              </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={(e) => handleFileSelect(e?.target?.files)}
-              className="hidden"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.zip,.rar"
-            />
-          </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={(e) => handleFileSelect(e?.target?.files)}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.zip,.rar"
+              />
+            </div>
+          )}
           {/* Documents List */}
           <div className="p-6">
             {uploading && (
@@ -331,13 +334,15 @@ const DocumentsSection = ({
                         >
                           <Icon name="Download" size={16} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(doc)}
-                          className="p-2 text-text-tertiary hover:text-error hover:bg-error-50 rounded-lg transition-colors duration-150"
-                          title="Delete"
-                        >
-                          <Icon name="Trash2" size={16} />
-                        </button>
+                        {!readOnly && (
+                          <button
+                            onClick={() => handleDelete(doc)}
+                            className="p-2 text-text-tertiary hover:text-error hover:bg-error-50 rounded-lg transition-colors duration-150"
+                            title="Delete"
+                          >
+                            <Icon name="Trash2" size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

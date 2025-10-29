@@ -9,6 +9,7 @@ import Pagination from 'components/Pagination';
 import { configService } from '../../services/configService';
 
 import DealForm from './components/DealForm';
+import DealDetailView from './components/DealDetailView';
 import DocumentsSection from './components/DocumentsSection';
 import DealsGridView from './components/DealsGridView';
 import ExportDealsModal from '../sales-dashboard/components/ExportDealsModal';
@@ -17,6 +18,7 @@ import { dealsService } from '../../services/dealsService';
 import { contactsService } from '../../services/contactsService';
 import { companiesService } from '../../services/companiesService';
 import { dealDocumentsService } from '../../services/dealDocumentsService';
+import { dealActivitiesService } from '../../services/dealActivitiesService';
 
 const DealManagement = () => {
   const { dealId } = useParams();
@@ -35,6 +37,7 @@ const DealManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [isListView, setIsListView] = useState(true);
   const [isGridView, setIsGridView] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false); // New state for view mode
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -196,18 +199,21 @@ const DealManagement = () => {
         
         // Handle specific deal ID in URL
         if (dealId && dealId !== 'new') {
-          
+
           setIsListView(false);
-          setShowForm(true);
+          setIsViewMode(true); // Start in view mode
+          setShowForm(false);
           await loadDeal(dealId);
         } else if (dealId === 'new') {
-          
+
           setIsListView(false);
+          setIsViewMode(false);
           setShowForm(true);
           setSelectedDeal(null);
         } else {
-          
+
           setIsListView(true);
+          setIsViewMode(false);
           setShowForm(false);
         }
         
@@ -385,12 +391,13 @@ const DealManagement = () => {
     navigate('/deal-management/new');
   };
 
-  // Handle editing existing deal
-  const handleEditDeal = async (deal) => {
-    setShowForm(true);
+  // Handle viewing deal details
+  const handleViewDeal = async (deal) => {
+    setIsViewMode(true);
+    setShowForm(false);
     setIsListView(false);
     navigate(`/deal-management/${deal.id}`);
-    
+
     // Fetch full deal data including custom fields
     try {
       const fullDealData = await dealsService?.getDealById(deal.id);
@@ -402,9 +409,16 @@ const DealManagement = () => {
     }
   };
 
+  // Handle editing existing deal
+  const handleEditDeal = () => {
+    setIsViewMode(false);
+    setShowForm(true);
+  };
+
   // Handle going back to list view
   const handleBackToList = () => {
     setShowForm(false);
+    setIsViewMode(false);
     setIsListView(true);
     setSelectedDeal(null);
     setError(null);
@@ -943,7 +957,11 @@ const DealManagement = () => {
                     <DealsGridView
                       deals={paginatedDeals}
                       stages={stages}
-                      onEditDeal={handleEditDeal}
+                      onViewDeal={handleViewDeal}
+                      onEditDeal={(deal) => {
+                        handleViewDeal(deal);
+                        setTimeout(() => handleEditDeal(), 100);
+                      }}
                       onCloneDeal={(deal) => {
                         setSelectedDeal(deal);
                         handleCloneDeal();
@@ -1053,7 +1071,11 @@ const DealManagement = () => {
                         </thead>
                         <tbody className="bg-white divide-y divide-border">
                           {paginatedDeals.map((deal) => (
-                            <tr key={deal.id} className="hover:bg-surface-hover transition-colors duration-150">
+                            <tr
+                              key={deal.id}
+                              className="hover:bg-surface-hover transition-colors duration-150 cursor-pointer"
+                              onClick={() => handleViewDeal(deal)}
+                            >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
                                   <div className="text-sm font-medium text-text-primary">{deal.name || 'Untitled Deal'}</div>
@@ -1081,17 +1103,22 @@ const DealManagement = () => {
                                   {/* Edit Icon */}
                                   {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
                                     <button
-                                      onClick={() => handleEditDeal(deal)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewDeal(deal);
+                                        setTimeout(() => handleEditDeal(), 100);
+                                      }}
                                       className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors duration-150"
                                       title="Edit deal"
                                     >
                                       <Icon name="Edit" size={16} />
                                     </button>
                                   )}
-                                  
+
                                   {/* Clone Icon */}
                                   <button
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setSelectedDeal(deal);
                                       handleCloneDeal();
                                     }}
@@ -1100,11 +1127,12 @@ const DealManagement = () => {
                                   >
                                     <Icon name="Copy" size={16} />
                                   </button>
-                                  
+
                                   {/* Delete Icon */}
                                   {hasAnyPermission(['deals.delete_all', 'deals.delete_own']) && (
                                     <button
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setSelectedDeal(deal);
                                         setShowDeleteModal(true);
                                       }}
@@ -1138,17 +1166,25 @@ const DealManagement = () => {
                 )}
               </div>
             ) : (
-              // Deal Form View - Show loading or form
+              // Deal Detail/Form View - Show loading, detail view, or form
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                {/* Left Panel - Deal Form */}
+                {/* Left Panel - Deal Detail or Form */}
                 <div className="xl:col-span-8">
                   {isLoading ? (
                     <div className="bg-surface rounded-lg border border-border p-8">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-text-secondary">Loading deal form...</p>
+                        <p className="text-text-secondary">Loading deal...</p>
                       </div>
                     </div>
+                  ) : isViewMode ? (
+                    <DealDetailView
+                      deal={selectedDeal}
+                      contacts={contacts}
+                      companies={companies}
+                      stages={stages}
+                      onEdit={hasAnyPermission(['deals.edit_all', 'deals.edit_own']) ? handleEditDeal : null}
+                    />
                   ) : (
                     <DealForm
                       deal={selectedDeal}
@@ -1169,8 +1205,9 @@ const DealManagement = () => {
                       documents={documents}
                       loading={isLoadingDocuments}
                       dealId={selectedDeal?.id}
-                      onUploadDocument={handleUploadDocument}
-                      onDeleteDocument={handleDeleteDocument}
+                      onUploadDocument={isViewMode ? null : handleUploadDocument}
+                      onDeleteDocument={isViewMode ? null : handleDeleteDocument}
+                      readOnly={isViewMode}
                     />
                   </div>
                 )}

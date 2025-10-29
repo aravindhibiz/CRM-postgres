@@ -3,7 +3,7 @@ import Icon from 'components/AppIcon';
 import { configService } from '../../../services/configService';
 import { useAuth } from '../../../contexts/AuthContext';
 
-const DealsGridView = ({ deals, stages, onEditDeal, onCloneDeal, onDeleteDeal }) => {
+const DealsGridView = ({ deals, stages, onViewDeal, onEditDeal, onCloneDeal, onDeleteDeal }) => {
   const { hasAnyPermission } = useAuth();
   // Load system configuration on component mount
   useEffect(() => {
@@ -38,7 +38,7 @@ const DealsGridView = ({ deals, stages, onEditDeal, onCloneDeal, onDeleteDeal })
           <div
             key={deal.id}
             className="bg-surface rounded-lg border border-border p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-            onClick={() => onEditDeal(deal)}
+            onClick={() => onViewDeal(deal)}
           >
             {/* Deal Header */}
             <div className="mb-4">
