@@ -13,6 +13,10 @@ from .email_template import EmailTemplate, EmailLog, TemplateCategory, TemplateS
 from .integration import Integration, IntegrationLog, IntegrationWebhook
 from .note import Note
 from .system_config import SystemConfiguration
+from .prospect import Prospect, ProspectStatus, ProspectSource
+from .campaign import Campaign, CampaignType, CampaignStatus
+from .campaign_contact import CampaignContact, EngagementStatus
+from .campaign_metric import CampaignMetric, LeadScoreHistory
 
 __all__ = ['UserProfile', 'PasswordResetToken', 'Contact', 'Company',
            'Deal', 'Activity', 'Task', 'DealDocument',
@@ -20,4 +24,8 @@ __all__ = ['UserProfile', 'PasswordResetToken', 'Contact', 'Company',
            'Role', 'Permission',
            'EmailTemplate', 'EmailLog', 'TemplateCategory', 'TemplateStatus',
            'Integration', 'IntegrationLog', 'IntegrationWebhook',
-           'Note', 'SystemConfiguration']
+           'Note', 'SystemConfiguration',
+           'Prospect', 'ProspectStatus', 'ProspectSource',
+           'Campaign', 'CampaignType', 'CampaignStatus',
+           'CampaignContact', 'EngagementStatus',
+           'CampaignMetric', 'LeadScoreHistory']

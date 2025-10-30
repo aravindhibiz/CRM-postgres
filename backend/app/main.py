@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from .core.database import engine, Base
-from .routes import auth, contacts_new, tasks_new, dashboard, users_new, roles_new, system_config_new, custom_fields_new, email_templates_new, integrations_new, notes_new, activities_new, companies_new, deals_new, storage
+from .routes import auth, contacts_new, tasks_new, dashboard, users_new, roles_new, system_config_new, custom_fields_new, email_templates_new, integrations_new, notes_new, activities_new, companies_new, deals_new, storage, campaigns, prospects
 # Import all models to ensure SQLAlchemy relationships are set up properly
 from . import models
 import traceback
@@ -66,6 +66,8 @@ app.include_router(integrations_new.router,
                    prefix="/api/v1/integrations", tags=["integrations"])
 app.include_router(notes_new.router, prefix="/api/v1/notes", tags=["notes"])
 app.include_router(storage.router, prefix="/api/v1/storage", tags=["storage"])
+app.include_router(campaigns.router, prefix="/api/v1/campaigns", tags=["campaigns"])
+app.include_router(prospects.router, prefix="/api/v1/prospects", tags=["prospects"])
 
 # Global exception handler to preserve CORS headers
 
@@ -95,9 +97,17 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors with CORS headers"""
+    # Decode body if it's bytes
+    body = exc.body
+    if isinstance(body, bytes):
+        try:
+            body = body.decode('utf-8')
+        except:
+            body = str(body)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors(), "body": exc.body},
+        content={"detail": exc.errors(), "body": body},
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Credentials": "true"
