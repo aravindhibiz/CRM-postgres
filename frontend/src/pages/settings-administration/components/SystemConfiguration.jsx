@@ -263,11 +263,6 @@ const SystemConfiguration = () => {
     }
   };
 
-  const handleTestBackup = () => {
-    console.log('Testing backup system...');
-    // Simulate backup test
-  };
-
   return (
     <div className="space-y-6">
       {/* Error and Success Messages */}
@@ -334,7 +329,8 @@ const SystemConfiguration = () => {
       </div>
       {/* Configuration Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* General Settings */}
+        {/* Left Column - General Settings */}
+        <div className="space-y-6">
         <div className="bg-surface rounded-lg border border-border p-6">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
             <Icon name="Settings" size={20} className="text-primary" />
@@ -434,24 +430,12 @@ const SystemConfiguration = () => {
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Language</label>
-              <select
-                value={config?.general?.language || ''}
-                onChange={(e) => updateConfig('general', 'language', e?.target?.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-              >
-                {languages?.map(lang => (
-                  <option key={lang?.code} value={lang?.code}>
-                    {lang?.name}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
         </div>
+        </div>
 
+        {/* Right Column - Sales Settings and Security */}
+        <div className="space-y-6">
         {/* Sales Settings */}
         <div className="bg-surface rounded-lg border border-border p-6">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
@@ -520,66 +504,6 @@ const SystemConfiguration = () => {
           </div>
         </div>
 
-        {/* Notification Settings */}
-        <div className="bg-surface rounded-lg border border-border p-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
-            <Icon name="Bell" size={20} className="text-primary" />
-            <span>Notifications</span>
-          </h3>
-          
-          <div className="space-y-3">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={config?.notifications?.email_notifications || false}
-                onChange={(e) => updateConfig('notifications', 'email_notifications', e?.target?.checked)}
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">Email notifications</span>
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={config?.notifications?.deal_update_notifications || false}
-                onChange={(e) => updateConfig('notifications', 'deal_update_notifications', e?.target?.checked)}
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">Deal update notifications</span>
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={config?.notifications?.task_reminders || false}
-                onChange={(e) => updateConfig('notifications', 'task_reminders', e?.target?.checked)}
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">Task reminders</span>
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={config?.notifications?.weekly_reports || false}
-                onChange={(e) => updateConfig('notifications', 'weekly_reports', e?.target?.checked)}
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">Weekly reports</span>
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={config?.notifications?.system_alerts || false}
-                onChange={(e) => updateConfig('notifications', 'system_alerts', e?.target?.checked)}
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">System alerts</span>
-            </label>
-          </div>
-        </div>
-
         {/* Security Settings */}
         <div className="bg-surface rounded-lg border border-border p-6">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
@@ -645,62 +569,6 @@ const SystemConfiguration = () => {
             </div>
           </div>
         </div>
-      </div>
-      {/* Backup Configuration */}
-      <div className="bg-surface rounded-lg border border-border p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
-          <Icon name="Database" size={20} className="text-primary" />
-          <span>Backup & Recovery</span>
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Backup Frequency</label>
-            <select
-              value={config?.backup?.backup_frequency || ''}
-              onChange={(e) => updateConfig('backup', 'backup_frequency', e?.target?.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-            >
-              <option value="hourly">Hourly</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Retention Period (Days)</label>
-            <input
-              type="number"
-              value={config?.backup?.backup_retention_days || ''}
-              onChange={(e) => updateConfig('backup', 'backup_retention_days', parseInt(e?.target?.value))}
-              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-              min="7"
-              max="365"
-            />
-          </div>
-          
-          <div className="flex items-end">
-            <button
-              onClick={handleTestBackup}
-              className="w-full bg-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth flex items-center justify-center space-x-2 border border-border"
-            >
-              <Icon name="TestTube" size={16} />
-              <span>Test Backup</span>
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={config?.backup?.enable_automatic_backups || false}
-              onChange={(e) => updateConfig('backup', 'enable_automatic_backups', e?.target?.checked)}
-              className="rounded border-border text-primary focus:ring-primary"
-            />
-            <span className="text-sm text-text-primary">Enable automatic backups</span>
-          </label>
         </div>
       </div>
       {/* Export Configuration Modal */}

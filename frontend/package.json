@@ -17,6 +17,7 @@
         "html2canvas": "^1.4.1",
         "jspdf": "^3.0.3",
         "lucide-react": "^0.484.0",
+        "mammoth": "^1.11.0",
         "papaparse": "^5.5.3",
         "react": "^18.2.0",
         "react-beautiful-dnd": "^13.1.1",

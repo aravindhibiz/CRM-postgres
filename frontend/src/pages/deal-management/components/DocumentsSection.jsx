@@ -1,6 +1,10 @@
 import React, { useState, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
 import dealDocumentsService from '../../../services/dealDocumentsService';
+import TextFilePreview from './TextFilePreview';
+import CsvPreview from './CsvPreview';
+import ExcelPreview from './ExcelPreview';
+import WordPreview from './WordPreview';
 
 const DocumentsSection = ({
   documents = [],
@@ -160,6 +164,31 @@ const DocumentsSection = ({
     return extension === 'pdf';
   };
 
+  const isTextFile = (filename) => {
+    const extension = filename.split('.').pop().toLowerCase();
+    return ['txt', 'log', 'md', 'json', 'xml', 'yml', 'yaml'].includes(extension);
+  };
+
+  const isCsvFile = (filename) => {
+    const extension = filename.split('.').pop().toLowerCase();
+    return extension === 'csv';
+  };
+
+  const isExcelFile = (filename) => {
+    const extension = filename.split('.').pop().toLowerCase();
+    return ['xlsx', 'xls'].includes(extension);
+  };
+
+  const isWordFile = (filename) => {
+    const extension = filename.split('.').pop().toLowerCase();
+    return ['docx', 'doc'].includes(extension);
+  };
+
+  const isPreviewSupported = (filename) => {
+    return isImageFile(filename) || isPdfFile(filename) || isTextFile(filename) ||
+           isCsvFile(filename) || isExcelFile(filename) || isWordFile(filename);
+  };
+
   const handleDrop = (e) => {
     e?.preventDefault();
     setDragOver(false);
@@ -262,7 +291,7 @@ const DocumentsSection = ({
                 multiple
                 onChange={(e) => handleFileSelect(e?.target?.files)}
                 className="hidden"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.zip,.rar"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.csv,.log,.md,.json,.xml,.yml,.yaml,.zip,.rar"
               />
             </div>
           )}
@@ -402,12 +431,20 @@ const DocumentsSection = ({
                   className="w-full h-full min-h-[600px] rounded-lg shadow-lg"
                   title={previewDocument?.name}
                 />
+              ) : isTextFile(previewDocument?.name) ? (
+                <TextFilePreview fileUrl={previewUrl} fileName={previewDocument?.name} />
+              ) : isCsvFile(previewDocument?.name) ? (
+                <CsvPreview fileUrl={previewUrl} fileName={previewDocument?.name} />
+              ) : isExcelFile(previewDocument?.name) ? (
+                <ExcelPreview fileUrl={previewUrl} fileName={previewDocument?.name} />
+              ) : isWordFile(previewDocument?.name) ? (
+                <WordPreview fileUrl={previewUrl} fileName={previewDocument?.name} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <Icon name="FileText" size={64} className="text-text-tertiary mb-4" />
                   <h4 className="text-xl font-semibold text-text-primary mb-2">Preview not available</h4>
                   <p className="text-text-secondary mb-4">
-                    Preview is only available for images and PDF files.
+                    Preview is not available for this file type.
                   </p>
                   <button
                     onClick={() => handleDownload(previewDocument)}
