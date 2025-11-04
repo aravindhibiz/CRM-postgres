@@ -15,7 +15,13 @@ from app.schemas.campaign import (
     CampaignExecuteRequest
 )
 from app.models.user import UserProfile
-from app.models.campaign import CampaignStatus, CampaignType
+from app.models.campaign import CampaignStatus, CampaignType, Campaign
+from app.core.auth_helpers import (
+    get_campaigns_query_filter,
+    check_campaign_edit_permission,
+    check_campaign_delete_permission
+)
+from app.core.auth import has_permission
 
 
 class CampaignController:
@@ -48,10 +54,6 @@ class CampaignController:
         Returns:
             Dictionary with campaigns and total count
         """
-        # Check permissions
-        # For MVP, we'll use simple owner-based filtering
-        # TODO: Implement full RBAC with campaigns.view_all permission
-
         # Parse filters
         status_list = None
         if status:
@@ -73,12 +75,20 @@ class CampaignController:
                     detail="Invalid type value"
                 )
 
+        # Apply permission-based filtering
+        # If user has view_all, they see all campaigns
+        # If user has view_own, they see only their own campaigns
+        owner_id = None
+        if not has_permission(self.db, current_user, "campaigns.view_all"):
+            # User can only see their own campaigns
+            owner_id = current_user.id
+
         # Create filter object
         campaign_filter = CampaignFilter(
             status=status_list,
             type=type_list,
             search=search,
-            owner_id=current_user.id  # For MVP, only show user's own campaigns
+            owner_id=owner_id
         )
 
         campaigns, total = self.service.get_campaigns(
@@ -125,8 +135,12 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership (for MVP)
-        if campaign.owner_id != current_user.id:
+        # Check permissions: user needs view_all OR (view_own AND ownership)
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this campaign"
@@ -148,8 +162,16 @@ class CampaignController:
 
         Returns:
             Created campaign
+
+        Raises:
+            HTTPException: If user doesn't have permission to create campaigns
         """
-        # TODO: Check campaigns.create permission
+        # Check campaigns.create permission
+        if not has_permission(self.db, current_user, "campaigns.create"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied. You don't have permission to create campaigns."
+            )
 
         campaign = self.service.create_campaign(
             campaign_data=campaign_data,
@@ -186,11 +208,11 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership (for MVP)
-        if campaign.owner_id != current_user.id:
+        # Check edit permission (edit_all OR edit_own with ownership)
+        if not check_campaign_edit_permission(self.db, current_user, campaign):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to update this campaign"
+                detail="Permission denied. You don't have permission to edit this campaign."
             )
 
         updated_campaign = self.service.update_campaign(
@@ -232,11 +254,11 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership (for MVP)
-        if campaign.owner_id != current_user.id:
+        # Check delete permission (delete_all OR delete_own with ownership)
+        if not check_campaign_delete_permission(self.db, current_user, campaign):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to delete this campaign"
+                detail="Permission denied. You don't have permission to delete this campaign."
             )
 
         success = self.service.delete_campaign(campaign_id)
@@ -277,11 +299,11 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check edit permission (modifying audience requires edit permission)
+        if not check_campaign_edit_permission(self.db, current_user, campaign):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to modify this campaign"
+                detail="Permission denied. You don't have permission to modify this campaign."
             )
 
         return self.service.add_audience_to_campaign(
@@ -321,8 +343,12 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check view permissions
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this campaign"
@@ -381,14 +407,23 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check execute permission
+        if not has_permission(self.db, current_user, "campaigns.execute"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied. You don't have permission to execute campaigns."
+            )
+
+        # Also check that user can access this campaign (view permission)
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to execute this campaign"
             )
-
-        # TODO: Check campaigns.execute permission
 
         return self.service.execute_campaign(
             campaign_id=campaign_id,
@@ -422,8 +457,12 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check view permissions
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this campaign"
@@ -457,8 +496,12 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check view permissions
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this campaign"
@@ -500,8 +543,12 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check view permissions
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this campaign"
@@ -520,9 +567,14 @@ class CampaignController:
             current_user: Authenticated user
 
         Returns:
-            Campaign statistics
+            Campaign statistics based on permissions
         """
-        return self.service.get_campaign_statistics(owner_id=current_user.id)
+        # If user has view_all, get all statistics; otherwise, only their own
+        owner_id = None
+        if not has_permission(self.db, current_user, "campaigns.view_all"):
+            owner_id = current_user.id
+
+        return self.service.get_campaign_statistics(owner_id=owner_id)
 
     async def link_deal_to_campaign(
         self,
@@ -553,11 +605,11 @@ class CampaignController:
                 detail="Campaign not found"
             )
 
-        # Check ownership
-        if campaign.owner_id != current_user.id:
+        # Check edit permission (linking deals requires edit permission)
+        if not check_campaign_edit_permission(self.db, current_user, campaign):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to modify this campaign"
+                detail="Permission denied. You don't have permission to modify this campaign."
             )
 
         return self.service.link_deal_to_campaign(

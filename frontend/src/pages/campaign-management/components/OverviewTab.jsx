@@ -198,22 +198,6 @@ const OverviewTab = ({ campaign, statuses, types }) => {
         </div>
       </div>
 
-      {/* Email Template */}
-      {campaign?.type === 'email' && (
-        <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">Email Configuration</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
-                Email Template
-              </label>
-              <p className="text-text-primary text-base">
-                {campaign?.email_template_name || campaign?.email_template_id || 'No template selected'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

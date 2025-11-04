@@ -83,6 +83,20 @@ const Permissions = () => {
       ]
     },
     {
+      category: 'Campaign Management',
+      items: [
+        { name: 'View All Campaigns', key: 'campaigns.view_all' },
+        { name: 'View Own Campaigns', key: 'campaigns.view_own' },
+        { name: 'Create Campaigns', key: 'campaigns.create' },
+        { name: 'Edit All Campaigns', key: 'campaigns.edit_all' },
+        { name: 'Edit Own Campaigns', key: 'campaigns.edit_own' },
+        { name: 'Delete All Campaigns', key: 'campaigns.delete_all' },
+        { name: 'Delete Own Campaigns', key: 'campaigns.delete_own' },
+        { name: 'Execute Campaigns', key: 'campaigns.execute' },
+        { name: 'Export Campaign Data', key: 'campaigns.export' }
+      ]
+    },
+    {
       category: 'Settings & Configuration',
       items: [
         { name: 'User Management', key: 'settings.user_management' },

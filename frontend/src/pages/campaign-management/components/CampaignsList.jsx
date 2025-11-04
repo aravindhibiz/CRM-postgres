@@ -28,7 +28,21 @@ const CampaignsList = ({
   onEditCampaign,
   onDeleteCampaign
 }) => {
-  const { hasAnyPermission } = useAuth();
+  const { user, hasPermission, hasAnyPermission } = useAuth();
+
+  // Helper function to check if user can edit a campaign
+  const canEditCampaign = (campaign) => {
+    if (hasPermission('campaigns.edit_all')) return true;
+    if (hasPermission('campaigns.edit_own') && campaign.owner_id === user?.id) return true;
+    return false;
+  };
+
+  // Helper function to check if user can delete a campaign
+  const canDeleteCampaign = (campaign) => {
+    if (hasPermission('campaigns.delete_all')) return true;
+    if (hasPermission('campaigns.delete_own') && campaign.owner_id === user?.id) return true;
+    return false;
+  };
 
   const formatCurrency = (value) => {
     return configService.formatCurrency(value);
@@ -305,7 +319,7 @@ const CampaignsList = ({
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-2">
                         {/* Edit Icon */}
-                        {hasAnyPermission(['campaigns.edit_all', 'campaigns.edit_own']) && (
+                        {canEditCampaign(campaign) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -314,12 +328,12 @@ const CampaignsList = ({
                             className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors duration-150"
                             title="Edit campaign"
                           >
-                          <Icon name="Edit" size={16} />
-                        </button>
-                      )}
+                            <Icon name="Edit" size={16} />
+                          </button>
+                        )}
 
-                      {/* Delete Icon */}
-                      {hasAnyPermission(['campaigns.delete_all', 'campaigns.delete_own']) && (
+                        {/* Delete Icon */}
+                        {canDeleteCampaign(campaign) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

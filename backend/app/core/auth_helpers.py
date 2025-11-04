@@ -227,3 +227,62 @@ def check_activity_delete_permission(
         return True
 
     return False
+
+
+def get_campaigns_query_filter(db: Session, current_user: UserProfile, base_query):
+    """
+    Apply permission-based filtering to campaigns query
+
+    Returns filtered query based on user's permissions:
+    - campaigns.view_all: Can see all campaigns
+    - campaigns.view_own: Can only see own campaigns
+    """
+    can_view_all = has_permission(db, current_user, "campaigns.view_all")
+    can_view_own = has_permission(db, current_user, "campaigns.view_own")
+
+    if not can_view_all and not can_view_own:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. You don't have permission to view campaigns."
+        )
+
+    if can_view_all:
+        return base_query
+    else:
+        # Filter to own campaigns only
+        from ..models.campaign import Campaign
+        return base_query.filter(Campaign.owner_id == current_user.id)
+
+
+def check_campaign_edit_permission(
+    db: Session,
+    current_user: UserProfile,
+    campaign
+) -> bool:
+    """Check if user can edit a specific campaign"""
+    # Check if user has edit_all permission
+    if has_permission(db, current_user, "campaigns.edit_all"):
+        return True
+
+    # Check if user has edit_own permission and owns the campaign
+    if has_permission(db, current_user, "campaigns.edit_own") and str(current_user.id) == str(campaign.owner_id):
+        return True
+
+    return False
+
+
+def check_campaign_delete_permission(
+    db: Session,
+    current_user: UserProfile,
+    campaign
+) -> bool:
+    """Check if user can delete a specific campaign"""
+    # Check if user has delete_all permission
+    if has_permission(db, current_user, "campaigns.delete_all"):
+        return True
+
+    # Check if user has delete_own permission and owns the campaign
+    if has_permission(db, current_user, "campaigns.delete_own") and str(current_user.id) == str(campaign.owner_id):
+        return True
+
+    return False

@@ -501,11 +501,21 @@ const CampaignManagement = () => {
                 ) : isViewMode ? (
                   <CampaignDetail
                     campaign={selectedCampaign}
-                  statuses={campaignStatuses}
-                  types={campaignTypes}
-                  onEdit={hasAnyPermission(['campaigns.edit_all', 'campaigns.edit_own']) ? handleEditCampaign : null}
-                  onDelete={hasAnyPermission(['campaigns.delete_all', 'campaigns.delete_own']) ? () => setShowDeleteModal(true) : null}
-                />
+                    statuses={campaignStatuses}
+                    types={campaignTypes}
+                    onEdit={
+                      (hasPermission('campaigns.edit_all') ||
+                       (hasPermission('campaigns.edit_own') && selectedCampaign?.owner_id === user?.id))
+                        ? handleEditCampaign
+                        : null
+                    }
+                    onDelete={
+                      (hasPermission('campaigns.delete_all') ||
+                       (hasPermission('campaigns.delete_own') && selectedCampaign?.owner_id === user?.id))
+                        ? () => setShowDeleteModal(true)
+                        : null
+                    }
+                  />
                 ) : (
                   <CampaignForm
                     campaign={selectedCampaign}

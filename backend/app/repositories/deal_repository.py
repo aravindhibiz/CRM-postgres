@@ -380,7 +380,7 @@ class DealRepository(BaseRepository[Deal]):
                     'probability': deal.probability or 0,
                     'contact': deal.contact.first_name + ' ' + deal.contact.last_name if deal.contact else 'Unknown Contact',
                     'company': deal.company.name if deal.company else 'Unknown Company',
-                    'avatar': f'https://ui-avatars.com/api/?name={deal.contact.first_name[0] if deal.contact else "U"}+{deal.contact.last_name[0] if deal.contact else "C"}&background=random' if deal.contact else 'https://ui-avatars.com/api/?name=U+C&background=random',
+                    'avatar': f'https://ui-avatars.com/api/?name={deal.contact.first_name[0] if deal.contact and deal.contact.first_name else "U"}+{deal.contact.last_name[0] if deal.contact and deal.contact.last_name else "C"}&background=random' if deal.contact else 'https://ui-avatars.com/api/?name=U+C&background=random',
                     'expected_close_date': deal.expected_close_date.isoformat() if deal.expected_close_date else None
                 })
 

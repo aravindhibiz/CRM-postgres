@@ -305,29 +305,6 @@ const CampaignForm = ({
             </div>
           </div>
 
-          {/* Email Template (only for email campaigns) */}
-          {formData.type === 'email' && (
-            <div className="border-t border-border pt-6">
-              <h3 className="text-lg font-semibold text-text-primary mb-4">Email Configuration</h3>
-              <div>
-                <label htmlFor="email_template_id" className="block text-sm font-medium text-text-secondary mb-2">
-                  Email Template (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="email_template_id"
-                  name="email_template_id"
-                  value={formData.email_template_id}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                  placeholder="Enter email template ID"
-                />
-                <p className="mt-1 text-xs text-text-tertiary">
-                  Leave blank to select template later
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Form Actions */}
