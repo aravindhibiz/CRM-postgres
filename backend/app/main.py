@@ -24,21 +24,13 @@ async def log_requests(request: Request, call_next):
     print(f"DEBUG: Response status: {response.status_code}")
     return response
 
-# CORS middleware
+# CORS middleware - MUST be added BEFORE routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # React dev server
-        "http://localhost:3001",  # React dev server (backup port)
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:5173",
-        "*"  # Allow all origins for development
-    ],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Include routers
@@ -66,8 +58,10 @@ app.include_router(integrations_new.router,
                    prefix="/api/v1/integrations", tags=["integrations"])
 app.include_router(notes_new.router, prefix="/api/v1/notes", tags=["notes"])
 app.include_router(storage.router, prefix="/api/v1/storage", tags=["storage"])
-app.include_router(campaigns.router, prefix="/api/v1/campaigns", tags=["campaigns"])
-app.include_router(prospects.router, prefix="/api/v1/prospects", tags=["prospects"])
+app.include_router(
+    campaigns.router, prefix="/api/v1/campaigns", tags=["campaigns"])
+app.include_router(
+    prospects.router, prefix="/api/v1/prospects", tags=["prospects"])
 
 # Global exception handler to preserve CORS headers
 

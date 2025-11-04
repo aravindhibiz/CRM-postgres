@@ -574,3 +574,55 @@ class CampaignService:
             "recipients": test_recipients,
             "message": f"Test email sent to {len(test_recipients)} recipients"
         }
+
+    def link_deal_to_campaign(
+        self,
+        campaign_id: UUID,
+        prospect_id: UUID,
+        deal_id: UUID,
+        conversion_value: float
+    ) -> Dict[str, Any]:
+        """
+        Link a deal to a campaign by updating the campaign_contact record.
+
+        Args:
+            campaign_id: Campaign UUID
+            prospect_id: Prospect UUID
+            deal_id: Deal UUID
+            conversion_value: Value of the conversion
+
+        Returns:
+            Success message
+        """
+        from datetime import datetime
+
+        # Find the campaign_contact record for this prospect in this campaign
+        campaign_contact = self.db.query(CampaignContact).filter(
+            CampaignContact.campaign_id == campaign_id,
+            CampaignContact.prospect_id == prospect_id
+        ).first()
+
+        if not campaign_contact:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign contact association not found"
+            )
+
+        # Update the campaign_contact with the deal information
+        campaign_contact.deal_id = deal_id
+        campaign_contact.conversion_value = conversion_value
+        campaign_contact.converted_at = datetime.utcnow()
+        campaign_contact.status = EngagementStatus.CONVERTED
+
+        self.db.commit()
+        self.db.refresh(campaign_contact)
+
+        # Update campaign metrics
+        self.repository.update_metrics(campaign_id)
+
+        return {
+            "success": True,
+            "message": "Deal successfully linked to campaign",
+            "campaign_contact_id": campaign_contact.id,
+            "deal_id": deal_id
+        }

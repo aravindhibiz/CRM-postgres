@@ -309,12 +309,43 @@ class ContactService:
         """
         Delete a contact.
 
+        When deleting a contact that was converted from a prospect:
+        1. CASCADE delete campaign_contacts entries (handled by FK)
+        2. SET NULL on prospect.converted_to_contact_id (handled by FK)
+
         Args:
             contact_id: Contact UUID
 
         Returns:
             True if deleted, False if not found
         """
+        from app.models.campaign_contact import CampaignContact
+        from app.models.prospect import Prospect
+
+        # Get the contact first to verify it exists
+        contact = self.repository.get(id=contact_id)
+        if not contact:
+            return False
+
+        # The foreign keys should handle cleanup automatically:
+        # - campaign_contacts.contact_id has ondelete="CASCADE"
+        # - prospects.converted_to_contact_id has ondelete="SET NULL"
+        # But we'll explicitly clean up campaign_contacts to avoid constraint issues
+
+        # Delete campaign_contacts entries for this contact
+        self.db.query(CampaignContact).filter(
+            CampaignContact.contact_id == contact_id
+        ).delete(synchronize_session=False)
+
+        # Set converted_to_contact_id to NULL for any prospects
+        self.db.query(Prospect).filter(
+            Prospect.converted_to_contact_id == contact_id
+        ).update({"converted_to_contact_id": None}, synchronize_session=False)
+
+        # Commit the cleanup
+        self.db.commit()
+
+        # Now delete the contact
         return self.repository.delete(id=contact_id)
 
     def import_contacts(

@@ -64,6 +64,12 @@ class ProspectService:
         prospect_dict = prospect_data.dict(exclude_unset=True)
         prospect_dict['created_by'] = created_by
 
+        # Convert empty strings to None for unique fields to avoid constraint violations
+        if 'phone' in prospect_dict and prospect_dict['phone'] == '':
+            prospect_dict['phone'] = None
+        if 'email' in prospect_dict and prospect_dict['email'] == '':
+            prospect_dict['email'] = None
+
         # Set default assigned_to if not provided
         if 'assigned_to' not in prospect_dict or not prospect_dict['assigned_to']:
             prospect_dict['assigned_to'] = created_by
@@ -135,7 +141,8 @@ class ProspectService:
     def update_prospect(
         self,
         prospect_id: UUID,
-        prospect_data: ProspectUpdate
+        prospect_data: ProspectUpdate,
+        updated_by: Optional[UUID] = None
     ) -> Optional[Prospect]:
         """
         Update a prospect.
@@ -143,12 +150,13 @@ class ProspectService:
         Args:
             prospect_id: Prospect UUID
             prospect_data: Update data
+            updated_by: User ID performing the update (for conversion tracking)
 
         Returns:
             Updated prospect or None if not found
 
         Raises:
-            HTTPException: If duplicate email/phone found
+            HTTPException: If duplicate email/phone found or conversion fails
         """
         prospect = self.repository.get(prospect_id)
         if not prospect:
@@ -156,6 +164,12 @@ class ProspectService:
 
         # Check for duplicates if email or phone is being changed
         update_dict = prospect_data.dict(exclude_unset=True)
+
+        # Convert empty strings to None for unique fields to avoid constraint violations
+        if 'phone' in update_dict and update_dict['phone'] == '':
+            update_dict['phone'] = None
+        if 'email' in update_dict and update_dict['email'] == '':
+            update_dict['email'] = None
 
         if 'email' in update_dict or 'phone' in update_dict:
             duplicate = self.repository.check_duplicate(
@@ -182,10 +196,30 @@ class ProspectService:
                 activity_type="manual_adjustment"
             )
 
-        # Update last_contacted_at if status changes to CONTACTED
-        if 'status' in update_dict and update_dict['status'] == ProspectStatus.CONTACTED:
-            if prospect.status != ProspectStatus.CONTACTED:
-                update_dict['last_contacted_at'] = datetime.utcnow()
+        # Check if status is being changed to CONVERTED
+        if 'status' in update_dict and update_dict['status'] == ProspectStatus.CONVERTED:
+            # Only auto-convert if the prospect is not already converted
+            if prospect.status != ProspectStatus.CONVERTED and not prospect.is_converted:
+                # Trigger automatic conversion to contact
+                from app.schemas.prospect import ProspectConversionRequest
+                conversion_request = ProspectConversionRequest(
+                    notes="Automatically converted via status update",
+                    create_activity=True,
+                    assign_to=prospect.assigned_to
+                )
+
+                # Convert the prospect to contact
+                self.convert_to_contact(
+                    prospect_id=prospect_id,
+                    conversion_request=conversion_request,
+                    converted_by=updated_by or prospect.assigned_to or prospect.created_by
+                )
+
+                # Return the updated prospect (conversion updates it internally)
+                return self.repository.get(prospect_id)
+
+        # Note: last_contacted_at is no longer automatically updated since we removed CONTACTED status
+        # It can be updated manually if needed
 
         return self.repository.update(db_obj=prospect, obj_in=update_dict)
 
@@ -227,7 +261,8 @@ class ProspectService:
             )
 
         # Check if contact with same email already exists
-        existing_contact = self.db.query(Contact).filter(Contact.email == prospect.email).first()
+        existing_contact = self.db.query(Contact).filter(
+            Contact.email == prospect.email).first()
         if existing_contact:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -274,8 +309,8 @@ class ProspectService:
                 type='note',
                 subject=f'Prospect converted to contact',
                 description=f'Prospect {prospect.full_name} was converted to a contact. '
-                           f'Campaign source: {prospect.campaign.name if prospect.campaign else "N/A"}. '
-                           f'{conversion_request.notes or ""}',
+                f'Campaign source: {prospect.campaign.name if prospect.campaign else "N/A"}. '
+                f'{conversion_request.notes or ""}',
                 contact_id=contact.id,
                 user_id=converted_by,
                 created_at=datetime.utcnow()
@@ -285,7 +320,8 @@ class ProspectService:
             activity_id = activity.id
 
         # Update campaign_contacts to link to new contact instead of prospect
-        campaign_contacts = self.campaign_contact_repo.get_prospect_campaigns(prospect_id)
+        campaign_contacts = self.campaign_contact_repo.get_prospect_campaigns(
+            prospect_id)
         for cc in campaign_contacts:
             cc.contact_id = contact.id
             cc.prospect_id = None

@@ -264,7 +264,8 @@ class ProspectController:
 
         updated_prospect = self.service.update_prospect(
             prospect_id=prospect_id,
-            prospect_data=prospect_data
+            prospect_data=prospect_data,
+            updated_by=current_user.id
         )
 
         if not updated_prospect:

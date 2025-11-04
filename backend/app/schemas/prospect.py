@@ -8,8 +8,8 @@ from app.models.prospect import ProspectStatus, ProspectSource
 # Base Prospect Schema
 class ProspectBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
-    last_name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr
+    last_name: Optional[str] = Field(None, max_length=100)
+    email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=50)
     company_name: Optional[str] = Field(None, max_length=255)
     job_title: Optional[str] = Field(None, max_length=100)
@@ -27,6 +27,36 @@ class ProspectBase(BaseModel):
     state: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
 
+    @validator('email', pre=True)
+    def empty_email_to_none(cls, v):
+        """Convert empty string to None for email"""
+        if v == '' or (isinstance(v, str) and not v.strip()):
+            return None
+        return v
+
+    @validator('status', pre=True)
+    def normalize_status(cls, v):
+        """Convert status to uppercase to match database enum"""
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
+    @validator('source', pre=True)
+    def normalize_source(cls, v):
+        """Convert source to uppercase to match database enum"""
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
+    @validator('phone')
+    def check_contact_info(cls, phone, values):
+        """Ensure at least one of email or phone is provided"""
+        email = values.get('email')
+        # Check if both are empty/None
+        if not email and not phone:
+            raise ValueError('Either email or phone number must be provided')
+        return phone
+
 
 # Create Prospect Schema
 class ProspectCreate(ProspectBase):
@@ -37,7 +67,7 @@ class ProspectCreate(ProspectBase):
 # Update Prospect Schema
 class ProspectUpdate(BaseModel):
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=50)
     company_name: Optional[str] = Field(None, max_length=255)
@@ -57,6 +87,27 @@ class ProspectUpdate(BaseModel):
     state: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
 
+    @validator('email', pre=True)
+    def empty_email_to_none(cls, v):
+        """Convert empty string to None for email"""
+        if v == '' or (isinstance(v, str) and not v.strip()):
+            return None
+        return v
+
+    @validator('status', pre=True)
+    def normalize_status(cls, v):
+        """Convert status to uppercase to match database enum"""
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
+    @validator('source', pre=True)
+    def normalize_source(cls, v):
+        """Convert source to uppercase to match database enum"""
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
 
 # Prospect Response Schema (returned from API)
 class ProspectResponse(ProspectBase):
@@ -72,6 +123,15 @@ class ProspectResponse(ProspectBase):
 
     class Config:
         from_attributes = True
+
+        @staticmethod
+        def schema_extra(schema, model):
+            # Return enum values as lowercase for frontend compatibility
+            for prop in schema.get('properties', {}).values():
+                if 'allOf' in prop and len(prop['allOf']) > 0:
+                    ref = prop['allOf'][0].get('$ref', '')
+                    if 'ProspectStatus' in ref or 'ProspectSource' in ref:
+                        prop['type'] = 'string'
 
 
 # Prospect with Campaign Info

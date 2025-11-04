@@ -261,25 +261,43 @@ class CampaignRepository(BaseRepository[Campaign]):
             campaign_id: Campaign UUID
 
         Returns:
-            List of conversion data
+            List of conversion data with contact and company details
         """
-        conversions = self.db.query(CampaignContact, Deal)\
+        from app.models.contact import Contact
+        from app.models.company import Company
+
+        conversions = self.db.query(CampaignContact, Deal, Contact, Company)\
             .join(Deal, CampaignContact.deal_id == Deal.id)\
+            .outerjoin(Contact, Deal.contact_id == Contact.id)\
+            .outerjoin(Company, Contact.company_id == Company.id)\
             .filter(CampaignContact.campaign_id == campaign_id)\
             .filter(CampaignContact.converted_at.isnot(None))\
             .all()
 
         result = []
-        for cc, deal in conversions:
-            result.append({
+        for cc, deal, contact, company in conversions:
+            conversion_data = {
                 "deal_id": deal.id,
                 "deal_name": deal.name,
                 "deal_value": deal.value,
+                "deal_stage": deal.stage,
                 "contact_id": cc.contact_id,
                 "prospect_id": cc.prospect_id,
                 "converted_at": cc.converted_at,
                 "conversion_value": cc.conversion_value
-            })
+            }
+
+            # Add contact information if available
+            if contact:
+                conversion_data["contact_name"] = f"{contact.first_name} {contact.last_name}"
+                conversion_data["contact_email"] = contact.email
+
+            # Add company information if available
+            if company:
+                conversion_data["company_name"] = company.name
+                conversion_data["company_id"] = company.id
+
+            result.append(conversion_data)
 
         return result
 

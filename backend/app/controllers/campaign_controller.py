@@ -524,6 +524,49 @@ class CampaignController:
         """
         return self.service.get_campaign_statistics(owner_id=current_user.id)
 
+    async def link_deal_to_campaign(
+        self,
+        campaign_id: UUID,
+        prospect_id: UUID,
+        deal_id: UUID,
+        conversion_value: float,
+        current_user: UserProfile
+    ) -> Dict[str, Any]:
+        """
+        Link a deal to a campaign by updating the campaign_contact record.
+
+        Args:
+            campaign_id: Campaign UUID
+            prospect_id: Prospect UUID
+            deal_id: Deal UUID
+            conversion_value: Value of the conversion
+            current_user: Authenticated user
+
+        Returns:
+            Success message
+        """
+        campaign = self.service.get_campaign(campaign_id)
+
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign not found"
+            )
+
+        # Check ownership
+        if campaign.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to modify this campaign"
+            )
+
+        return self.service.link_deal_to_campaign(
+            campaign_id=campaign_id,
+            prospect_id=prospect_id,
+            deal_id=deal_id,
+            conversion_value=conversion_value
+        )
+
     def _build_campaign_with_stats(self, campaign) -> Dict[str, Any]:
         """Build campaign response with calculated stats."""
         campaign_dict = CampaignResponse.from_orm(campaign).dict()

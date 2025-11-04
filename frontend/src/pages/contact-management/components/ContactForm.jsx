@@ -24,7 +24,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
     department: '',
     company_id: '',
     companyName: '', // Keep for new company creation
-    status: 'prospect',
+    status: 'active',
     lead_source: 'website',
     social_linkedin: '',
     social_twitter: '',
@@ -50,7 +50,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         department: contact?.department || '',
         company_id: contact?.company_id || '',
         companyName: '',
-        status: contact?.status || 'prospect',
+        status: contact?.status || 'active',
         lead_source: contact?.lead_source || 'website',
         social_linkedin: contact?.social_linkedin || '',
         social_twitter: contact?.social_twitter || '',
@@ -225,9 +225,7 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
   ];
 
   const contactStatuses = [
-    { value: 'prospect', label: 'Prospect' },
     { value: 'active', label: 'Active' },
-    { value: 'customer', label: 'Customer' },
     { value: 'inactive', label: 'Inactive' }
   ];
 

@@ -9,22 +9,20 @@ from app.core.database import Base
 
 class ProspectStatus(str, enum.Enum):
     """Prospect status workflow"""
-    NEW = "new"  # Just captured, not yet reviewed
-    CONTACTED = "contacted"  # Sales team reached out
-    QUALIFIED = "qualified"  # Confirmed they're interested
-    CONVERTED = "converted"  # Moved to contacts table
-    REJECTED = "rejected"  # Not a good fit
+    NEW = "NEW"  # Just captured, not yet reviewed
+    CONVERTED = "CONVERTED"  # Moved to contacts table
+    REJECTED = "REJECTED"  # Not a good fit
 
 
 class ProspectSource(str, enum.Enum):
     """Source channels for prospects"""
-    EMAIL_CAMPAIGN = "email_campaign"
-    WEB_FORM = "web_form"
-    PHONE = "phone"
-    SOCIAL_MEDIA = "social_media"
-    MANUAL_ENTRY = "manual_entry"
-    REFERRAL = "referral"
-    OTHER = "other"
+    EMAIL_CAMPAIGN = "EMAIL_CAMPAIGN"
+    WEB_FORM = "WEB_FORM"
+    PHONE = "PHONE"
+    SOCIAL_MEDIA = "SOCIAL_MEDIA"
+    MANUAL_ENTRY = "MANUAL_ENTRY"
+    REFERRAL = "REFERRAL"
+    OTHER = "OTHER"
 
 
 class Prospect(Base):
@@ -38,8 +36,8 @@ class Prospect(Base):
 
     # Basic Information
     first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    email = Column(String(255), unique=True, nullable=False, index=True)  # Unique constraint for deduplication
+    last_name = Column(String(100), nullable=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)  # Unique constraint for deduplication
     phone = Column(String(50), unique=True, nullable=True, index=True)  # Unique constraint for deduplication
 
     # Company Information

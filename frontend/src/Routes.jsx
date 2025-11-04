@@ -13,6 +13,7 @@ import SalesDashboard from "pages/sales-dashboard";
 import DealManagement from "pages/deal-management";
 import ContactManagement from "pages/contact-management";
 import CompanyManagement from "pages/company-management";
+import CampaignManagement from "pages/campaign-management";
 import PipelineAnalytics from "pages/pipeline-analytics";
 import ActivityTimeline from "pages/activity-timeline";
 import SettingsAdministration from "pages/settings-administration";
@@ -118,6 +119,30 @@ const Routes = () => {
             element={
               <ProtectedRoute requiredPermission="companies.view_own">
                 <CompanyManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/campaign-management"
+            element={
+              <ProtectedRoute requiredPermission="campaigns.view_own">
+                <CampaignManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/campaign-management/new"
+            element={
+              <ProtectedRoute requiredPermission="campaigns.create">
+                <CampaignManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/campaign-management/:campaignId"
+            element={
+              <ProtectedRoute requiredPermission="campaigns.view_own">
+                <CampaignManagement />
               </ProtectedRoute>
             }
           />

@@ -5,7 +5,7 @@ Clean endpoint definitions using the controller layer.
 
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.orm import Session
 
 from app.controllers.campaign_controller import CampaignController
@@ -373,3 +373,41 @@ async def get_campaign_prospects(
     from app.controllers.prospect_controller import ProspectController
     controller = ProspectController(db)
     return await controller.get_campaign_prospects(campaign_id, current_user, status, skip, limit)
+
+
+@router.post(
+    "/{campaign_id}/prospects/{prospect_id}/link-deal",
+    summary="Link deal to campaign",
+    description="Link a deal to a campaign by updating the campaign_contact record"
+)
+async def link_deal_to_campaign(
+    campaign_id: UUID,
+    prospect_id: UUID,
+    deal_id: UUID = Body(..., embed=True),
+    conversion_value: float = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Link a deal to a campaign.
+
+    This updates the campaign_contact record to associate a deal with the prospect conversion.
+    This is necessary for deals to appear in the campaign's Conversions tab.
+
+    Args:
+    - campaign_id: Campaign UUID
+    - prospect_id: Prospect UUID
+    - deal_id: Deal UUID that was created
+    - conversion_value: Value of the conversion/deal
+
+    Returns:
+    - Success message with campaign_contact_id
+    """
+    controller = CampaignController(db)
+    return await controller.link_deal_to_campaign(
+        campaign_id=campaign_id,
+        prospect_id=prospect_id,
+        deal_id=deal_id,
+        conversion_value=conversion_value,
+        current_user=current_user
+    )
