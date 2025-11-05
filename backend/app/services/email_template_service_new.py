@@ -672,42 +672,51 @@ class EmailTemplateService:
         if not processed_subject or not processed_content:
             raise ValueError("Subject and content are required")
 
-        # Get company email from system configuration
+        # Get sender email from SMTP configuration (not from system config)
+        # This ensures we use the authenticated SMTP user's email
+        from ..core.config import settings
+        company_email = settings.FROM_EMAIL or "noreply@company.com"
+
+        # Get company name for sender name from system configuration
         from ..services.system_config_service_new import SystemConfigService
         config_service = SystemConfigService(self.db)
-        company_email = config_service.get_configuration_value(
-            "general.company_email",
-            default="noreply@company.com"
-        )
-
-        # Get company name for sender name
         company_name = config_service.get_configuration_value(
             "general.company_name",
             default="CRM System"
         )
 
-        # Send email via SendGrid
+        # Send email via SMTP
         email_status = "pending"
         error_message = None
 
         try:
-            from ..services.sendgrid_service import get_sendgrid_service
+            from ..services.smtp_service import SMTPService
+            from ..core.config import settings
 
-            sendgrid = get_sendgrid_service()
-            result = sendgrid.send_email(
-                from_email=company_email,
+            # Initialize SMTP service
+            smtp_service = SMTPService(
+                smtp_host=settings.SMTP_HOST,
+                smtp_port=settings.SMTP_PORT,
+                smtp_user=settings.SMTP_USER,
+                smtp_pass=settings.SMTP_PASS,
+                from_email=settings.FROM_EMAIL or company_email,
+                smtp_secure=settings.SMTP_SECURE
+            )
+
+            result = smtp_service.send_email(
                 to_email=email_data.to,
                 subject=processed_subject,
                 html_content=processed_content,
-                cc_emails=email_data.cc,
-                bcc_emails=email_data.bcc,
-                from_name=company_name
+                from_email=company_email,
+                from_name=company_name,
+                cc=email_data.cc,
+                bcc=email_data.bcc
             )
 
             if result.get('success'):
                 email_status = "sent"
                 print(
-                    f"✅ Email sent successfully via SendGrid to {email_data.to}")
+                    f"✅ Email sent successfully via SMTP to {email_data.to}")
             else:
                 email_status = "failed"
                 error_message = result.get('message', 'Unknown error')
@@ -717,7 +726,7 @@ class EmailTemplateService:
         except Exception as e:
             email_status = "failed"
             error_message = str(e)
-            print(f"❌ SendGrid error: {error_message}")
+            print(f"❌ SMTP error: {error_message}")
             # Re-raise to let controller handle it
             raise
 
@@ -774,36 +783,56 @@ class EmailTemplateService:
         if not processed_subject or not processed_content:
             raise ValueError("Subject and content are required")
 
-        # Get company email from system configuration
+        # Get sender email from SMTP configuration (not from system config)
+        # This ensures we use the authenticated SMTP user's email
+        from ..core.config import settings
+        company_email = settings.FROM_EMAIL or "noreply@company.com"
+
+        # Get company name for sender name from system configuration
         from ..services.system_config_service_new import SystemConfigService
         config_service = SystemConfigService(self.db)
-        company_email = config_service.get_configuration_value(
-            "general.company_email",
-            default="noreply@company.com"
-        )
-
-        # Get company name for sender name
         company_name = config_service.get_configuration_value(
             "general.company_name",
             default="CRM System"
         )
 
-        # Send email via SendGrid with attachments
+        # Send email via SMTP with attachments
         email_status = "pending"
         error_message = None
 
         try:
-            from ..services.sendgrid_service import get_sendgrid_service
+            from ..services.smtp_service import SMTPService
+            from ..core.config import settings
 
-            sendgrid = get_sendgrid_service()
-            result = await sendgrid.send_email_with_attachments(
-                from_email=company_email,
+            # Initialize SMTP service
+            smtp_service = SMTPService(
+                smtp_host=settings.SMTP_HOST,
+                smtp_port=settings.SMTP_PORT,
+                smtp_user=settings.SMTP_USER,
+                smtp_pass=settings.SMTP_PASS,
+                from_email=settings.FROM_EMAIL or company_email,
+                smtp_secure=settings.SMTP_SECURE
+            )
+
+            # Prepare attachments for SMTP service
+            attachment_list = []
+            if attachments:
+                for file in attachments:
+                    file_content = await file.read()
+                    attachment_list.append({
+                        'filename': file.filename,
+                        'content': file_content,
+                        'content_type': file.content_type or 'application/octet-stream'
+                    })
+                    # Reset file pointer
+                    await file.seek(0)
+
+            result = smtp_service.send_email_with_attachment(
                 to_email=email_data.to,
                 subject=processed_subject,
                 html_content=processed_content,
-                attachments=attachments,
-                cc_emails=email_data.cc,
-                bcc_emails=email_data.bcc,
+                attachments=attachment_list,
+                from_email=company_email,
                 from_name=company_name
             )
 
@@ -811,7 +840,7 @@ class EmailTemplateService:
                 email_status = "sent"
                 attachment_count = len(attachments) if attachments else 0
                 print(
-                    f"✅ Email sent successfully via SendGrid to {email_data.to} with {attachment_count} attachment(s)")
+                    f"✅ Email sent successfully via SMTP to {email_data.to} with {attachment_count} attachment(s)")
             else:
                 email_status = "failed"
                 error_message = result.get('message', 'Unknown error')
@@ -821,7 +850,7 @@ class EmailTemplateService:
         except Exception as e:
             email_status = "failed"
             error_message = str(e)
-            print(f"❌ SendGrid error: {error_message}")
+            print(f"❌ SMTP error: {error_message}")
             # Re-raise to let controller handle it
             raise
 

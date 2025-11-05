@@ -141,6 +141,53 @@ const OverviewTab = ({ campaign, statuses, types }) => {
         </div>
       </div>
 
+      {/* Email Campaign Details - Only show for email campaigns */}
+      {campaign?.type === 'email' && (
+        <div className="border-t border-border pt-6">
+          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center">
+            <Icon name="Mail" size={20} className="mr-2" />
+            Email Campaign Details
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Email Template
+              </label>
+              <p className="text-text-primary text-base">
+                {campaign?.email_template_name || campaign?.email_template_id || 'Not selected'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Email Subject
+              </label>
+              <p className="text-text-primary text-base">
+                {campaign?.email_subject || 'Not set'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                From Name
+              </label>
+              <p className="text-text-primary text-base">
+                {campaign?.email_from_name || 'System default'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                From Email
+              </label>
+              <p className="text-text-primary text-base">
+                {campaign?.email_from_email || 'System default'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Budget & ROI */}
       <div className="border-t border-border pt-6">
         <h3 className="text-lg font-semibold text-text-primary mb-4">Budget & ROI</h3>

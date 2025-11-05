@@ -4,15 +4,17 @@ import OverviewTab from './OverviewTab';
 import ProspectsTab from './ProspectsTab';
 import PerformanceTab from './PerformanceTab';
 import AudienceTab from './AudienceTab';
+import ExecuteTab from './ExecuteTab';
 
 const CampaignDetail = ({ campaign, statuses, types, onEdit, onDelete }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'Info' },
-    { id: 'prospects', label: 'Prospects', icon: 'Users' },
+    { id: 'execute', label: 'Execute', icon: 'Send' },
+    { id: 'audience', label: 'Audience', icon: 'Target' },
     { id: 'performance', label: 'Performance', icon: 'TrendingUp' },
-    { id: 'audience', label: 'Audience', icon: 'Target' }
+    { id: 'prospects', label: 'Prospects', icon: 'Users' }
   ];
 
   return (
@@ -118,14 +120,17 @@ const CampaignDetail = ({ campaign, statuses, types, onEdit, onDelete }) => {
           {activeTab === 'overview' && (
             <OverviewTab campaign={campaign} statuses={statuses} types={types} />
           )}
-          {activeTab === 'prospects' && (
-            <ProspectsTab campaignId={campaign?.id} />
+          {activeTab === 'execute' && (
+            <ExecuteTab campaign={campaign} />
+          )}
+          {activeTab === 'audience' && (
+            <AudienceTab campaignId={campaign?.id} />
           )}
           {activeTab === 'performance' && (
             <PerformanceTab campaignId={campaign?.id} />
           )}
-          {activeTab === 'audience' && (
-            <AudienceTab campaignId={campaign?.id} />
+          {activeTab === 'prospects' && (
+            <ProspectsTab campaignId={campaign?.id} />
           )}
         </div>
       </div>

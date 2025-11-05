@@ -478,7 +478,7 @@ class CampaignService:
         audience: List[CampaignContact]
     ) -> int:
         """
-        Execute email campaign by sending emails to audience.
+        Execute email campaign by sending emails to audience via SMTP.
 
         Args:
             campaign: Campaign object
@@ -487,9 +487,11 @@ class CampaignService:
         Returns:
             Number of emails sent
         """
-        from app.services.sendgrid_service import SendGridService
+        from app.services.smtp_service import SMTPService
+        from app.services.email_template_service_new import EmailTemplateService
+        from app.core.config import settings
+        import time
 
-        email_service = SendGridService(self.db)
         sent_count = 0
 
         # Get email template
@@ -503,36 +505,102 @@ class CampaignService:
                 detail="Email template not found"
             )
 
+        # Initialize SMTP service
+        smtp_service = SMTPService(
+            smtp_host=settings.SMTP_HOST,
+            smtp_port=settings.SMTP_PORT,
+            smtp_user=settings.SMTP_USER,
+            smtp_pass=settings.SMTP_PASS,
+            from_email=settings.FROM_EMAIL,
+            smtp_secure=settings.SMTP_SECURE
+        )
+
+        # Initialize email template service for merge field processing
+        email_template_service = EmailTemplateService(self.db)
+
+        # Get sender email and name from campaign or use defaults
+        from_email = campaign.email_from_email or settings.FROM_EMAIL
+        from_name = campaign.email_from_name or "CRM System"
+        email_subject = campaign.email_subject or template.subject
+
+        print(f"\n{'='*60}")
+        print(f"📧 EXECUTING EMAIL CAMPAIGN: {campaign.name}")
+        print(f"Template: {template.name}")
+        print(f"Audience Size: {len(audience)}")
+        print(f"From: {from_name} <{from_email}>")
+        print(f"{'='*60}\n")
+
         # Send emails to each audience member
         for cc in audience:
             try:
                 recipient_email = None
                 recipient_name = None
+                merge_data = {}
 
+                # Get recipient details and prepare merge data
                 if cc.contact:
                     recipient_email = cc.contact.email
                     recipient_name = f"{cc.contact.first_name} {cc.contact.last_name}"
+                    merge_data = {
+                        'first_name': cc.contact.first_name or '',
+                        'last_name': cc.contact.last_name or '',
+                        'full_name': recipient_name,
+                        'email': cc.contact.email or '',
+                        'phone': cc.contact.phone or '',
+                        'position': cc.contact.position or '',
+                    }
+                    if cc.contact.company:
+                        merge_data['company_name'] = cc.contact.company.name or ''
+                        merge_data['company_address'] = cc.contact.company.address or ''
+                        merge_data['company_phone'] = cc.contact.company.phone or ''
                 elif cc.prospect:
                     recipient_email = cc.prospect.email
                     recipient_name = f"{cc.prospect.first_name} {cc.prospect.last_name}"
+                    merge_data = {
+                        'first_name': cc.prospect.first_name or '',
+                        'last_name': cc.prospect.last_name or '',
+                        'full_name': recipient_name,
+                        'email': cc.prospect.email or '',
+                        'phone': cc.prospect.phone or '',
+                    }
 
                 if not recipient_email:
                     continue
 
-                # Send email (using existing SendGrid service)
-                # Note: This is a simplified version. In production, you'd want to:
-                # 1. Use a queue system (Celery, RQ, etc.)
-                # 2. Handle rate limiting
-                # 3. Track bounces and deliverability
-
-                # For now, just mark as sent
-                # In a real implementation, you would call email_service.send_email()
-                self.campaign_contact_repo.mark_as_sent(
-                    campaign_contact_id=cc.id,
-                    email_subject=campaign.email_subject or template.subject
+                # Process template with merge data
+                processed = email_template_service.process_template(
+                    template=template,
+                    merge_data=merge_data,
+                    sender=None  # Campaign sending doesn't need sender user
                 )
 
-                sent_count += 1
+                # Send email via SMTP
+                result = smtp_service.send_email(
+                    to_email=recipient_email,
+                    subject=email_subject,
+                    html_content=processed['content'],
+                    from_email=from_email,
+                    from_name=from_name
+                )
+
+                if result.get('success'):
+                    # Mark as sent in campaign tracking
+                    self.campaign_contact_repo.mark_as_sent(
+                        campaign_contact_id=cc.id,
+                        email_subject=email_subject
+                    )
+                    sent_count += 1
+                    print(f"✅ Sent to {recipient_email}")
+                else:
+                    # Mark as failed
+                    self.campaign_contact_repo.mark_as_bounced(
+                        campaign_contact_id=cc.id,
+                        error_message=result.get('message', 'Unknown error')
+                    )
+                    print(f"❌ Failed to send to {recipient_email}: {result.get('message')}")
+
+                # Rate limiting - 100ms delay between emails (10 emails per second)
+                time.sleep(0.1)
 
             except Exception as e:
                 # Log error and mark as failed
@@ -540,6 +608,11 @@ class CampaignService:
                     campaign_contact_id=cc.id,
                     error_message=str(e)
                 )
+                print(f"❌ Error sending to {recipient_email}: {str(e)}")
+
+        print(f"\n{'='*60}")
+        print(f"📊 Campaign Complete: {sent_count}/{len(audience)} emails sent")
+        print(f"{'='*60}\n")
 
         return sent_count
 

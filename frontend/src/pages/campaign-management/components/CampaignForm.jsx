@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../contexts/AuthContext';
+import emailTemplateService from '../../../services/emailTemplateService';
 
 const CampaignForm = ({
   campaign = null,
@@ -21,9 +22,31 @@ const CampaignForm = ({
     budget: '',
     expected_revenue: '',
     email_template_id: '',
+    email_subject: '',
+    email_from_name: '',
+    email_from_email: '',
     owner_id: user?.id || ''
   });
   const [errors, setErrors] = useState({});
+  const [emailTemplates, setEmailTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  // Load email templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoadingTemplates(true);
+        const response = await emailTemplateService.getTemplates({ status: 'active' });
+        setEmailTemplates(response.templates || []);
+      } catch (error) {
+        console.error('Failed to load email templates:', error);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   // Populate form when campaign prop changes
   useEffect(() => {
@@ -38,6 +61,9 @@ const CampaignForm = ({
         budget: campaign.budget?.toString() || '',
         expected_revenue: campaign.expected_revenue?.toString() || '',
         email_template_id: campaign.email_template_id || '',
+        email_subject: campaign.email_subject || '',
+        email_from_name: campaign.email_from_name || '',
+        email_from_email: campaign.email_from_email || '',
         owner_id: campaign.owner_id || user?.id || ''
       });
     } else {
@@ -51,6 +77,9 @@ const CampaignForm = ({
         budget: '',
         expected_revenue: '',
         email_template_id: '',
+        email_subject: '',
+        email_from_name: '',
+        email_from_email: '',
         owner_id: user?.id || ''
       });
     }
@@ -75,6 +104,16 @@ const CampaignForm = ({
 
     if (!formData.type) {
       newErrors.type = 'Campaign type is required';
+    }
+
+    // Email campaign specific validation
+    if (formData.type === 'email') {
+      if (!formData.email_template_id) {
+        newErrors.email_template_id = 'Email template is required for email campaigns';
+      }
+      if (!formData.email_subject?.trim()) {
+        newErrors.email_subject = 'Email subject is required for email campaigns';
+      }
     }
 
     if (formData.budget && isNaN(parseFloat(formData.budget))) {
@@ -111,6 +150,9 @@ const CampaignForm = ({
       budget: formData.budget ? parseFloat(formData.budget) : 0,
       expected_revenue: formData.expected_revenue ? parseFloat(formData.expected_revenue) : 0,
       email_template_id: formData.email_template_id || null,
+      email_subject: formData.email_subject?.trim() || null,
+      email_from_name: formData.email_from_name?.trim() || null,
+      email_from_email: formData.email_from_email?.trim() || null,
       owner_id: formData.owner_id || user?.id
     };
 
@@ -304,6 +346,106 @@ const CampaignForm = ({
               </div>
             </div>
           </div>
+
+          {/* Email Settings - Only show for email campaigns */}
+          {formData.type === 'email' && (
+            <div className="border-t border-border pt-6">
+              <h3 className="text-lg font-semibold text-text-primary mb-4">
+                <Icon name="Mail" size={20} className="inline mr-2" />
+                Email Campaign Settings
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email_template_id" className="block text-sm font-medium text-text-secondary mb-2">
+                    Email Template *
+                  </label>
+                  <select
+                    id="email_template_id"
+                    name="email_template_id"
+                    value={formData.email_template_id}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${
+                      errors.email_template_id ? 'border-error' : 'border-border'
+                    }`}
+                    required={formData.type === 'email'}
+                    disabled={loadingTemplates}
+                  >
+                    <option value="">
+                      {loadingTemplates ? 'Loading templates...' : 'Select an email template'}
+                    </option>
+                    {emailTemplates.map(template => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} ({template.category})
+                      </option>
+                    ))}
+                  </select>
+                  {errors.email_template_id && (
+                    <p className="mt-1 text-sm text-error">{errors.email_template_id}</p>
+                  )}
+                  {emailTemplates.length === 0 && !loadingTemplates && (
+                    <p className="mt-1 text-sm text-text-tertiary">
+                      No active email templates found. Create one first.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="email_subject" className="block text-sm font-medium text-text-secondary mb-2">
+                    Email Subject *
+                  </label>
+                  <input
+                    type="text"
+                    id="email_subject"
+                    name="email_subject"
+                    value={formData.email_subject}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${
+                      errors.email_subject ? 'border-error' : 'border-border'
+                    }`}
+                    placeholder="Enter email subject"
+                    required={formData.type === 'email'}
+                  />
+                  {errors.email_subject && (
+                    <p className="mt-1 text-sm text-error">{errors.email_subject}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="email_from_name" className="block text-sm font-medium text-text-secondary mb-2">
+                      From Name
+                    </label>
+                    <input
+                      type="text"
+                      id="email_from_name"
+                      name="email_from_name"
+                      value={formData.email_from_name}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                      placeholder="e.g., Sales Team"
+                    />
+                    <p className="mt-1 text-xs text-text-tertiary">Optional - defaults to system sender</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="email_from_email" className="block text-sm font-medium text-text-secondary mb-2">
+                      From Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email_from_email"
+                      name="email_from_email"
+                      value={formData.email_from_email}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                      placeholder="e.g., sales@company.com"
+                    />
+                    <p className="mt-1 text-xs text-text-tertiary">Optional - defaults to system sender</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 

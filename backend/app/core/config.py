@@ -27,7 +27,16 @@ class Settings(BaseSettings):
     # Integration settings
     INTEGRATION_ENCRYPTION_KEY: Optional[str] = None
 
-    # SendGrid settings
+    # Email settings (SMTP - Outlook/Office365)
+    EMAIL_PROVIDER: str = "smtp"
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_SECURE: bool = False
+    SMTP_USER: Optional[str] = None
+    SMTP_PASS: Optional[str] = None
+    FROM_EMAIL: Optional[str] = None
+
+    # Legacy SendGrid settings (deprecated)
     SENDGRID_API_KEY: Optional[str] = None
 
     # Azure Blob Storage settings

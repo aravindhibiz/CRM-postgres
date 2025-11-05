@@ -636,4 +636,10 @@ class CampaignController:
         campaign_dict['is_scheduled'] = campaign.is_scheduled
         campaign_dict['is_draft'] = campaign.is_draft
 
+        # Add email template name if available
+        if campaign.email_template:
+            campaign_dict['email_template_name'] = campaign.email_template.name
+        else:
+            campaign_dict['email_template_name'] = None
+
         return campaign_dict
