@@ -1,5 +1,8 @@
 import apiClient from '../lib/apiClient';
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export const dealDocumentsService = {
   // Get all documents for a specific deal
   async getDealDocuments(dealId) {
@@ -20,9 +23,9 @@ export const dealDocumentsService = {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Use axios directly to avoid JSON serialization issues
+      // Use fetch to handle FormData properly
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/v1/deals/${dealId}/documents`, {
+      const response = await fetch(`${API_URL}/api/v1/deals/${dealId}/documents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

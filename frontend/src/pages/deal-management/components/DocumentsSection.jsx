@@ -6,6 +6,9 @@ import CsvPreview from './CsvPreview';
 import ExcelPreview from './ExcelPreview';
 import WordPreview from './WordPreview';
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const DocumentsSection = ({
   documents = [],
   loading = false,
@@ -70,7 +73,7 @@ const DocumentsSection = ({
     try {
       // Use fetch with authentication to delete the document
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/v1/deals/documents/${doc?.id}`, {
+      const response = await fetch(`${API_URL}/api/v1/deals/documents/${doc?.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +97,7 @@ const DocumentsSection = ({
     try {
       // Use fetch with authentication to download the file
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/v1/deals/documents/${doc?.id}/download`, {
+      const response = await fetch(`${API_URL}/api/v1/deals/documents/${doc?.id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -125,7 +128,7 @@ const DocumentsSection = ({
       
       // Use fetch with authentication to get the file
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/v1/deals/documents/${doc?.id}/download`, {
+      const response = await fetch(`${API_URL}/api/v1/deals/documents/${doc?.id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

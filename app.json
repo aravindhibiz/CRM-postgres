@@ -1,0 +1,134 @@
+{
+  "name": "SalesFlow Pro CRM",
+  "description": "A modern, full-featured CRM system built with React and FastAPI",
+  "keywords": ["crm", "fastapi", "react", "postgresql", "sales"],
+  "website": "https://github.com/aravindhibiz/CRM-postgres",
+  "repository": "https://github.com/aravindhibiz/CRM-postgres",
+  "logo": "https://raw.githubusercontent.com/aravindhibiz/CRM-postgres/main/frontend/public/logo.png",
+  "success_url": "/",
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    },
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0",
+      "as": "DATABASE"
+    }
+  ],
+  "env": {
+    "SECRET_KEY": {
+      "description": "Secret key for JWT token generation. Generate using: python -c \"import secrets; print(secrets.token_urlsafe(32))\"",
+      "generator": "secret"
+    },
+    "ALGORITHM": {
+      "description": "JWT algorithm",
+      "value": "HS256",
+      "required": false
+    },
+    "ACCESS_TOKEN_EXPIRE_MINUTES": {
+      "description": "JWT token expiration time in minutes",
+      "value": "480",
+      "required": false
+    },
+    "FRONTEND_URL": {
+      "description": "Frontend URL for CORS and OAuth redirects (e.g., https://your-app.herokuapp.com)",
+      "required": true
+    },
+    "VITE_API_URL": {
+      "description": "Backend API URL for frontend (e.g., https://your-backend-app.herokuapp.com/)",
+      "required": true
+    },
+    "GOOGLE_CLIENT_ID": {
+      "description": "Google OAuth Client ID from Google Cloud Console",
+      "required": false
+    },
+    "GOOGLE_CLIENT_SECRET": {
+      "description": "Google OAuth Client Secret from Google Cloud Console",
+      "required": false
+    },
+    "INTEGRATION_ENCRYPTION_KEY": {
+      "description": "32-byte encryption key for integration credentials. Generate using: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\"",
+      "required": false
+    },
+    "EMAIL_PROVIDER": {
+      "description": "Email provider type (smtp or sendgrid)",
+      "value": "smtp",
+      "required": false
+    },
+    "SMTP_HOST": {
+      "description": "SMTP server hostname (e.g., smtp.office365.com, smtp.gmail.com)",
+      "required": false
+    },
+    "SMTP_PORT": {
+      "description": "SMTP server port (usually 587 for TLS)",
+      "value": "587",
+      "required": false
+    },
+    "SMTP_SECURE": {
+      "description": "Use SSL/TLS for SMTP (false for STARTTLS)",
+      "value": "false",
+      "required": false
+    },
+    "SMTP_USER": {
+      "description": "SMTP username (usually your email address)",
+      "required": false
+    },
+    "SMTP_PASS": {
+      "description": "SMTP password or app-specific password",
+      "required": false
+    },
+    "FROM_EMAIL": {
+      "description": "Email address to send emails from",
+      "required": false
+    },
+    "STORAGE_BACKEND": {
+      "description": "Storage backend (local or azure_blob). Use azure_blob for production on Heroku.",
+      "value": "azure_blob",
+      "required": false
+    },
+    "AZURE_STORAGE_ACCOUNT_NAME": {
+      "description": "Azure Storage Account name (required if STORAGE_BACKEND=azure_blob)",
+      "required": false
+    },
+    "AZURE_STORAGE_ACCOUNT_KEY": {
+      "description": "Azure Storage Account key (required if STORAGE_BACKEND=azure_blob)",
+      "required": false
+    },
+    "AZURE_STORAGE_CONNECTION_STRING": {
+      "description": "Azure Storage connection string (alternative to account name/key)",
+      "required": false
+    },
+    "AZURE_BLOB_CONTAINER_NAME": {
+      "description": "Azure Blob container name for file storage",
+      "value": "crm-files",
+      "required": false
+    },
+    "VITE_GEMINI_API_KEY": {
+      "description": "Gemini AI API key for AI features (optional)",
+      "required": false
+    },
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "PYTHON_VERSION": {
+      "description": "Python version",
+      "value": "3.11.9"
+    }
+  },
+  "scripts": {
+    "postdeploy": "python backend/init_db.py && python backend/seed_permissions.py"
+  }
+}
