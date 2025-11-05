@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 import uuid
 
@@ -13,7 +13,9 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None  # Optional for Microsoft SSO users
+    microsoft_id: Optional[str] = None
+    auth_provider: Literal["local", "microsoft"] = "local"
 
 
 class UserLogin(BaseModel):
@@ -21,10 +23,21 @@ class UserLogin(BaseModel):
     password: str
 
 
+class MicrosoftSSOLogin(BaseModel):
+    """Schema for Microsoft SSO authentication"""
+    access_token: str  # Microsoft access token
+    email: EmailStr
+    microsoft_id: str  # Microsoft user identifier (oid claim)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+
 class UserResponse(UserBase):
     id: uuid.UUID
     is_active: bool
     avatar_url: Optional[str] = None
+    microsoft_id: Optional[str] = None
+    auth_provider: Literal["local", "microsoft"] = "local"
     created_at: datetime
     updated_at: datetime
 

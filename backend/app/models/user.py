@@ -14,7 +14,9 @@ class UserProfile(Base):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     role = Column(String, default="sales_rep")
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)  # Optional for Microsoft SSO users
+    microsoft_id = Column(String, unique=True, index=True, nullable=True)  # Microsoft user identifier (oid claim)
+    auth_provider = Column(String, default="local", nullable=False)  # 'local' or 'microsoft'
     is_active = Column(Boolean, default=True)
     phone = Column(String)
     avatar_url = Column(Text)
