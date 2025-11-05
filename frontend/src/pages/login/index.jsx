@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import Icon from 'components/AppIcon';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, authError, clearAuthError } = useAuth();
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
+  const { signIn, signInWithMicrosoft, authError, clearAuthError } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
@@ -16,12 +19,34 @@ const Login = () => {
     clearAuthError();
 
     const { user, error } = await signIn(email, password);
-    
+
     if (user && !error) {
       navigate('/sales-dashboard');
     }
-    
+
     setIsLoading(false);
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setIsMicrosoftLoading(true);
+    clearAuthError();
+
+    try {
+      // Get Microsoft auth URL from backend
+      const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/microsoft/login`);
+      if (!response.ok) {
+        throw new Error('Failed to get Microsoft login URL');
+      }
+
+      const { auth_url } = await response.json();
+
+      // Direct redirect to Microsoft (no popup)
+      window.location.href = auth_url;
+    } catch (error) {
+      console.error('❌ Microsoft login failed:', error);
+      setIsMicrosoftLoading(false);
+    }
   };
 
   const handleDemoLogin = async (role) => {
@@ -39,19 +64,68 @@ const Login = () => {
     if (credentials) {
       setEmail(credentials?.email);
       setPassword(credentials?.password);
-      
+
       const { user, error } = await signIn(credentials?.email, credentials?.password);
-      
+
       if (user && !error) {
         navigate('/sales-dashboard');
       }
     }
-    
+
     setIsLoading(false);
   };
 
+  // Auto-login effect for SharePoint seamless SSO
+  useEffect(() => {
+    const autoParam = searchParams.get('auto');
+
+    if (autoParam === 'microsoft') {
+      console.log('🔄 Auto-login detected: Redirecting to Microsoft...');
+
+      // Automatically redirect to Microsoft (no popup needed)
+      const autoLogin = async () => {
+        try {
+          const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+          const response = await fetch(`${API_BASE_URL}/api/v1/auth/microsoft/login`);
+          if (!response.ok) {
+            throw new Error('Failed to get Microsoft login URL');
+          }
+
+          const { auth_url } = await response.json();
+          console.log('✅ Redirecting to Microsoft authentication...');
+
+          // Direct redirect to Microsoft
+          window.location.href = auth_url;
+        } catch (error) {
+          console.error('❌ Auto-login failed:', error);
+          setIsAutoLoggingIn(false);
+        }
+      };
+
+      setIsAutoLoggingIn(true);
+      autoLogin();
+    }
+  }, [searchParams]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Auto-login overlay */}
+      {isAutoLoggingIn && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+              <h2 className="text-2xl font-bold text-text-primary mb-2">
+                Signing you in...
+              </h2>
+              <p className="text-text-secondary">
+                Connecting with Microsoft to authenticate your account
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
@@ -240,6 +314,44 @@ const Login = () => {
             </div>
           </form>
 
+          {/* Microsoft SSO Divider */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-text-secondary">Or continue with</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Microsoft Sign-In Button */}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleMicrosoftLogin}
+              disabled={isLoading || isMicrosoftLoading}
+              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isMicrosoftLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-700 mr-3"></div>
+                  <span>Signing in with Microsoft...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-3" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                  </svg>
+                  <span>Sign in with Microsoft</span>
+                </>
+              )}
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-text-secondary">

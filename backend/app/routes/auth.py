@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional
 from ..core.database import get_db
 from ..core.security import create_access_token, verify_password, get_password_hash
 from ..core.config import settings
@@ -11,9 +12,14 @@ from ..models.password_reset_token import PasswordResetToken
 from ..schemas.user import (
     UserCreate, UserLogin, Token, UserResponse,
     ForgotPasswordRequest, ForgotPasswordResponse,
-    ResetPasswordRequest, ResetPasswordResponse
+    ResetPasswordRequest, ResetPasswordResponse,
+    MicrosoftSSOLogin
 )
 from ..services.smtp_service import SMTPService
+from ..services.microsoft_sso_service import microsoft_sso_service
+from ..services.user_service import UserService
+import secrets
+import urllib.parse
 
 router = APIRouter()
 
@@ -401,3 +407,235 @@ async def reset_password(
     return {
         "message": "Password has been reset successfully. You can now log in with your new password."
     }
+
+
+# ==========================================
+# MICROSOFT SSO ENDPOINTS
+# ==========================================
+
+# In-memory state storage for CSRF protection
+# In production, use Redis or database
+_oauth_states = {}
+
+
+@router.get("/microsoft/login")
+async def microsoft_login():
+    """
+    Initiate Microsoft OAuth login flow.
+    Returns the Microsoft authorization URL for the frontend to open in a popup.
+    """
+    try:
+        # Generate CSRF state token
+        state = secrets.token_urlsafe(32)
+
+        # Get Microsoft authorization URL
+        auth_data = microsoft_sso_service.get_authorization_url(state=state)
+
+        # Store state temporarily (expires after 10 minutes)
+        _oauth_states[state] = True
+
+        return {
+            "auth_url": auth_data["auth_url"],
+            "state": state
+        }
+    except Exception as e:
+        print(f"❌ Microsoft login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to initiate Microsoft login: {str(e)}"
+        )
+
+
+@router.get("/microsoft/callback")
+async def microsoft_callback(
+    code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    error: Optional[str] = Query(None),
+    error_description: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Handle Microsoft OAuth callback.
+    Exchanges authorization code for access token and creates/finds user.
+    Redirects to frontend with JWT token.
+    """
+    # Handle error from Microsoft
+    if error:
+        error_msg = error_description or error
+        print(f"❌ Microsoft OAuth error: {error_msg}")
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        error_encoded = urllib.parse.quote(f"Microsoft login failed: {error_msg}")
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error={error_encoded}"
+        )
+
+    # Validate required parameters
+    if not code or not state:
+        print("❌ Missing code or state in Microsoft callback")
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=Invalid+callback+parameters"
+        )
+
+    # Validate state (CSRF protection)
+    if state not in _oauth_states:
+        print(f"❌ Invalid state token: {state}")
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=Invalid+state+token"
+        )
+
+    # Remove used state
+    del _oauth_states[state]
+
+    try:
+        # Exchange authorization code for access token
+        print(f"🔄 Exchanging authorization code for token...")
+        token_response = microsoft_sso_service.acquire_token_by_auth_code(code)
+
+        if not token_response:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Failed to acquire token from Microsoft"
+            )
+
+        # Extract user data from token response
+        print(f"📋 Extracting user data from token...")
+        email, microsoft_id, first_name, last_name = microsoft_sso_service.extract_user_data(token_response)
+
+        print(f"✅ Microsoft user data:")
+        print(f"   Email: {email}")
+        print(f"   Microsoft ID: {microsoft_id}")
+        print(f"   Name: {first_name} {last_name}")
+
+        # Get or create user
+        user_service = UserService(db)
+        user, is_new = user_service.get_or_create_microsoft_user(
+            email=email,
+            microsoft_id=microsoft_id,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        if is_new:
+            print(f"✅ Created new Microsoft SSO user: {email}")
+        else:
+            print(f"✅ Found existing user: {email}")
+
+        # Check if user is active
+        if not user.is_active:
+            print(f"❌ User account is deactivated: {email}")
+            frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=Account+deactivated"
+            )
+
+        # Create JWT access token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(user.id)},
+            expires_delta=access_token_expires
+        )
+
+        # Prepare user data for frontend
+        user_data = UserResponse.model_validate(user)
+        user_json = urllib.parse.quote(user_data.model_dump_json())
+
+        # Redirect to frontend success page with token and user data
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        redirect_url = f"{frontend_url}/auth/microsoft/success?token={access_token}&user={user_json}"
+
+        print(f"✅ Microsoft SSO successful, redirecting to frontend")
+        return RedirectResponse(url=redirect_url)
+
+    except ValueError as ve:
+        print(f"❌ Validation error: {str(ve)}")
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        error_encoded = urllib.parse.quote(str(ve))
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error={error_encoded}"
+        )
+    except Exception as e:
+        print(f"❌ Microsoft callback error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=Authentication+failed"
+        )
+
+
+@router.post("/microsoft/silent", response_model=Token)
+async def microsoft_silent_login(
+    sso_data: MicrosoftSSOLogin,
+    db: Session = Depends(get_db)
+):
+    """
+    Handle silent SSO login for SharePoint integration.
+    Frontend provides Microsoft access token, backend validates and returns JWT.
+    """
+    try:
+        # Validate Microsoft token and get user info
+        print(f"🔍 Validating Microsoft token for silent SSO...")
+        user_info = microsoft_sso_service.validate_token(sso_data.access_token)
+
+        if not user_info:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Microsoft access token"
+            )
+
+        # Extract user data
+        email = sso_data.email
+        microsoft_id = sso_data.microsoft_id
+        first_name = sso_data.first_name or user_info.get("givenName", "")
+        last_name = sso_data.last_name or user_info.get("surname", "")
+
+        # Ensure we have required data
+        if not email or not microsoft_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing required user information"
+            )
+
+        # Get or create user
+        user_service = UserService(db)
+        user, is_new = user_service.get_or_create_microsoft_user(
+            email=email,
+            microsoft_id=microsoft_id,
+            first_name=first_name or email.split("@")[0],
+            last_name=last_name or ""
+        )
+
+        # Check if user is active
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account has been deactivated. Please contact your administrator."
+            )
+
+        # Create JWT access token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(user.id)},
+            expires_delta=access_token_expires
+        )
+
+        print(f"✅ Silent SSO successful for: {email}")
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": UserResponse.model_validate(user)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Silent SSO error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Silent SSO failed: {str(e)}"
+        )

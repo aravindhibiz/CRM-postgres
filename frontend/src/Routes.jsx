@@ -9,6 +9,7 @@ import Login from "pages/login";
 import Register from "pages/register";
 import ForgotPassword from "pages/forgot-password";
 import ResetPassword from "pages/reset-password";
+import MicrosoftCallback from "pages/auth/MicrosoftCallback";
 import SalesDashboard from "pages/sales-dashboard";
 import DealManagement from "pages/deal-management";
 import ContactManagement from "pages/contact-management";
@@ -51,10 +52,13 @@ const Routes = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Login />} />
-          
+
+          {/* Microsoft SSO Callback Route */}
+          <Route path="/auth/microsoft/success" element={<MicrosoftCallback />} />
+
           {/* Debug Route - Remove in production */}
           <Route path="/debug-permissions" element={<PermissionDebug />} />
-          
+
           {/* OAuth Callback Route */}
           <Route
             path="/integrations/oauth/callback"

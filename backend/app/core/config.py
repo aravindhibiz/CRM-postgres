@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
 
+    # Microsoft SSO settings
+    MICROSOFT_CLIENT_ID: Optional[str] = None
+    MICROSOFT_CLIENT_SECRET: Optional[str] = None
+    MICROSOFT_TENANT_ID: Optional[str] = None
+    MICROSOFT_AUTHORITY: Optional[str] = None
+    MICROSOFT_REDIRECT_URI: Optional[str] = None
+    MICROSOFT_SCOPES: str = "openid email profile User.Read"
+
     # Integration settings
     INTEGRATION_ENCRYPTION_KEY: Optional[str] = None
 

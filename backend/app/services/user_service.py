@@ -1,9 +1,9 @@
 """
 User Service - Business logic layer for User operations.
-Handles user management, invitations, password changes, and statistics.
+Handles user management, invitations, password changes, statistics, and SSO integration.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from uuid import UUID
 from sqlalchemy.orm import Session
 
@@ -371,3 +371,148 @@ class UserService:
             return True
 
         return False
+
+    def get_user_by_microsoft_id(self, microsoft_id: str) -> Optional[UserProfile]:
+        """
+        Get user by Microsoft ID.
+
+        Args:
+            microsoft_id: Microsoft user identifier (oid)
+
+        Returns:
+            User or None
+        """
+        return self.db.query(UserProfile).filter(
+            UserProfile.microsoft_id == microsoft_id
+        ).first()
+
+    def link_microsoft_account(
+        self,
+        user: UserProfile,
+        microsoft_id: str
+    ) -> UserProfile:
+        """
+        Link Microsoft account to existing user.
+
+        Args:
+            user: Existing user to link
+            microsoft_id: Microsoft user ID
+
+        Returns:
+            Updated user
+
+        Raises:
+            ValueError: If microsoft_id is already linked to another user
+        """
+        # Check if microsoft_id is already used by another user
+        existing_microsoft_user = self.get_user_by_microsoft_id(microsoft_id)
+        if existing_microsoft_user and existing_microsoft_user.id != user.id:
+            raise ValueError("This Microsoft account is already linked to another user")
+
+        # Update user with Microsoft credentials
+        user.microsoft_id = microsoft_id
+        user.auth_provider = "microsoft"
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        print(f"✅ Linked Microsoft account to user: {user.email}")
+        return user
+
+    def create_microsoft_user(
+        self,
+        email: str,
+        microsoft_id: str,
+        first_name: str,
+        last_name: str,
+        role: str = "sales_rep"
+    ) -> UserProfile:
+        """
+        Create a new Microsoft SSO user.
+
+        Args:
+            email: User's email
+            microsoft_id: Microsoft user identifier
+            first_name: User's first name
+            last_name: User's last name
+            role: User's role (default: sales_rep)
+
+        Returns:
+            Created user
+
+        Raises:
+            ValueError: If email already exists
+        """
+        # Check if email already exists
+        if self.repository.email_exists(email):
+            raise ValueError("User with this email already exists")
+
+        # Create user without password
+        user_dict = {
+            'email': email.lower().strip(),
+            'first_name': first_name.strip(),
+            'last_name': last_name.strip(),
+            'role': role,
+            'hashed_password': None,  # No password for SSO users
+            'microsoft_id': microsoft_id,
+            'auth_provider': 'microsoft',
+            'is_active': True
+        }
+
+        created_user = self.repository.create(obj_in=user_dict)
+
+        print(f"✅ Created new Microsoft SSO user: {email}")
+        return created_user
+
+    def get_or_create_microsoft_user(
+        self,
+        email: str,
+        microsoft_id: str,
+        first_name: str,
+        last_name: str
+    ) -> Tuple[UserProfile, bool]:
+        """
+        Get existing user or create new one for Microsoft SSO.
+
+        Logic:
+        1. If user exists with microsoft_id -> return existing user
+        2. If user exists with email but no microsoft_id -> link accounts
+        3. If user doesn't exist -> create new user
+
+        Args:
+            email: User's email from Microsoft
+            microsoft_id: Microsoft user identifier (oid)
+            first_name: User's first name
+            last_name: User's last name
+
+        Returns:
+            Tuple of (UserProfile, is_new_user: bool)
+
+        Raises:
+            ValueError: If account linking fails
+        """
+        # Check if user exists with microsoft_id
+        existing_user = self.get_user_by_microsoft_id(microsoft_id)
+        if existing_user:
+            print(f"✅ Found existing Microsoft user: {email}")
+            return existing_user, False
+
+        # Check if user exists with email
+        existing_user = self.get_user_by_email(email)
+        if existing_user:
+            # Link Microsoft account to existing user
+            print(f"🔗 Linking Microsoft account to existing user: {email}")
+            linked_user = self.link_microsoft_account(existing_user, microsoft_id)
+            return linked_user, False
+
+        # Create new user for Microsoft SSO
+        print(f"➕ Creating new Microsoft SSO user: {email}")
+        new_user = self.create_microsoft_user(
+            email=email,
+            microsoft_id=microsoft_id,
+            first_name=first_name,
+            last_name=last_name,
+            role="sales_rep"  # Default role for new SSO users
+        )
+
+        return new_user, True

@@ -115,6 +115,60 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const signInWithMicrosoft = async () => {
+    try {
+      setAuthError('')
+      setLoading(true)
+
+      const { user, error } = await apiClient.microsoftLogin()
+
+      if (error) {
+        setAuthError(error.message)
+        return { error }
+      }
+
+      if (user) {
+        setUser(user)
+        setUserProfile(user)
+        // Load permissions after successful Microsoft login
+        await loadUserPermissions()
+        return { user, userProfile: user }
+      }
+    } catch (error) {
+      const errorMessage = error.message || 'Microsoft sign-in failed. Please try again.'
+      setAuthError(errorMessage)
+      return { error: { message: errorMessage } }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const attemptSilentSSO = async () => {
+    try {
+      // Check if we should attempt silent SSO
+      const { microsoftAuthService } = await import('../services/microsoftAuthService')
+
+      if (!microsoftAuthService.shouldAttemptSharePointSSO()) {
+        console.log('Silent SSO not requested')
+        return { user: null, error: null }
+      }
+
+      console.log('🔄 Attempting silent SSO...')
+
+      // Note: In a real implementation, you would need to get the Microsoft access token
+      // from the SharePoint context. This is a placeholder.
+      // You'll need to integrate with @microsoft/sp-http or similar SharePoint libraries
+
+      // For now, we'll just return and let the user sign in manually
+      console.log('⚠️ Silent SSO not fully implemented - SharePoint context integration needed')
+      return { user: null, error: null }
+    } catch (error) {
+      console.error('Silent SSO error:', error)
+      // Don't show error to user - just fall back to normal login
+      return { user: null, error: null }
+    }
+  }
+
   const signOut = async () => {
     try {
       await apiClient.logout()
@@ -188,6 +242,8 @@ export const AuthProvider = ({ children }) => {
     permissions,
     signIn,
     signUp,
+    signInWithMicrosoft,
+    attemptSilentSSO,
     signOut,
     getUserProfile,
     updateUserProfile,

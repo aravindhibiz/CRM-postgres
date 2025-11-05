@@ -125,6 +125,52 @@ class ApiClient {
     return { error: null };
   }
 
+  // Microsoft SSO authentication
+  async microsoftLogin() {
+    try {
+      // Import the microsoftAuthService dynamically to avoid circular dependencies
+      const { microsoftAuthService } = await import('../services/microsoftAuthService');
+
+      // Initiate Microsoft login flow with popup
+      const { token, user } = await microsoftAuthService.initiateMicrosoftLogin();
+
+      // Store token and user
+      this.setToken(token);
+      this.setCurrentUser(user);
+
+      console.log('Microsoft SSO successful, token set:', token ? 'Yes' : 'No');
+      return { user, error: null };
+    } catch (error) {
+      console.error('Microsoft login error:', error);
+      const errorMessage = error.message || 'Microsoft login failed';
+      return { user: null, error: { message: errorMessage } };
+    }
+  }
+
+  async microsoftSilentLogin(microsoftAccessToken, userInfo) {
+    try {
+      // Import the microsoftAuthService dynamically
+      const { microsoftAuthService } = await import('../services/microsoftAuthService');
+
+      // Attempt silent SSO
+      const { token, user } = await microsoftAuthService.silentSSOLogin(
+        microsoftAccessToken,
+        userInfo
+      );
+
+      // Store token and user
+      this.setToken(token);
+      this.setCurrentUser(user);
+
+      console.log('Silent SSO successful, token set:', token ? 'Yes' : 'No');
+      return { user, error: null };
+    } catch (error) {
+      console.error('Silent SSO error:', error);
+      const errorMessage = error.message || 'Silent SSO failed';
+      return { user: null, error: { message: errorMessage } };
+    }
+  }
+
   // Generic CRUD operations
   async get(endpoint) {
     try {
