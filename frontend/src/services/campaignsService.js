@@ -229,6 +229,21 @@ export const campaignsService = {
     }
   },
 
+  // Remove audience member from campaign
+  async removeAudienceMember(campaignId, campaignContactId) {
+    try {
+      const { data, error } = await apiClient.delete(
+        `/api/v1/campaigns/${campaignId}/audience/${campaignContactId}`
+      );
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error removing audience member:', err);
+      throw err;
+    }
+  },
+
   // Campaign Execution
   async executeCampaign(campaignId, executionData = {}) {
     try {
@@ -241,6 +256,36 @@ export const campaignsService = {
       return data;
     } catch (err) {
       console.error('Error executing campaign:', err);
+      throw err;
+    }
+  },
+
+  // Send to pending audience members
+  async sendToPendingAudience(campaignId) {
+    try {
+      const { data, error } = await apiClient.post(
+        `/api/v1/campaigns/${campaignId}/send-pending`
+      );
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error sending to pending audience:', err);
+      throw err;
+    }
+  },
+
+  // Resend to specific audience member
+  async resendToMember(campaignId, campaignContactId) {
+    try {
+      const { data, error } = await apiClient.post(
+        `/api/v1/campaigns/${campaignId}/audience/${campaignContactId}/resend`
+      );
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error resending to member:', err);
       throw err;
     }
   },

@@ -440,7 +440,7 @@ const SystemConfiguration = () => {
         <div className="bg-surface rounded-lg border border-border p-6">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
             <Icon name="Target" size={20} className="text-primary" />
-            <span>Sales Settings</span>
+            <span>Deals Settings</span>
           </h3>
           
           <div className="space-y-4">
@@ -451,26 +451,16 @@ const SystemConfiguration = () => {
                 onChange={(e) => updateConfig('sales', 'default_pipeline_stage', e?.target?.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
               >
-                <option value="prospecting">Prospecting</option>
-                <option value="qualification">Qualification</option>
+                <option value="lead">Lead</option>
+                <option value="qualified">Qualified</option>
                 <option value="proposal">Proposal</option>
                 <option value="negotiation">Negotiation</option>
+                <option value="closed_won">Closed Won</option>
+                <option value="closed_lost">Closed Lost</option>
               </select>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Deal Inactivity Warning (Days)</label>
-              <input
-                type="number"
-                value={config?.sales?.deal_inactivity_warning_days || ''}
-                onChange={(e) => updateConfig('sales', 'deal_inactivity_warning_days', parseInt(e?.target?.value))}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
-                min="1"
-                max="365"
-              />
-            </div>
-            
-            <div className="space-y-2">
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -479,26 +469,6 @@ const SystemConfiguration = () => {
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-text-primary">Require deal value</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={config?.sales?.auto_progress_deals || false}
-                  onChange={(e) => updateConfig('sales', 'auto_progress_deals', e?.target?.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-text-primary">Auto-progress deals based on activities</span>
-              </label>
-
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={config?.sales?.lead_scoring_enabled || false}
-                  onChange={(e) => updateConfig('sales', 'lead_scoring_enabled', e?.target?.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-text-primary">Enable lead scoring</span>
               </label>
             </div>
           </div>
@@ -535,37 +505,19 @@ const SystemConfiguration = () => {
                 max="10"
               />
             </div>
-            
-            <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={config?.security?.password_complexity || false}
-                  onChange={(e) => updateConfig('security', 'password_complexity', e?.target?.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-text-primary">Require password complexity</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={config?.security?.two_factor_auth || false}
-                  onChange={(e) => updateConfig('security', 'two_factor_auth', e?.target?.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-text-primary">Enable two-factor authentication</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={config?.security?.data_encryption_at_rest || false}
-                  onChange={(e) => updateConfig('security', 'data_encryption_at_rest', e?.target?.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-text-primary">Data encryption at rest</span>
-              </label>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Account Lockout Duration (minutes)</label>
+              <input
+                type="number"
+                value={config?.security?.lockout_duration_minutes || ''}
+                onChange={(e) => updateConfig('security', 'lockout_duration_minutes', parseInt(e?.target?.value))}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+                min="5"
+                max="1440"
+                placeholder="30"
+              />
+              <p className="text-xs text-text-secondary mt-1">How long to lock account after max failed login attempts</p>
             </div>
           </div>
         </div>

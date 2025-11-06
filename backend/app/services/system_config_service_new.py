@@ -77,7 +77,7 @@ DEFAULT_CONFIGURATIONS = {
 
     # Sales Settings
     "sales.default_pipeline_stage": {
-        "value": "new",
+        "value": "lead",
         "category": "sales",
         "description": "Default stage for new deals"
     },
@@ -87,7 +87,7 @@ DEFAULT_CONFIGURATIONS = {
         "description": "Default currency for deals"
     },
     "sales.require_deal_value": {
-        "value": True,
+        "value": False,
         "category": "sales",
         "description": "Whether deal value is required"
     },

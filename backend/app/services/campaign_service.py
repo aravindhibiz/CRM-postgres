@@ -276,6 +276,64 @@ class CampaignService:
 
         return result
 
+    def remove_audience_member(
+        self,
+        campaign_id: UUID,
+        campaign_contact_id: UUID
+    ) -> Dict[str, Any]:
+        """
+        Remove an audience member from the campaign.
+
+        Args:
+            campaign_id: Campaign UUID
+            campaign_contact_id: CampaignContact UUID
+
+        Returns:
+            Success message with updated count
+
+        Raises:
+            HTTPException: If campaign_contact not found
+        """
+        # Verify the campaign_contact exists and belongs to this campaign
+        campaign_contact = self.campaign_contact_repo.get(campaign_contact_id)
+
+        if not campaign_contact:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Audience member not found"
+            )
+
+        if str(campaign_contact.campaign_id) != str(campaign_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Audience member does not belong to this campaign"
+            )
+
+        # Remove the campaign contact
+        if campaign_contact.contact_id:
+            self.campaign_contact_repo.remove_from_campaign(
+                campaign_id=campaign_id,
+                contact_id=campaign_contact.contact_id
+            )
+        elif campaign_contact.prospect_id:
+            self.campaign_contact_repo.remove_from_campaign(
+                campaign_id=campaign_id,
+                prospect_id=campaign_contact.prospect_id
+            )
+
+        # Update campaign's target audience size
+        campaign = self.repository.get(campaign_id)
+        if campaign:
+            campaign.target_audience_size = max(0, (campaign.target_audience_size or 0) - 1)
+            self.db.commit()
+
+        return {
+            "message": "Audience member removed successfully",
+            "campaign_id": campaign_id,
+            "campaign_contact_id": campaign_contact_id,
+            "target_audience_size": campaign.target_audience_size if campaign else 0
+        }
+
     def execute_campaign(
         self,
         campaign_id: UUID,
@@ -368,6 +426,160 @@ class CampaignService:
             "status": "executed",
             "sent_count": sent_count,
             "message": f"Campaign executed successfully. Sent to {sent_count} recipients."
+        }
+
+    def send_to_pending_audience(
+        self,
+        campaign_id: UUID,
+        executed_by: UUID
+    ) -> Dict[str, Any]:
+        """
+        Send campaign to pending (unsent) audience members only.
+
+        Args:
+            campaign_id: Campaign UUID
+            executed_by: User ID executing the send
+
+        Returns:
+            Execution result with sent count
+
+        Raises:
+            HTTPException: If campaign not found or cannot be executed
+        """
+        campaign = self.repository.get(campaign_id)
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign not found"
+            )
+
+        # For email campaigns, validate template
+        if campaign.type == CampaignType.EMAIL and not campaign.email_template_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email campaign requires an email template"
+            )
+
+        # Get only pending audience members
+        pending_audience = self.campaign_contact_repo.get_campaign_audience(
+            campaign_id=campaign_id,
+            status=[EngagementStatus.PENDING]
+        )
+
+        if not pending_audience:
+            return {
+                "campaign_id": campaign_id,
+                "status": "no_pending",
+                "sent_count": 0,
+                "message": "No pending audience members to send to"
+            }
+
+        # Execute send
+        sent_count = 0
+
+        if campaign.type == CampaignType.EMAIL:
+            sent_count = self._execute_email_campaign(campaign, pending_audience)
+        else:
+            # For non-email campaigns, just mark as sent
+            for cc in pending_audience:
+                self.campaign_contact_repo.mark_as_sent(cc.id)
+                sent_count += 1
+
+        # Update metrics
+        self.repository.update_metrics(campaign_id)
+
+        return {
+            "campaign_id": campaign_id,
+            "status": "sent",
+            "sent_count": sent_count,
+            "message": f"Sent to {sent_count} new audience member(s)"
+        }
+
+    def resend_to_member(
+        self,
+        campaign_id: UUID,
+        campaign_contact_id: UUID,
+        executed_by: UUID
+    ) -> Dict[str, Any]:
+        """
+        Resend campaign to a specific audience member.
+
+        Args:
+            campaign_id: Campaign UUID
+            campaign_contact_id: CampaignContact UUID
+            executed_by: User ID executing the resend
+
+        Returns:
+            Resend result
+
+        Raises:
+            HTTPException: If campaign_contact not found or cannot be resent
+        """
+        # Get the campaign
+        campaign = self.repository.get(campaign_id)
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign not found"
+            )
+
+        # Get the campaign_contact
+        campaign_contact = self.campaign_contact_repo.get(campaign_contact_id)
+        if not campaign_contact:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Audience member not found"
+            )
+
+        # Verify it belongs to this campaign
+        if str(campaign_contact.campaign_id) != str(campaign_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Audience member does not belong to this campaign"
+            )
+
+        # For email campaigns, validate template
+        if campaign.type == CampaignType.EMAIL and not campaign.email_template_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email campaign requires an email template"
+            )
+
+        # Reset the member status to pending
+        self.campaign_contact_repo.reset_for_resend(campaign_contact_id)
+
+        # Get member name for response
+        member_name = "Unknown"
+        if campaign_contact.contact:
+            member_name = f"{campaign_contact.contact.first_name} {campaign_contact.contact.last_name}"
+        elif campaign_contact.prospect:
+            member_name = f"{campaign_contact.prospect.first_name} {campaign_contact.prospect.last_name}"
+
+        # Resend to this member
+        if campaign.type == CampaignType.EMAIL:
+            # Get the refreshed campaign_contact with pending status
+            refreshed_cc = self.campaign_contact_repo.get(campaign_contact_id)
+            sent_count = self._execute_email_campaign(campaign, [refreshed_cc])
+
+            if sent_count == 0:
+                return {
+                    "campaign_id": campaign_id,
+                    "campaign_contact_id": campaign_contact_id,
+                    "status": "failed",
+                    "message": f"Failed to resend to {member_name}"
+                }
+        else:
+            # For non-email campaigns, just mark as sent
+            self.campaign_contact_repo.mark_as_sent(campaign_contact_id)
+
+        # Update metrics
+        self.repository.update_metrics(campaign_id)
+
+        return {
+            "campaign_id": campaign_id,
+            "campaign_contact_id": campaign_contact_id,
+            "status": "resent",
+            "message": f"Campaign resent to {member_name}"
         }
 
     def get_campaign_metrics(self, campaign_id: UUID) -> Dict[str, Any]:
@@ -699,3 +911,4 @@ class CampaignService:
             "campaign_contact_id": campaign_contact.id,
             "deal_id": deal_id
         }
+

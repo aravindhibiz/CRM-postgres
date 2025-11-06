@@ -19,10 +19,10 @@ const Header = () => {
 
   const navigationItems = [
     { label: 'Dashboard', path: '/sales-dashboard', icon: 'BarChart3', tooltip: 'Pipeline overview and metrics', requiredPermission: 'dashboard.view_stats' },
-    { label: 'Deals', path: '/deal-management', icon: 'Target', tooltip: 'Manage deal lifecycle and opportunities', requiredPermission: 'deals.view_own' },
-    { label: 'Contacts', path: '/contact-management', icon: 'Users', tooltip: 'Customer relationship management', requiredPermission: 'contacts.view_own' },
-    { label: 'Companies', path: '/company-management', icon: 'Building2', tooltip: 'Company management and relationships', requiredPermission: 'companies.view_own' },
     { label: 'Campaigns', path: '/campaign-management', icon: 'Megaphone', tooltip: 'Marketing campaign management', requiredPermission: 'campaigns.view_own' },
+    { label: 'Contacts', path: '/contact-management', icon: 'Users', tooltip: 'Customer relationship management', requiredPermission: 'contacts.view_own' },
+    { label: 'Deals', path: '/deal-management', icon: 'Target', tooltip: 'Manage deal lifecycle and opportunities', requiredPermission: 'deals.view_own' },
+    { label: 'Companies', path: '/company-management', icon: 'Building2', tooltip: 'Company management and relationships', requiredPermission: 'companies.view_own' },
     { label: 'Analytics', path: '/pipeline-analytics', icon: 'TrendingUp', tooltip: 'Performance insights and analysis', requiredPermission: 'analytics.view_personal' },
     { label: 'Activity', path: '/activity-timeline', icon: 'Clock', tooltip: 'Interaction timeline and history', requiredPermission: 'activities.view_own' }
   ];

@@ -11,10 +11,10 @@ const CampaignDetail = ({ campaign, statuses, types, onEdit, onDelete }) => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: 'Info' },
-    { id: 'execute', label: 'Execute', icon: 'Send' },
+    { id: 'prospects', label: 'Prospects', icon: 'Users' },
     { id: 'audience', label: 'Audience', icon: 'Target' },
-    { id: 'performance', label: 'Performance', icon: 'TrendingUp' },
-    { id: 'prospects', label: 'Prospects', icon: 'Users' }
+    { id: 'execute', label: 'Execute', icon: 'Send' },
+    { id: 'performance', label: 'Performance', icon: 'TrendingUp' }
   ];
 
   return (

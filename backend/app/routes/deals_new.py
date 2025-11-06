@@ -144,6 +144,29 @@ async def get_deal_statistics(
     )
 
 
+@router.get("/inactive")
+async def get_inactive_deals(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(require_any_authenticated())
+):
+    """
+    Get deals that have been inactive (no updates) for the warning period.
+    Warning period is defined in system configuration (sales.deal_inactivity_warning_days).
+
+    **Returns:**
+    - List of inactive deals with full details
+    """
+    from ..services.deal_service import DealService
+
+    deal_service = DealService(db)
+    inactive_deals = deal_service.get_inactive_deals(current_user=current_user)
+
+    return {
+        "count": len(inactive_deals),
+        "deals": inactive_deals
+    }
+
+
 @router.get("/analytics/revenue")
 async def get_revenue_data(
     date_range: Optional[str] = Query(

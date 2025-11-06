@@ -379,6 +379,46 @@ class CampaignController:
             "total": len(audience)
         }
 
+    async def remove_audience_member(
+        self,
+        campaign_id: UUID,
+        campaign_contact_id: UUID,
+        current_user: UserProfile
+    ) -> Dict[str, Any]:
+        """
+        Remove an audience member from the campaign.
+
+        Args:
+            campaign_id: Campaign UUID
+            campaign_contact_id: CampaignContact UUID
+            current_user: Authenticated user
+
+        Returns:
+            Success message with updated audience count
+
+        Raises:
+            HTTPException: If campaign not found or access denied
+        """
+        campaign = self.service.get_campaign(campaign_id)
+
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign not found"
+            )
+
+        # Check edit permission (modifying audience requires edit permission)
+        if not check_campaign_edit_permission(self.db, current_user, campaign):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied. You don't have permission to modify this campaign."
+            )
+
+        return self.service.remove_audience_member(
+            campaign_id=campaign_id,
+            campaign_contact_id=campaign_contact_id
+        )
+
     async def execute_campaign(
         self,
         campaign_id: UUID,
@@ -428,6 +468,107 @@ class CampaignController:
         return self.service.execute_campaign(
             campaign_id=campaign_id,
             execute_request=execute_request,
+            executed_by=current_user.id
+        )
+
+    async def send_to_pending_audience(
+        self,
+        campaign_id: UUID,
+        current_user: UserProfile
+    ) -> Dict[str, Any]:
+        """
+        Send campaign to pending (unsent) audience members.
+
+        Args:
+            campaign_id: Campaign UUID
+            current_user: Authenticated user
+
+        Returns:
+            Execution result with sent count
+
+        Raises:
+            HTTPException: If campaign not found or access denied
+        """
+        campaign = self.service.get_campaign(campaign_id)
+
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign not found"
+            )
+
+        # Check execute permission
+        if not has_permission(self.db, current_user, "campaigns.execute"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied. You don't have permission to execute campaigns."
+            )
+
+        # Check campaign access
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to execute this campaign"
+            )
+
+        return self.service.send_to_pending_audience(
+            campaign_id=campaign_id,
+            executed_by=current_user.id
+        )
+
+    async def resend_to_member(
+        self,
+        campaign_id: UUID,
+        campaign_contact_id: UUID,
+        current_user: UserProfile
+    ) -> Dict[str, Any]:
+        """
+        Resend campaign to a specific audience member.
+
+        Args:
+            campaign_id: Campaign UUID
+            campaign_contact_id: CampaignContact UUID
+            current_user: Authenticated user
+
+        Returns:
+            Resend result
+
+        Raises:
+            HTTPException: If campaign not found or access denied
+        """
+        campaign = self.service.get_campaign(campaign_id)
+
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Campaign not found"
+            )
+
+        # Check execute permission (resending requires execute permission)
+        if not has_permission(self.db, current_user, "campaigns.execute"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied. You don't have permission to execute campaigns."
+            )
+
+        # Check campaign access
+        can_view_all = has_permission(self.db, current_user, "campaigns.view_all")
+        can_view_own = has_permission(self.db, current_user, "campaigns.view_own")
+        is_owner = str(campaign.owner_id) == str(current_user.id)
+
+        if not can_view_all and not (can_view_own and is_owner):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to execute this campaign"
+            )
+
+        return self.service.resend_to_member(
+            campaign_id=campaign_id,
+            campaign_contact_id=campaign_contact_id,
             executed_by=current_user.id
         )
 

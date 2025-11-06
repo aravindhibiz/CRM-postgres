@@ -446,3 +446,45 @@ class CampaignContactRepository(BaseRepository[CampaignContact]):
         self.db.commit()
 
         return True
+
+    def reset_for_resend(self, campaign_contact_id: UUID) -> bool:
+        """
+        Reset a campaign_contact status to pending for resending.
+
+        Args:
+            campaign_contact_id: CampaignContact UUID
+
+        Returns:
+            True if reset, False if not found
+        """
+        cc = self.db.query(CampaignContact)\
+            .filter(CampaignContact.id == campaign_contact_id)\
+            .first()
+
+        if not cc:
+            return False
+
+        # Reset status to pending
+        cc.status = EngagementStatus.PENDING
+
+        # Clear timestamps and counters
+        cc.sent_at = None
+        cc.delivered_at = None
+        cc.opened_at = None
+        cc.clicked_at = None
+        cc.responded_at = None
+        cc.bounced_at = None
+        cc.converted_at = None
+
+        cc.open_count = 0
+        cc.click_count = 0
+        # Note: engagement_score is likely a computed property, don't set it directly
+
+        # Clear error info
+        cc.error_message = None
+        cc.bounce_type = None
+
+        self.db.commit()
+        self.db.refresh(cc)
+
+        return True

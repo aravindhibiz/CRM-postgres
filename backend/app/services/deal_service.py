@@ -657,12 +657,36 @@ class DealService:
             Exception: If creation fails
         """
         try:
+            # Import system config service
+            from ..services.system_config_service_new import SystemConfigService
+            config_service = SystemConfigService(self.db)
+
             # Extract custom fields
             custom_fields_data = deal_data.custom_fields or {}
 
             # Prepare deal data for creation
             deal_dict = deal_data.dict(exclude={'custom_fields'})
             deal_dict['owner_id'] = current_user.id
+
+            # Check if deal value is required by system configuration
+            require_value = config_service.get_configuration_value(
+                'sales.require_deal_value',
+                default=False
+            )
+            if require_value and (deal_dict.get('value') is None or deal_dict.get('value') <= 0):
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=400,
+                    detail="Deal value is required by system configuration"
+                )
+
+            # If no stage provided, use default from system configuration
+            if not deal_dict.get('stage'):
+                default_stage = config_service.get_configuration_value(
+                    'sales.default_pipeline_stage',
+                    default='lead'
+                )
+                deal_dict['stage'] = default_stage
 
             # Create deal via repository
             db_deal = self.repository.create(obj_in=deal_dict)
@@ -714,6 +738,21 @@ class DealService:
             # Extract custom fields
             update_dict = deal_data.dict(exclude_unset=True)
             custom_fields_data = update_dict.pop('custom_fields', None)
+
+            # Check if deal value is required when updating value field
+            if 'value' in update_dict:
+                from ..services.system_config_service_new import SystemConfigService
+                config_service = SystemConfigService(self.db)
+                require_value = config_service.get_configuration_value(
+                    'sales.require_deal_value',
+                    default=False
+                )
+                if require_value and (update_dict.get('value') is None or update_dict.get('value') <= 0):
+                    from fastapi import HTTPException
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Deal value is required by system configuration"
+                    )
 
             # Update deal fields
             if update_dict:
@@ -917,3 +956,45 @@ class DealService:
             contact=contact_data,
             company=company_data
         )
+
+    def get_inactive_deals(
+        self,
+        current_user: Optional[UserProfile] = None
+    ) -> List[DealResponse]:
+        """
+        Get deals that have been inactive (no updates) for the warning period
+        defined in system configuration.
+
+        Args:
+            current_user: Optional user to filter deals (if provided, only return deals owned by this user)
+
+        Returns:
+            List[DealResponse]: List of inactive deals
+        """
+        from ..services.system_config_service_new import SystemConfigService
+
+        # Get inactivity warning threshold from system configuration
+        config_service = SystemConfigService(self.db)
+        warning_days = config_service.get_configuration_value(
+            'sales.deal_inactivity_warning_days',
+            default=30
+        )
+
+        # Calculate cutoff date
+        cutoff_date = datetime.utcnow() - timedelta(days=warning_days)
+
+        # Build query for inactive deals
+        query = self.db.query(Deal).filter(
+            Deal.updated_at < cutoff_date,
+            Deal.stage.notin_(['closed_won', 'closed_lost', 'won', 'lost'])  # Exclude closed deals
+        )
+
+        # Filter by user if provided
+        if current_user:
+            query = query.filter(Deal.owner_id == current_user.id)
+
+        # Get inactive deals
+        inactive_deals = query.all()
+
+        # Build response with full deal details
+        return [self._build_deal_response(deal) for deal in inactive_deals]

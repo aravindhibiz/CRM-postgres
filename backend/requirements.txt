@@ -18,3 +18,5 @@ httpx==0.25.2
 # sendgrid==6.11.0  # Replaced with SMTP (smtplib - built-in Python library)
 azure-storage-blob==12.19.0
 azure-identity==1.15.0
+msal==1.29.0
+requests==2.31.0

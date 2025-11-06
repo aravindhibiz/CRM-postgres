@@ -5,6 +5,7 @@ import { contactsService } from '../../../services/contactsService';
 import { companiesService } from '../../../services/companiesService';
 import { CustomFieldsGroup } from '../../../components/CustomFieldInput';
 import { customFieldsAPI } from '../../../services/customFieldsAPI';
+import systemConfigService from '../../../services/systemConfigService';
 
 const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onSubmit, onCancel, isSaving = false }) => {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
   const [customFields, setCustomFields] = useState([]);
   const [customFieldValues, setCustomFieldValues] = useState({});
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
+  const [isValueRequired, setIsValueRequired] = useState(true); // System config for require deal value
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -31,10 +33,13 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
   // Populate form when deal prop changes
   useEffect(() => {
     console.log('DealForm useEffect triggered with deal:', deal);
-    
+
     // Load custom fields
     loadCustomFields();
-    
+
+    // Always load system config to get isValueRequired setting
+    loadSystemConfig();
+
     if (deal) {
       console.log('Populating form with deal data:', deal);
       setFormData({
@@ -67,7 +72,50 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         loadCustomFieldValues(deal.id);
       }
     } else {
-      // Reset form for new deal
+      // Reset form for new deal - load default stage from system config
+      loadDefaultStage();
+    }
+  }, [deal]);
+
+  // Load system configuration (isValueRequired)
+  const loadSystemConfig = async () => {
+    try {
+      const configs = await systemConfigService.getConfigurationsGrouped();
+      const valueRequired = configs?.sales?.require_deal_value ?? true;
+      console.log('Loaded system config - require value:', valueRequired);
+      setIsValueRequired(valueRequired);
+    } catch (error) {
+      console.error('Error loading system config:', error);
+      setIsValueRequired(true); // Default to required on error
+    }
+  };
+
+  // Load default pipeline stage and deal value requirement from system configuration
+  const loadDefaultStage = async () => {
+    try {
+      const configs = await systemConfigService.getConfigurationsGrouped();
+      const defaultStage = configs?.sales?.default_pipeline_stage || 'lead';
+      const valueRequired = configs?.sales?.require_deal_value ?? true;
+
+      console.log('Loaded system config - default stage:', defaultStage, 'require value:', valueRequired);
+
+      setIsValueRequired(valueRequired);
+      setFormData({
+        name: '',
+        description: '',
+        value: '',
+        stage: defaultStage,
+        probability: 10,
+        expected_close_date: '',
+        contact_id: '',
+        company_id: '',
+        lead_source: 'website',
+        owner_id: user?.id || ''
+      });
+      setCustomFieldValues({});
+    } catch (error) {
+      console.error('Error loading default stage:', error);
+      // Fallback to 'lead' if system config fails
       setFormData({
         name: '',
         description: '',
@@ -82,7 +130,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
       });
       setCustomFieldValues({});
     }
-  }, [deal, user?.id]);
+  };
 
   const loadCustomFields = async () => {
     setCustomFieldsLoading(true);
@@ -147,16 +195,20 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
     try {
       // Validate required fields
-      const requiredFields = ['name', 'value'];
+      const requiredFields = ['name'];
+      if (isValueRequired) {
+        requiredFields.push('value');
+      }
+
       const validationErrors = {};
-      
+
       requiredFields?.forEach(field => {
         if (!formData?.[field]?.toString()?.trim()) {
           validationErrors[field] = `${field?.replace('_', ' ')} is required`;
         }
       });
 
-      // Value validation
+      // Value validation (if value is provided, it must be valid)
       if (formData?.value && (isNaN(formData?.value) || parseFloat(formData?.value) < 0)) {
         validationErrors.value = 'Please enter a valid deal value';
       }
@@ -355,7 +407,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">
-            Deal Value *
+            Deal Value {isValueRequired && '*'}
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary">$</span>
@@ -369,7 +421,7 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
                 errors?.value ? 'border-error' : 'border-border'
               }`}
               placeholder="50000"
-              required
+              required={isValueRequired}
             />
           </div>
           {errors?.value && (

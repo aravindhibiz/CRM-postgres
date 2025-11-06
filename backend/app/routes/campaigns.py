@@ -5,7 +5,7 @@ Clean endpoint definitions using the controller layer.
 
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, File, UploadFile
 from sqlalchemy.orm import Session
 
 from app.controllers.campaign_controller import CampaignController
@@ -241,6 +241,30 @@ async def get_campaign_audience(
     return await controller.get_audience(campaign_id, current_user, status, skip, limit)
 
 
+@router.delete(
+    "/{campaign_id}/audience/{campaign_contact_id}",
+    summary="Remove audience member from campaign",
+    description="Remove a specific contact or prospect from the campaign audience"
+)
+async def remove_audience_member(
+    campaign_id: UUID,
+    campaign_contact_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Remove a specific audience member from the campaign.
+
+    This will delete the campaign_contact association.
+    The contact or prospect itself will NOT be deleted.
+
+    Returns:
+    - Success message with updated audience count
+    """
+    controller = CampaignController(db)
+    return await controller.remove_audience_member(campaign_id, campaign_contact_id, current_user)
+
+
 @router.post(
     "/{campaign_id}/execute",
     summary="Execute campaign",
@@ -277,6 +301,107 @@ async def execute_campaign(
     """
     controller = CampaignController(db)
     return await controller.execute_campaign(campaign_id, execute_request, current_user)
+
+
+@router.post(
+    "/{campaign_id}/send-pending",
+    summary="Send to pending audience members",
+    description="Send campaign to newly added audience members who haven't been sent to yet"
+)
+async def send_to_pending_audience(
+    campaign_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Send campaign to all pending (unsent) audience members.
+
+    This is useful for sending to newly added audience members after
+    the campaign has already been executed once.
+
+    Returns:
+    - Number of emails sent
+    - Success/failure counts
+    """
+    controller = CampaignController(db)
+    return await controller.send_to_pending_audience(campaign_id, current_user)
+
+
+@router.post(
+    "/{campaign_id}/audience/{campaign_contact_id}/resend",
+    summary="Resend to specific audience member",
+    description="Resend campaign to a specific audience member"
+)
+async def resend_to_audience_member(
+    campaign_id: UUID,
+    campaign_contact_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Resend campaign to a specific audience member.
+
+    This will reset their status to pending and resend the campaign.
+    Useful for retrying bounced emails or resending to specific members.
+
+    Returns:
+    - Success message
+    - Updated member status
+    """
+    controller = CampaignController(db)
+    return await controller.resend_to_member(campaign_id, campaign_contact_id, current_user)
+
+
+@router.get(
+    "/{campaign_id}/audience/export",
+    summary="Export campaign audience",
+    description="Export campaign audience to CSV or Excel file"
+)
+async def export_campaign_audience(
+    campaign_id: UUID,
+    format: str = Query("csv", regex="^(csv|excel)$", description="Export format: csv or excel"),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Export campaign audience to CSV or Excel format.
+
+    Query parameters:
+    - format: 'csv' or 'excel' (default: 'csv')
+
+    Returns:
+    - File download with audience data
+    """
+    controller = CampaignController(db)
+    return await controller.export_audience(campaign_id, format, current_user)
+
+
+@router.post(
+    "/{campaign_id}/audience/import",
+    summary="Import campaign audience",
+    description="Import audience members from CSV or Excel file"
+)
+async def import_campaign_audience(
+    campaign_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Import audience members from CSV or Excel file.
+
+    Expected columns:
+    - email (required)
+    - first_name
+    - last_name
+    - phone
+    - company_name
+
+    Returns:
+    - Import statistics (success count, errors)
+    """
+    controller = CampaignController(db)
+    return await controller.import_audience(campaign_id, file, current_user)
 
 
 @router.get(

@@ -18,10 +18,63 @@ from ..schemas.user import (
 from ..services.smtp_service import SMTPService
 from ..services.microsoft_sso_service import microsoft_sso_service
 from ..services.user_service import UserService
+from ..services.system_config_service_new import SystemConfigService
 import secrets
 import urllib.parse
 
 router = APIRouter()
+
+
+def get_session_timeout_minutes(db: Session) -> int:
+    """
+    Get session timeout from system configuration.
+    Falls back to config.py setting if not found in database.
+
+    Args:
+        db: Database session
+
+    Returns:
+        int: Session timeout in minutes
+    """
+    try:
+        config_service = SystemConfigService(db)
+        timeout = config_service.get_configuration_value(
+            'security.session_timeout_minutes',
+            default=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+        return int(timeout)
+    except Exception:
+        # Fallback to hardcoded setting if anything goes wrong
+        return settings.ACCESS_TOKEN_EXPIRE_MINUTES
+
+
+def get_company_info(db: Session) -> Dict[str, str]:
+    """
+    Get company information from system configuration.
+    Returns dict with company_name, company_email, company_phone, company_address.
+
+    Args:
+        db: Database session
+
+    Returns:
+        Dict[str, str]: Company information
+    """
+    try:
+        config_service = SystemConfigService(db)
+        return {
+            'company_name': config_service.get_configuration_value('general.company_name', default='SalesForce Lite'),
+            'company_email': config_service.get_configuration_value('general.company_email', default='info@salesforcelite.com'),
+            'company_phone': config_service.get_configuration_value('general.company_phone', default=''),
+            'company_address': config_service.get_configuration_value('general.company_address', default='')
+        }
+    except Exception:
+        # Fallback to defaults if anything goes wrong
+        return {
+            'company_name': 'SalesForce Lite',
+            'company_email': 'info@salesforcelite.com',
+            'company_phone': '',
+            'company_address': ''
+        }
 
 
 @router.post("/register", response_model=Token)
@@ -50,9 +103,9 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
 
-    # Create access token
-    access_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Create access token with session timeout from system configuration
+    session_timeout = get_session_timeout_minutes(db)
+    access_token_expires = timedelta(minutes=session_timeout)
     access_token = create_access_token(
         data={"sub": str(db_user.id)}, expires_delta=access_token_expires
     )
@@ -66,10 +119,50 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
+    from datetime import datetime
+
+    # Get security settings from system configuration
+    config_service = SystemConfigService(db)
+    max_attempts = config_service.get_configuration_value('security.max_login_attempts', default=5)
+    lockout_minutes = config_service.get_configuration_value('security.lockout_duration_minutes', default=30)
+
     # Find user
     user = db.query(UserProfile).filter(
         UserProfile.email == user_credentials.email).first()
+
+    # Check if account is locked
+    if user and user.account_locked_until:
+        if datetime.utcnow() < user.account_locked_until:
+            remaining_minutes = int((user.account_locked_until - datetime.utcnow()).total_seconds() / 60)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Account is locked due to too many failed login attempts. Please try again in {remaining_minutes} minutes.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        else:
+            # Unlock account - lockout period has expired
+            user.account_locked_until = None
+            user.failed_login_attempts = 0
+            db.commit()
+
+    # Verify password
     if not user or not verify_password(user_credentials.password, user.hashed_password):
+        # Track failed login attempt
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+
+            # Lock account if max attempts reached
+            if user.failed_login_attempts >= max_attempts:
+                user.account_locked_until = datetime.utcnow() + timedelta(minutes=lockout_minutes)
+                db.commit()
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Account locked due to {max_attempts} failed login attempts. Please try again in {lockout_minutes} minutes.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            db.commit()
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -84,9 +177,14 @@ async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create access token
-    access_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Successful login - reset failed attempts
+    user.failed_login_attempts = 0
+    user.account_locked_until = None
+    db.commit()
+
+    # Create access token with session timeout from system configuration
+    session_timeout = get_session_timeout_minutes(db)
+    access_token_expires = timedelta(minutes=session_timeout)
     access_token = create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
@@ -219,6 +317,23 @@ async def forgot_password(
         print(f"🔗 Reset link: {reset_link}")
         print()
 
+        # Get company info from system configuration
+        company_info = get_company_info(db)
+        company_name = company_info['company_name']
+        company_email = company_info['company_email']
+        company_phone = company_info['company_phone']
+        company_address = company_info['company_address']
+
+        # Build footer with company contact info
+        footer_contact = []
+        if company_address:
+            footer_contact.append(company_address)
+        if company_email:
+            footer_contact.append(f"Email: {company_email}")
+        if company_phone:
+            footer_contact.append(f"Phone: {company_phone}")
+        footer_text = " | ".join(footer_contact) if footer_contact else ""
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -239,7 +354,7 @@ async def forgot_password(
                 </div>
                 <div class="content">
                     <p>Hello {user.first_name},</p>
-                    <p>We received a request to reset your password for your SalesForce Lite account.</p>
+                    <p>We received a request to reset your password for your {company_name} account.</p>
                     <p>Click the button below to reset your password:</p>
                     <p style="text-align: center;">
                         <a href="{reset_link}" class="button">Reset Password</a>
@@ -248,10 +363,11 @@ async def forgot_password(
                     <p style="word-break: break-all; background: white; padding: 10px; border-radius: 5px;">{reset_link}</p>
                     <p><strong>This link will expire in 1 hour.</strong></p>
                     <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
-                    <p>Best regards,<br>The SalesForce Lite Team</p>
+                    <p>Best regards,<br>The {company_name} Team</p>
                 </div>
                 <div class="footer">
                     <p>This is an automated message, please do not reply to this email.</p>
+                    {f"<p>{footer_text}</p>" if footer_text else ""}
                 </div>
             </div>
         </body>
@@ -259,15 +375,15 @@ async def forgot_password(
         """
 
         print(f"📨 Attempting to send email to: {user.email}")
-        print(f"📬 From: SalesForce Lite <{settings.FROM_EMAIL}>")
-        print(f"📋 Subject: Reset Your Password - SalesForce Lite")
+        print(f"📬 From: {company_name} <{settings.FROM_EMAIL}>")
+        print(f"📋 Subject: Reset Your Password - {company_name}")
         print()
 
         result = smtp_service.send_email(
             to_email=user.email,
-            subject="Reset Your Password - SalesForce Lite",
+            subject=f"Reset Your Password - {company_name}",
             html_content=html_content,
-            from_name="SalesForce Lite"
+            from_name=company_name
         )
 
         print(f"📤 Email send result: {result}")
@@ -357,6 +473,23 @@ async def reset_password(
             smtp_secure=settings.SMTP_SECURE
         )
 
+        # Get company info from system configuration
+        company_info = get_company_info(db)
+        company_name = company_info['company_name']
+        company_email = company_info['company_email']
+        company_phone = company_info['company_phone']
+        company_address = company_info['company_address']
+
+        # Build footer with company contact info
+        footer_contact = []
+        if company_address:
+            footer_contact.append(company_address)
+        if company_email:
+            footer_contact.append(f"Email: {company_email}")
+        if company_phone:
+            footer_contact.append(f"Phone: {company_phone}")
+        footer_text = " | ".join(footer_contact) if footer_contact else ""
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -380,12 +513,13 @@ async def reset_password(
                         <strong>✓ Your password has been successfully reset!</strong>
                     </div>
                     <p>Hello {user.first_name},</p>
-                    <p>This is a confirmation that your password for your SalesForce Lite account has been successfully changed.</p>
+                    <p>This is a confirmation that your password for your {company_name} account has been successfully changed.</p>
                     <p>If you did not make this change, please contact your administrator immediately.</p>
-                    <p>Best regards,<br>The SalesForce Lite Team</p>
+                    <p>Best regards,<br>The {company_name} Team</p>
                 </div>
                 <div class="footer">
                     <p>This is an automated message, please do not reply to this email.</p>
+                    {f"<p>{footer_text}</p>" if footer_text else ""}
                 </div>
             </div>
         </body>
@@ -394,9 +528,9 @@ async def reset_password(
 
         result = smtp_service.send_email(
             to_email=user.email,
-            subject="Password Changed Successfully - SalesForce Lite",
+            subject=f"Password Changed Successfully - {company_name}",
             html_content=html_content,
-            from_name="SalesForce Lite"
+            from_name=company_name
         )
 
         if not result.get('success'):
@@ -530,8 +664,9 @@ async def microsoft_callback(
                 url=f"{frontend_url}/login?error=Account+deactivated"
             )
 
-        # Create JWT access token
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        # Create JWT access token with session timeout from system configuration
+        session_timeout = get_session_timeout_minutes(db)
+        access_token_expires = timedelta(minutes=session_timeout)
         access_token = create_access_token(
             data={"sub": str(user.id)},
             expires_delta=access_token_expires
@@ -614,8 +749,9 @@ async def microsoft_silent_login(
                 detail="Your account has been deactivated. Please contact your administrator."
             )
 
-        # Create JWT access token
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        # Create JWT access token with session timeout from system configuration
+        session_timeout = get_session_timeout_minutes(db)
+        access_token_expires = timedelta(minutes=session_timeout)
         access_token = create_access_token(
             data={"sub": str(user.id)},
             expires_delta=access_token_expires

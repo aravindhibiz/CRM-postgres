@@ -12,6 +12,9 @@ const AudienceTab = ({ campaignId }) => {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [sendingToNew, setSendingToNew] = useState(false);
+  const [resendingMemberId, setResendingMemberId] = useState(null);
 
   const engagementStatuses = [
     { value: 'pending', label: 'Pending', color: 'bg-gray-100 text-gray-800' },
@@ -41,6 +44,85 @@ const AudienceTab = ({ campaignId }) => {
       setError('Failed to load audience. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRemoveMember = async (campaignContactId, memberName) => {
+    if (!confirm(`Remove ${memberName} from this campaign?`)) {
+      return;
+    }
+
+    setRemovingMemberId(campaignContactId);
+    try {
+      await campaignsService.removeAudienceMember(campaignId, campaignContactId);
+      toast.success(`${memberName} removed from campaign`);
+      loadAudience();
+    } catch (err) {
+      console.error('Error removing audience member:', err);
+      toast.error(err.message || 'Failed to remove audience member');
+    } finally {
+      setRemovingMemberId(null);
+    }
+  };
+
+  const handleSendToNewMembers = async () => {
+    const pendingCount = audience.filter(m => m.status === 'pending').length;
+
+    if (pendingCount === 0) {
+      toast.error('No pending audience members to send to');
+      return;
+    }
+
+    if (!confirm(`Send campaign to ${pendingCount} new audience member(s)?`)) {
+      return;
+    }
+
+    setSendingToNew(true);
+    try {
+      const result = await campaignsService.sendToPendingAudience(campaignId);
+      toast.success(result.message || `Sent to ${result.sent_count} member(s)`);
+      loadAudience();
+    } catch (err) {
+      console.error('Error sending to new members:', err);
+      toast.error(err.message || 'Failed to send to new members');
+    } finally {
+      setSendingToNew(false);
+    }
+  };
+
+  const handleResendToMember = async (campaignContactId, memberName) => {
+    if (!confirm(`Resend campaign to ${memberName}?`)) {
+      return;
+    }
+
+    setResendingMemberId(campaignContactId);
+    try {
+      const result = await campaignsService.resendToMember(campaignId, campaignContactId);
+      toast.success(result.message || `Campaign resent to ${memberName}`);
+      loadAudience();
+    } catch (err) {
+      console.error('Error resending to member:', err);
+      toast.error(err.message || 'Failed to resend campaign');
+    } finally {
+      setResendingMemberId(null);
+    }
+  };
+
+  const handleSendToIndividual = async (campaignContactId, memberName) => {
+    if (!confirm(`Send campaign to ${memberName}?`)) {
+      return;
+    }
+
+    setResendingMemberId(campaignContactId);
+    try {
+      const result = await campaignsService.resendToMember(campaignId, campaignContactId);
+      toast.success(result.message || `Campaign sent to ${memberName}`);
+      loadAudience();
+    } catch (err) {
+      console.error('Error sending to member:', err);
+      toast.error(err.message || 'Failed to send campaign');
+    } finally {
+      setResendingMemberId(null);
     }
   };
 
@@ -87,15 +169,41 @@ const AudienceTab = ({ campaignId }) => {
           <p className="text-sm text-text-secondary">
             {filteredAudience.length} member{filteredAudience.length !== 1 ? 's' : ''}
             {statusFilter !== 'all' && ` (${audience.length} total)`}
+            {audience.filter(m => m.status === 'pending').length > 0 && (
+              <span className="ml-2 text-orange-600 font-medium">
+                ({audience.filter(m => m.status === 'pending').length} pending)
+              </span>
+            )}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Icon name="UserPlus" size={16} />
-          <span>Add Audience</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {audience.filter(m => m.status === 'pending').length > 0 && (
+            <button
+              onClick={handleSendToNewMembers}
+              disabled={sendingToNew}
+              className="btn-secondary flex items-center space-x-2 disabled:opacity-50"
+            >
+              {sendingToNew ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="Send" size={16} />
+                  <span>Send to New Members</span>
+                </>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Icon name="UserPlus" size={16} />
+            <span>Add Audience</span>
+          </button>
+        </div>
       </div>
 
       {/* Status Filter */}
@@ -168,6 +276,9 @@ const AudienceTab = ({ campaignId }) => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Clicked At
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-border">
@@ -201,6 +312,53 @@ const AudienceTab = ({ campaignId }) => {
                     </td>
                     <td className="px-6 py-4 text-sm text-text-secondary">
                       {member.clicked_at ? new Date(member.clicked_at).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        {/* Send button - only show for pending members */}
+                        {member.status === 'pending' && (
+                          <button
+                            onClick={() => handleSendToIndividual(member.campaign_contact_id, member.name)}
+                            disabled={resendingMemberId === member.campaign_contact_id}
+                            className="text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Send campaign to this member"
+                          >
+                            {resendingMemberId === member.campaign_contact_id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 inline-block"></div>
+                            ) : (
+                              <Icon name="Send" size={16} />
+                            )}
+                          </button>
+                        )}
+                        {/* Resend button - only show for sent, bounced, or failed members */}
+                        {['sent', 'bounced', 'failed', 'delivered'].includes(member.status) && (
+                          <button
+                            onClick={() => handleResendToMember(member.campaign_contact_id, member.name)}
+                            disabled={resendingMemberId === member.campaign_contact_id}
+                            className="text-primary hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Resend campaign"
+                          >
+                            {resendingMemberId === member.campaign_contact_id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary inline-block"></div>
+                            ) : (
+                              <Icon name="RefreshCw" size={16} />
+                            )}
+                          </button>
+                        )}
+                        {/* Remove button */}
+                        <button
+                          onClick={() => handleRemoveMember(member.campaign_contact_id, member.name)}
+                          disabled={removingMemberId === member.campaign_contact_id}
+                          className="text-error hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Remove from campaign"
+                        >
+                          {removingMemberId === member.campaign_contact_id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-error inline-block"></div>
+                          ) : (
+                            <Icon name="Trash2" size={16} />
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
