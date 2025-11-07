@@ -33,6 +33,14 @@ const Integrations = () => {
       icon: 'Calendar',
       color: 'text-blue-600',
       features: ['Meeting scheduling', 'Event sync', 'Activity tracking', 'Reminders']
+    },
+    {
+      id: 'outlook_calendar',
+      name: 'Microsoft Outlook Calendar',
+      description: 'Two-way calendar sync with Outlook',
+      icon: 'Calendar',
+      color: 'text-blue-500',
+      features: ['Calendar sync', 'Teams meetings', 'Activity tracking', 'Two-way sync']
     }
   ];
 
@@ -123,7 +131,23 @@ const Integrations = () => {
       console.log('🔌 Connecting to provider:', provider);
       setConnecting(prev => ({ ...prev, [provider]: true }));
       
-      // Store provider for OAuth callback
+      // Outlook Calendar uses popup OAuth flow
+      if (provider === 'outlook_calendar') {
+        try {
+          const result = await integrationsService.connectOutlookCalendar();
+          console.log('✅ Outlook Calendar connected:', result);
+          toast.success('Successfully connected Microsoft Outlook Calendar!');
+          await loadIntegrations(); // Reload to get updated status
+        } catch (error) {
+          console.error('💥 Outlook Calendar connection error:', error);
+          if (error.message !== 'User closed the popup') {
+            toast.error(`Failed to connect Outlook Calendar: ${error.message}`);
+          }
+        }
+        return;
+      }
+      
+      // Store provider for OAuth callback (Google integrations)
       localStorage.setItem('oauth_provider', provider);
       
       // Get OAuth URL and redirect to Google
@@ -146,9 +170,14 @@ const Integrations = () => {
     }
   };
 
-  const handleDisconnect = async (integrationId) => {
+  const handleDisconnect = async (integrationId, provider) => {
     try {
-      await integrationsService.disconnectIntegration(integrationId);
+      // Use Outlook-specific disconnect if applicable
+      if (provider === 'outlook_calendar') {
+        await integrationsService.disconnectOutlookCalendar(integrationId);
+      } else {
+        await integrationsService.disconnectIntegration(integrationId);
+      }
       toast.success('Integration disconnected successfully');
       await loadIntegrations(); // Reload to get updated status
     } catch (error) {
@@ -200,7 +229,7 @@ const Integrations = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-text-primary">Integrations</h2>
-          <p className="text-text-secondary mt-1">Connect your CRM with Gmail and Google Calendar</p>
+          <p className="text-text-secondary mt-1">Connect your CRM with Google and Microsoft services</p>
         </div>
       </div>
 
@@ -335,7 +364,7 @@ const Integrations = () => {
                 
                 {isConnected && (
                   <button
-                    onClick={() => handleDisconnect(connectedIntegration.id)}
+                    onClick={() => handleDisconnect(connectedIntegration.id, provider.id)}
                     className="w-full px-3 py-2 text-sm text-error hover:bg-error-50 rounded transition-colors duration-150"
                   >
                     Disconnect

@@ -12,6 +12,7 @@ import ActivityInsights from './components/ActivityInsights';
 import BulkActionsBar from './components/BulkActionsBar';
 import ActivityTemplateModal from './components/ActivityTemplateModal';
 import ActivityListView from './components/ActivityListView';
+import ActivityCalendar from './components/ActivityCalendar';
 
 const ActivityTimeline = () => {
   const { user, hasAnyPermission } = useAuth();
@@ -338,6 +339,17 @@ const ActivityTimeline = () => {
                     <Icon name="List" size={16} />
                     <span>List</span>
                   </button>
+                  <button
+                    onClick={() => setDisplayMode('calendar')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-all duration-150 flex items-center space-x-1 ${
+                      displayMode === 'calendar' 
+                        ? 'bg-primary text-white' 
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    <Icon name="Calendar" size={16} />
+                    <span>Calendar</span>
+                  </button>
                 </div>
               )}
 
@@ -455,6 +467,11 @@ const ActivityTimeline = () => {
                         • List view
                       </span>
                     )}
+                    {selectedFilters.teamMember !== 'all' && displayMode === 'calendar' && (
+                      <span className="ml-2 text-xs text-text-tertiary">
+                        • Calendar view
+                      </span>
+                    )}
                   </div>
                   
                   {filteredActivities.length > 0 && (
@@ -502,32 +519,43 @@ const ActivityTimeline = () => {
                   ) : (
                     <>
                       {filteredActivities.length > 0 ? (
-                        // Show list view for all contacts, or when list mode is selected
-                        // Show timeline view only when a specific contact is selected AND displayMode is 'timeline'
-                        (selectedFilters.teamMember === 'all' || displayMode === 'list') ? (
-                          <ActivityListView
-                            activities={filteredActivities}
-                            selectedActivities={selectedActivities}
-                            onActivitySelection={handleActivitySelection}
-                            onEdit={handleEditActivity}
-                            onDelete={handleDeleteActivity}
-                            onSelectAll={handleSelectAll}
+                        // Show calendar view when displayMode is 'calendar'
+                        displayMode === 'calendar' ? (
+                          <ActivityCalendar 
+                            filters={selectedFilters}
+                            currentUser={user}
+                            onActivityAdded={handleActivityAdded}
+                            onActivityUpdated={handleActivityUpdated}
+                            onEditActivity={handleEditActivity}
                           />
                         ) : (
-                          <div className="space-y-6">
-                            {filteredActivities.map((activity, index) => (
-                              <ActivityCard
-                                key={activity.id}
-                                activity={activity}
-                                isLast={index === filteredActivities.length - 1}
-                                isSelected={selectedActivities.has(activity.id)}
-                                onSelectionChange={(isSelected) => handleActivitySelection(activity.id, isSelected)}
-                                showCheckbox={true}
-                                onEdit={handleEditActivity}
-                                onDelete={handleDeleteActivity}
-                              />
-                            ))}
-                          </div>
+                          // Show list view for all contacts, or when list mode is selected
+                          // Show timeline view only when a specific contact is selected AND displayMode is 'timeline'
+                          (selectedFilters.teamMember === 'all' || displayMode === 'list') ? (
+                            <ActivityListView
+                              activities={filteredActivities}
+                              selectedActivities={selectedActivities}
+                              onActivitySelection={handleActivitySelection}
+                              onEdit={handleEditActivity}
+                              onDelete={handleDeleteActivity}
+                              onSelectAll={handleSelectAll}
+                            />
+                          ) : (
+                            <div className="space-y-6">
+                              {filteredActivities.map((activity, index) => (
+                                <ActivityCard
+                                  key={activity.id}
+                                  activity={activity}
+                                  isLast={index === filteredActivities.length - 1}
+                                  isSelected={selectedActivities.has(activity.id)}
+                                  onSelectionChange={(isSelected) => handleActivitySelection(activity.id, isSelected)}
+                                  showCheckbox={true}
+                                  onEdit={handleEditActivity}
+                                  onDelete={handleDeleteActivity}
+                                />
+                              ))}
+                            </div>
+                          )
                         )
                       ) : (
                         <div className="text-center py-12">

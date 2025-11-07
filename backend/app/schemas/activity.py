@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 from datetime import datetime
 import uuid
 from .user import UserResponse
@@ -42,6 +42,13 @@ class ActivityBase(BaseModel):
     duration_minutes: Optional[int] = None
     outcome: Optional[str] = None
 
+    # Calendar/Scheduling fields
+    scheduled_at: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    location: Optional[str] = None
+    meeting_link: Optional[str] = None
+    attendees: Optional[List[str]] = None
+
 
 class ActivityCreate(ActivityBase):
     contact_id: Optional[uuid.UUID] = None
@@ -59,6 +66,13 @@ class ActivityUpdate(BaseModel):
     deal_id: Optional[uuid.UUID] = None
     custom_fields: Optional[Dict[str, Any]] = None
 
+    # Calendar/Scheduling fields
+    scheduled_at: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    location: Optional[str] = None
+    meeting_link: Optional[str] = None
+    attendees: Optional[List[str]] = None
+
 
 class ActivityResponse(ActivityBase):
     id: uuid.UUID
@@ -68,6 +82,11 @@ class ActivityResponse(ActivityBase):
     created_at: datetime
     updated_at: datetime
     custom_fields: Optional[Dict[str, Any]] = None
+
+    # Outlook integration fields
+    outlook_event_id: Optional[str] = None
+    sync_source: Optional[str] = None
+    sync_status: Optional[str] = None
 
     class Config:
         from_attributes = True

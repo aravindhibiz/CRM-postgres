@@ -242,6 +242,118 @@ class MicrosoftSSOService:
             print(f"❌ Silent token acquisition failed: {str(e)}")
             return None
 
+    def get_calendar_authorization_url(self, state: Optional[str] = None, redirect_uri: Optional[str] = None) -> Dict[str, str]:
+        """
+        Generate Microsoft authorization URL for calendar integration OAuth flow
+        Uses calendar-specific scopes
+
+        Args:
+            state: Optional CSRF protection token (will be generated if not provided)
+            redirect_uri: Optional custom redirect URI for integrations
+
+        Returns:
+            Dict with auth_url and state
+        """
+        if not state:
+            state = secrets.token_urlsafe(32)
+
+        # Calendar-specific scopes
+        # Note: offline_access is automatically added by MSAL
+        calendar_scopes = [
+            "Calendars.ReadWrite",
+            "OnlineMeetings.ReadWrite",
+            "User.Read"
+        ]
+
+        # Use custom redirect URI if provided, otherwise use default
+        uri = redirect_uri or self.redirect_uri
+
+        auth_url = self.msal_app.get_authorization_request_url(
+            scopes=calendar_scopes,
+            state=state,
+            redirect_uri=uri
+        )
+
+        return {
+            "auth_url": auth_url,
+            "state": state
+        }
+
+    def acquire_calendar_token_by_auth_code(self, auth_code: str, redirect_uri: Optional[str] = None) -> Optional[Dict]:
+        """
+        Exchange authorization code for calendar access token
+        Uses calendar-specific scopes
+
+        Args:
+            auth_code: Authorization code from Microsoft callback
+            redirect_uri: Optional custom redirect URI used in authorization
+
+        Returns:
+            Token response dict with access_token, refresh_token, etc.
+            None if token acquisition fails
+        """
+        try:
+            # Calendar-specific scopes
+            # Note: offline_access is automatically added by MSAL
+            calendar_scopes = [
+                "Calendars.ReadWrite",
+                "OnlineMeetings.ReadWrite",
+                "User.Read"
+            ]
+
+            # Use custom redirect URI if provided
+            uri = redirect_uri or self.redirect_uri
+
+            result = self.msal_app.acquire_token_by_authorization_code(
+                code=auth_code,
+                scopes=calendar_scopes,
+                redirect_uri=uri
+            )
+
+            if "error" in result:
+                print(f"❌ Microsoft calendar token acquisition error: {result.get('error')}")
+                print(f"❌ Error description: {result.get('error_description')}")
+                return None
+
+            return result
+
+        except Exception as e:
+            print(f"❌ Exception during calendar token acquisition: {str(e)}")
+            return None
+
+    def refresh_access_token(self, refresh_token: str) -> Optional[Dict]:
+        """
+        Refresh access token using refresh token
+
+        Args:
+            refresh_token: Valid Microsoft refresh token
+
+        Returns:
+            Token response dict with new access_token
+            None if refresh fails
+        """
+        try:
+            # Note: offline_access is automatically added by MSAL
+            result = self.msal_app.acquire_token_by_refresh_token(
+                refresh_token=refresh_token,
+                scopes=[
+                    "Calendars.ReadWrite",
+                    "OnlineMeetings.ReadWrite",
+                    "User.Read"
+                ]
+            )
+
+            if "error" in result:
+                print(f"❌ Microsoft token refresh error: {result.get('error')}")
+                print(f"❌ Error description: {result.get('error_description')}")
+                return None
+
+            return result
+
+        except Exception as e:
+            print(f"❌ Exception during token refresh: {str(e)}")
+            return None
+
 
 # Create singleton instance
 microsoft_sso_service = MicrosoftSSOService()
