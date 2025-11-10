@@ -32,6 +32,7 @@ yarn-error.log*
 /zmd
 /frontend/zmd
 /backend/zmd
+/backend/app/dist
 /.github
 
 # gemini-cli settings
@@ -141,6 +142,12 @@ pnpm-lock.yaml
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 
 # Runtime data
 pids
