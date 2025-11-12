@@ -258,11 +258,12 @@ class MicrosoftSSOService:
             state = secrets.token_urlsafe(32)
 
         # Calendar-specific scopes
-        # Note: offline_access is automatically added by MSAL
+        # Including offline_access explicitly to ensure refresh tokens are returned
         calendar_scopes = [
             "Calendars.ReadWrite",
             "OnlineMeetings.ReadWrite",
-            "User.Read"
+            "User.Read",
+            "offline_access"
         ]
 
         # Use custom redirect URI if provided, otherwise use default
@@ -294,11 +295,12 @@ class MicrosoftSSOService:
         """
         try:
             # Calendar-specific scopes
-            # Note: offline_access is automatically added by MSAL
+            # Including offline_access explicitly to ensure refresh tokens are returned
             calendar_scopes = [
                 "Calendars.ReadWrite",
                 "OnlineMeetings.ReadWrite",
-                "User.Read"
+                "User.Read",
+                "offline_access"
             ]
 
             # Use custom redirect URI if provided
@@ -333,13 +335,14 @@ class MicrosoftSSOService:
             None if refresh fails
         """
         try:
-            # Note: offline_access is automatically added by MSAL
+            # Including offline_access explicitly to ensure refresh tokens are returned
             result = self.msal_app.acquire_token_by_refresh_token(
                 refresh_token=refresh_token,
                 scopes=[
                     "Calendars.ReadWrite",
                     "OnlineMeetings.ReadWrite",
-                    "User.Read"
+                    "User.Read",
+                    "offline_access"
                 ]
             )
 

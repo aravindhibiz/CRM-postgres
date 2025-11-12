@@ -1,6 +1,7 @@
 """
 Activity routes - API endpoint definitions only.
 Delegates all logic to the ActivityController.
+Note: Calendar routes must be defined before {activity_id} route.
 """
 
 from fastapi import APIRouter, Depends, Query, status, HTTPException
@@ -51,6 +52,91 @@ async def get_activities(
     """
     controller = ActivityController(db)
     return await controller.get_activities(current_user, limit)
+
+
+# ==================== CALENDAR-SPECIFIC ENDPOINTS ====================
+# NOTE: These must come BEFORE /{activity_id} route to avoid path conflicts
+
+@router.get(
+    "/calendar",
+    response_model=List[ActivityWithRelations],
+    summary="Get activities for calendar view",
+    description="Get activities within a date range for calendar display, optionally including Outlook events"
+)
+async def get_calendar_activities(
+    start_date: str = Query(..., description="Start date in ISO format (e.g., 2025-01-01)"),
+    end_date: str = Query(..., description="End date in ISO format (e.g., 2025-01-31)"),
+    include_outlook: bool = Query(True, description="Include synced Outlook events"),
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Get activities for calendar view within a date range.
+
+    **Query Parameters:**
+    - start_date: Start of date range (ISO format: YYYY-MM-DD)
+    - end_date: End of date range (ISO format: YYYY-MM-DD)
+    - include_outlook: Whether to include Outlook synced events (default: true)
+
+    **Returns:**
+    - List of activities with scheduled_at within the date range
+    - Includes all activity types: meetings, calls, tasks with due dates
+    - Each activity includes contact and deal relationships
+
+    **Use Cases:**
+    - Display activities in calendar view
+    - Show upcoming meetings and calls
+    - Filter activities by date range
+
+    **Example:**
+    ```
+    GET /api/v1/activities/calendar?start_date=2025-01-01&end_date=2025-01-31
+    ```
+    """
+    from ..models.activity import Activity
+
+    try:
+        # Parse dates and make them timezone-aware
+        # The database stores timezone-aware datetimes, so we need to match that
+        from datetime import timezone
+
+        start_dt = datetime.fromisoformat(start_date)
+        end_dt = datetime.fromisoformat(end_date)
+
+        # If the datetime is naive (no timezone info), assume UTC
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=timezone.utc)
+        if end_dt.tzinfo is None:
+            # Set end of day for end_date
+            end_dt = end_dt.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid date format. Use ISO format: YYYY-MM-DD"
+        )
+
+    # Query activities with scheduled_at in date range
+    query = db.query(Activity).filter(
+        Activity.user_id == current_user.id,
+        Activity.scheduled_at.isnot(None),
+        Activity.scheduled_at >= start_dt,
+        Activity.scheduled_at <= end_dt
+    )
+
+    # Optionally filter out Outlook-synced events
+    if not include_outlook:
+        query = query.filter(Activity.sync_source != 'outlook')
+
+    activities = query.order_by(Activity.scheduled_at).all()
+
+    # Load relationships
+    controller = ActivityController(db)
+    # Convert to response models with relations
+    return [
+        ActivityWithRelations.model_validate(activity)
+        for activity in activities
+    ]
 
 
 @router.get(
@@ -133,79 +219,6 @@ async def delete_activity(
     """
     controller = ActivityController(db)
     return await controller.delete_activity(activity_id, current_user)
-
-
-# ==================== CALENDAR-SPECIFIC ENDPOINTS ====================
-
-@router.get(
-    "/calendar",
-    response_model=List[ActivityWithRelations],
-    summary="Get activities for calendar view",
-    description="Get activities within a date range for calendar display, optionally including Outlook events"
-)
-async def get_calendar_activities(
-    start_date: str = Query(..., description="Start date in ISO format (e.g., 2025-01-01)"),
-    end_date: str = Query(..., description="End date in ISO format (e.g., 2025-01-31)"),
-    include_outlook: bool = Query(True, description="Include synced Outlook events"),
-    db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Get activities for calendar view within a date range.
-
-    **Query Parameters:**
-    - start_date: Start of date range (ISO format: YYYY-MM-DD)
-    - end_date: End of date range (ISO format: YYYY-MM-DD)
-    - include_outlook: Whether to include Outlook synced events (default: true)
-
-    **Returns:**
-    - List of activities with scheduled_at within the date range
-    - Includes all activity types: meetings, calls, tasks with due dates
-    - Each activity includes contact and deal relationships
-
-    **Use Cases:**
-    - Display activities in calendar view
-    - Show upcoming meetings and calls
-    - Filter activities by date range
-
-    **Example:**
-    ```
-    GET /api/v1/activities/calendar?start_date=2025-01-01&end_date=2025-01-31
-    ```
-    """
-    from ..models.activity import Activity
-
-    try:
-        # Parse dates
-        start_dt = datetime.fromisoformat(start_date)
-        end_dt = datetime.fromisoformat(end_date)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid date format. Use ISO format: YYYY-MM-DD"
-        )
-
-    # Query activities with scheduled_at in date range
-    query = db.query(Activity).filter(
-        Activity.user_id == current_user.id,
-        Activity.scheduled_at.isnot(None),
-        Activity.scheduled_at >= start_dt,
-        Activity.scheduled_at <= end_dt
-    )
-
-    # Optionally filter out Outlook-synced events
-    if not include_outlook:
-        query = query.filter(Activity.sync_source != 'outlook')
-
-    activities = query.order_by(Activity.scheduled_at).all()
-
-    # Load relationships
-    controller = ActivityController(db)
-    # Convert to response models with relations
-    return [
-        ActivityWithRelations.model_validate(activity)
-        for activity in activities
-    ]
 
 
 @router.post(

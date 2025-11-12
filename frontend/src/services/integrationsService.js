@@ -387,27 +387,22 @@ export const integrationsService = {
 
       // Listen for popup close or message
       return new Promise((resolve, reject) => {
-        // Poll for popup close
-        const checkPopupClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkPopupClosed);
-            // Give a small delay for any background processes
-            setTimeout(() => {
-              resolve({ success: true });
-            }, 1000);
-          }
-        }, 500);
+        let messageReceived = false;
 
-        // Listen for postMessage from popup
+        // Listen for postMessage from popup (preferred method)
         const handleMessage = (event) => {
-          // Verify origin if needed
-          if (event.data.type === 'outlook-calendar-connected') {
+          // Verify origin if needed (should come from same origin)
+          if (event.data && event.data.type === 'outlook-calendar-connected') {
+            messageReceived = true;
             window.removeEventListener('message', handleMessage);
             clearInterval(checkPopupClosed);
+            clearTimeout(timeoutId);
 
             if (event.data.success) {
+              console.log('✅ Outlook Calendar connected via postMessage');
               resolve({ success: true });
             } else {
+              console.error('❌ Connection failed:', event.data.error);
               reject(new Error(event.data.error || 'Connection failed'));
             }
           }
@@ -415,14 +410,47 @@ export const integrationsService = {
 
         window.addEventListener('message', handleMessage);
 
+        // Poll for popup close (fallback method)
+        const checkPopupClosed = setInterval(async () => {
+          if (popup.closed) {
+            clearInterval(checkPopupClosed);
+            clearTimeout(timeoutId);
+            window.removeEventListener('message', handleMessage);
+
+            // If we didn't receive a postMessage, check integration status
+            if (!messageReceived) {
+              console.log('Popup closed without postMessage, checking integration status...');
+
+              try {
+                // Wait a bit for backend to process
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Check if integration was actually created
+                const status = await this.getOutlookCalendarStatus();
+
+                if (status && status.connected) {
+                  console.log('✅ Integration verified as connected');
+                  resolve({ success: true });
+                } else {
+                  console.log('❌ Integration not connected');
+                  reject(new Error('User closed the popup or authentication failed'));
+                }
+              } catch (err) {
+                console.error('❌ Error checking status:', err);
+                reject(new Error('Connection verification failed'));
+              }
+            }
+          }
+        }, 500);
+
         // Timeout after 5 minutes
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           window.removeEventListener('message', handleMessage);
           clearInterval(checkPopupClosed);
           if (!popup.closed) {
             popup.close();
           }
-          reject(new Error('OAuth flow timed out'));
+          reject(new Error('OAuth flow timed out after 5 minutes'));
         }, 300000);
       });
     } catch (err) {

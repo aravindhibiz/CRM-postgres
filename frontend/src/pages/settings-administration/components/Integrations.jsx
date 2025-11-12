@@ -13,6 +13,7 @@ const Integrations = () => {
   const [connectingProvider, setConnectingProvider] = useState(null);
   const [connecting, setConnecting] = useState({});
   const [testResults, setTestResults] = useState({});
+  const [syncingIntegration, setSyncingIntegration] = useState(null);
   const [selectedIntegration, setSelectedIntegration] = useState(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
 
@@ -189,14 +190,14 @@ const Integrations = () => {
   const handleTestConnection = async (integrationId) => {
     try {
       setTestResults(prev => ({ ...prev, [integrationId]: 'testing' }));
-      
+
       const result = await integrationsService.testIntegration(integrationId);
-      
-      setTestResults(prev => ({ 
-        ...prev, 
-        [integrationId]: result.success ? 'success' : 'error' 
+
+      setTestResults(prev => ({
+        ...prev,
+        [integrationId]: result.success ? 'success' : 'error'
       }));
-      
+
       if (result.success) {
         toast.success('Integration test successful');
       } else {
@@ -204,11 +205,35 @@ const Integrations = () => {
       }
     } catch (error) {
       console.error('Test error:', error);
-      setTestResults(prev => ({ 
-        ...prev, 
-        [integrationId]: 'error' 
+      setTestResults(prev => ({
+        ...prev,
+        [integrationId]: 'error'
       }));
       toast.error('Failed to test integration');
+    }
+  };
+
+  const handleSyncCalendar = async (integrationId) => {
+    try {
+      setSyncingIntegration(integrationId);
+      toast.loading('Syncing Outlook Calendar...', { id: 'calendar-sync' });
+
+      const result = await integrationsService.syncOutlookCalendar();
+
+      if (result.success) {
+        toast.success(
+          `Calendar synced! ${result.events_fetched || 0} events fetched, ${result.created || 0} created, ${result.updated || 0} updated`,
+          { id: 'calendar-sync', duration: 4000 }
+        );
+        await loadIntegrations(); // Reload to update last_sync timestamp
+      } else {
+        toast.error(`Sync failed: ${result.error || 'Unknown error'}`, { id: 'calendar-sync' });
+      }
+    } catch (error) {
+      console.error('Calendar sync error:', error);
+      toast.error(`Failed to sync calendar: ${error.message}`, { id: 'calendar-sync' });
+    } finally {
+      setSyncingIntegration(null);
     }
   };
 
@@ -323,28 +348,47 @@ const Integrations = () => {
 
               <div className="space-y-2">
                 {isConnected ? (
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleTestConnection(connectedIntegration.id)}
-                      disabled={testResults?.[connectedIntegration.id] === 'testing'}
-                      className="flex-1 px-3 py-2 text-sm bg-background text-text-primary rounded hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {testResults?.[connectedIntegration.id] === 'testing' ? (
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin"></div>
-                          <span>Testing</span>
-                        </div>
+                  <>
+                    <div className="flex space-x-2">
+                      {provider.id === 'outlook_calendar' ? (
+                        <button
+                          onClick={() => handleSyncCalendar(connectedIntegration.id)}
+                          disabled={syncingIntegration === connectedIntegration.id}
+                          className="flex-1 px-3 py-2 text-sm bg-background text-text-primary rounded hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {syncingIntegration === connectedIntegration.id ? (
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin"></div>
+                              <span>Syncing...</span>
+                            </div>
+                          ) : (
+                            'Sync Now'
+                          )}
+                        </button>
                       ) : (
-                        'Test Connection'
+                        <button
+                          onClick={() => handleTestConnection(connectedIntegration.id)}
+                          disabled={testResults?.[connectedIntegration.id] === 'testing'}
+                          className="flex-1 px-3 py-2 text-sm bg-background text-text-primary rounded hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {testResults?.[connectedIntegration.id] === 'testing' ? (
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin"></div>
+                              <span>Testing</span>
+                            </div>
+                          ) : (
+                            'Test Connection'
+                          )}
+                        </button>
                       )}
-                    </button>
-                    <button
-                      onClick={() => handleConfigure(connectedIntegration)}
-                      className="flex-1 px-3 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 transition-colors duration-150"
-                    >
-                      Configure
-                    </button>
-                  </div>
+                      <button
+                        onClick={() => handleConfigure(connectedIntegration)}
+                        className="flex-1 px-3 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 transition-colors duration-150"
+                      >
+                        Configure
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <button
                     onClick={() => handleConnect(provider.id)}
@@ -451,6 +495,37 @@ const Integrations = () => {
                         <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary">
                           <option value="5">Every 5 minutes</option>
                           <option value="15" selected>Every 15 minutes</option>
+                          <option value="30">Every 30 minutes</option>
+                          <option value="60">Every hour</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedIntegration?.provider === 'outlook_calendar' && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-text-primary">Two-way Calendar Sync</label>
+                        <input type="checkbox" defaultChecked className="rounded border-border text-primary focus:ring-primary" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-text-primary">Create CRM Activities</label>
+                        <input type="checkbox" defaultChecked className="rounded border-border text-primary focus:ring-primary" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-text-primary">Enable Teams Meetings</label>
+                        <input type="checkbox" defaultChecked className="rounded border-border text-primary focus:ring-primary" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-text-primary">Sync Activity Notes</label>
+                        <input type="checkbox" className="rounded border-border text-primary focus:ring-primary" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-text-primary mb-1">Sync Frequency</label>
+                        <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary">
+                          <option value="5">Every 5 minutes</option>
+                          <option value="10" selected>Every 10 minutes</option>
+                          <option value="15">Every 15 minutes</option>
                           <option value="30">Every 30 minutes</option>
                           <option value="60">Every hour</option>
                         </select>

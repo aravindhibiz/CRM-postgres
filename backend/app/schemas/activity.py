@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Any, Dict, List
 from datetime import datetime
 import uuid
+import json
 from .user import UserResponse
 
 
@@ -87,6 +88,19 @@ class ActivityResponse(ActivityBase):
     outlook_event_id: Optional[str] = None
     sync_source: Optional[str] = None
     sync_status: Optional[str] = None
+
+    @field_validator('attendees', mode='before')
+    @classmethod
+    def parse_attendees(cls, v):
+        """Parse attendees from JSON string if needed"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, ValueError):
+                return []
+        return v
 
     class Config:
         from_attributes = True

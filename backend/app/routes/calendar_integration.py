@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..core.database import get_db
 from ..core.auth import get_current_user
+from ..core.config import settings
 from ..models.user import UserProfile
 from ..models.integration import Integration
 from ..services.microsoft_sso_service import microsoft_sso_service
@@ -55,7 +56,13 @@ async def connect_outlook_calendar(
     ```
     """
     # Generate OAuth URL with calendar scopes
-    redirect_uri = "http://localhost:8000/api/v1/calendar-integration/outlook-calendar/callback"
+    redirect_uri = settings.MICROSOFT_CALENDAR_REDIRECT_URI
+
+    if not redirect_uri:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Calendar redirect URI not configured. Please set MICROSOFT_CALENDAR_REDIRECT_URI in environment variables."
+        )
 
     oauth_data = microsoft_sso_service.get_calendar_authorization_url(
         redirect_uri=redirect_uri
@@ -94,10 +101,17 @@ async def outlook_calendar_callback(
     - HTML page that closes the popup and signals success to parent window
     """
     try:
-        # TODO: Validate state token (check against stored state)
+        # TODO: Validate state token (check against stored state in Redis)
 
         # Exchange authorization code for tokens
-        redirect_uri = "http://localhost:8000/api/v1/calendar-integration/outlook-calendar/callback"
+        redirect_uri = settings.MICROSOFT_CALENDAR_REDIRECT_URI
+
+        if not redirect_uri:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Calendar redirect URI not configured"
+            )
+
         token_response = microsoft_sso_service.acquire_calendar_token_by_auth_code(
             code,
             redirect_uri=redirect_uri
