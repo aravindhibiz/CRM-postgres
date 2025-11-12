@@ -25,7 +25,8 @@ class MicrosoftSSOService:
         elif settings.MICROSOFT_TENANT_ID:
             self.authority = f"https://login.microsoftonline.com/{settings.MICROSOFT_TENANT_ID}"
         else:
-            raise ValueError("Either MICROSOFT_AUTHORITY or MICROSOFT_TENANT_ID must be configured")
+            raise ValueError(
+                "Either MICROSOFT_AUTHORITY or MICROSOFT_TENANT_ID must be configured")
 
         # Parse scopes from comma or space-separated string
         self.scopes = [
@@ -87,8 +88,10 @@ class MicrosoftSSOService:
             )
 
             if "error" in result:
-                print(f"❌ Microsoft token acquisition error: {result.get('error')}")
-                print(f"❌ Error description: {result.get('error_description')}")
+                print(
+                    f"❌ Microsoft token acquisition error: {result.get('error')}")
+                print(
+                    f"❌ Error description: {result.get('error_description')}")
                 return None
 
             return result
@@ -147,7 +150,8 @@ class MicrosoftSSOService:
         )
 
         if response.status_code != 200:
-            raise Exception(f"Failed to fetch user info: {response.status_code} - {response.text}")
+            raise Exception(
+                f"Failed to fetch user info: {response.status_code} - {response.text}")
 
         return response.json()
 
@@ -182,7 +186,8 @@ class MicrosoftSSOService:
         if not microsoft_id:
             # Try to get from ID token claims if available
             id_token_claims = token_response.get("id_token_claims", {})
-            microsoft_id = id_token_claims.get("oid") or id_token_claims.get("sub")
+            microsoft_id = id_token_claims.get(
+                "oid") or id_token_claims.get("sub")
 
         if not microsoft_id:
             raise ValueError("No Microsoft ID (oid) found in token")
@@ -258,12 +263,12 @@ class MicrosoftSSOService:
             state = secrets.token_urlsafe(32)
 
         # Calendar-specific scopes
-        # Including offline_access explicitly to ensure refresh tokens are returned
+        # NOTE: DO NOT include offline_access, openid, or profile - these are RESERVED scopes
+        # Microsoft will automatically provide refresh tokens without explicitly requesting offline_access
         calendar_scopes = [
             "Calendars.ReadWrite",
             "OnlineMeetings.ReadWrite",
-            "User.Read",
-            "offline_access"
+            "User.Read"
         ]
 
         # Use custom redirect URI if provided, otherwise use default
@@ -295,12 +300,12 @@ class MicrosoftSSOService:
         """
         try:
             # Calendar-specific scopes
-            # Including offline_access explicitly to ensure refresh tokens are returned
+            # NOTE: DO NOT include offline_access, openid, or profile - these are RESERVED scopes
+            # Microsoft will automatically provide refresh tokens without explicitly requesting offline_access
             calendar_scopes = [
                 "Calendars.ReadWrite",
                 "OnlineMeetings.ReadWrite",
-                "User.Read",
-                "offline_access"
+                "User.Read"
             ]
 
             # Use custom redirect URI if provided
@@ -313,8 +318,10 @@ class MicrosoftSSOService:
             )
 
             if "error" in result:
-                print(f"❌ Microsoft calendar token acquisition error: {result.get('error')}")
-                print(f"❌ Error description: {result.get('error_description')}")
+                print(
+                    f"❌ Microsoft calendar token acquisition error: {result.get('error')}")
+                print(
+                    f"❌ Error description: {result.get('error_description')}")
                 return None
 
             return result
@@ -335,20 +342,21 @@ class MicrosoftSSOService:
             None if refresh fails
         """
         try:
-            # Including offline_access explicitly to ensure refresh tokens are returned
+            # NOTE: DO NOT include offline_access - it's a RESERVED scope
             result = self.msal_app.acquire_token_by_refresh_token(
                 refresh_token=refresh_token,
                 scopes=[
                     "Calendars.ReadWrite",
                     "OnlineMeetings.ReadWrite",
-                    "User.Read",
-                    "offline_access"
+                    "User.Read"
                 ]
             )
 
             if "error" in result:
-                print(f"❌ Microsoft token refresh error: {result.get('error')}")
-                print(f"❌ Error description: {result.get('error_description')}")
+                print(
+                    f"❌ Microsoft token refresh error: {result.get('error')}")
+                print(
+                    f"❌ Error description: {result.get('error_description')}")
                 return None
 
             return result
