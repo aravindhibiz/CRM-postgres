@@ -40,7 +40,7 @@ const ContactGrid = ({
           onClick={() => onContactSelect?.(contact)}
         >
           {/* Card Header */}
-          <div className="relative p-6 pb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20">
+          <div className="relative p-6 pb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-800 dark:to-gray-750">
             {/* Delete Button */}
             <button
               onClick={(e) => {
@@ -49,7 +49,7 @@ const ContactGrid = ({
                   onDeleteContact?.(contact?.id);
                 }
               }}
-              className="absolute top-3 right-3 p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-error hover:bg-error-50 transition-all duration-150 opacity-0 group-hover:opacity-100"
+              className="absolute top-3 right-3 p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-error hover:bg-error-50 dark:hover:bg-error-900/50 transition-all duration-150 opacity-0 group-hover:opacity-100"
               title="Delete contact"
             >
               <Icon name="Trash2" size={16} />
@@ -70,7 +70,7 @@ const ContactGrid = ({
             </div>
 
             {/* Name */}
-            <h3 className="text-center text-lg font-semibold text-text-primary truncate">
+            <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-white truncate">
               {contact?.full_name || `${contact?.first_name || ''} ${contact?.last_name || ''}`?.trim() || 'Unnamed Contact'}
             </h3>
           </div>

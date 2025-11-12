@@ -472,110 +472,103 @@ const SalesDashboard = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                {/* Main Pipeline Section */}
-                <div className="xl:col-span-3 space-y-8">
-                  {/* Interactive Pipeline */}
-                  <div className="card p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-normal text-text-primary">Sales Pipeline</h2>
-                      <div className="flex items-center space-x-4">
-                        {filtersLoading && (
-                          <div className="flex items-center space-x-2 text-sm text-text-secondary">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                            <span>Applying filters...</span>
-                          </div>
-                        )}
-                        <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
-                          <Icon name="RefreshCw" size={16} />
-                          <span>Drag deals to update stages</span>
+              {/* Main Pipeline Section */}
+              <div className="space-y-8">
+                {/* Interactive Pipeline */}
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-normal text-text-primary">Sales Pipeline</h2>
+                    <div className="flex items-center space-x-4">
+                      {filtersLoading && (
+                        <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                          <span>Applying filters...</span>
                         </div>
+                      )}
+                      <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
+                        <Icon name="RefreshCw" size={16} />
+                        <span>Drag deals to update stages</span>
                       </div>
                     </div>
-                    
-                    <DragDropContext onDragEnd={onDragEnd}>
-                      <div className="overflow-x-auto pb-2 -mx-6 px-6">
-                        <div className="flex gap-4 min-w-max">
-                          {Object.values(pipelineData)?.map((stage) => (
-                            <div key={stage?.id} className="w-72 flex-shrink-0">
-                              <PipelineStage
-                                stage={stage}
-                                totalValue={calculateStageTotal(stage)}
-                                weightedValue={calculateWeightedTotal(stage)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </DragDropContext>
                   </div>
-
-                  {/* Revenue Forecast Chart */}
-                  <div className="card p-6">
-                    <h2 className="text-xl font-normal text-text-primary mb-6">Monthly Revenue Forecast</h2>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={revenueData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                          <XAxis dataKey="month" stroke="#6B7280" />
-                          <YAxis stroke="#6B7280" tickFormatter={(value) => {
-                            const currency = configService.getCurrency();
-                            const symbol = new Intl.NumberFormat('en-US', { style: 'currency', currency }).formatToParts(0).find(part => part.type === 'currency').value;
-                            return `${symbol}${value / 1000}K`;
-                          }} />
-                          <Tooltip 
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length > 0) {
-                                const data = payload[0].payload;
-                                return (
-                                  <div className="bg-white p-3 border border-border rounded-lg shadow-lg">
-                                    <p className="font-semibold text-text-primary mb-2">{data.month}</p>
-                                    {payload.map((entry, index) => (
-                                      <div key={index} className="mb-1">
-                                        <div className="flex items-center justify-between gap-3">
-                                          <span className="text-sm text-text-secondary">{entry.name}:</span>
-                                          <span className="text-sm font-semibold" style={{ color: entry.color }}>
-                                            {formatCurrency(entry.value)}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                    {data.actualDealsCount !== undefined && (
-                                      <div className="mt-2 pt-2 border-t border-border">
-                                        <p className="text-xs text-text-tertiary">
-                                          {data.actualDealsCount} {data.actualDealsCount === 1 ? 'deal' : 'deals'} closed
-                                        </p>
-                                        {data.totalDealsCount > 0 && (
-                                          <p className="text-xs text-text-tertiary">
-                                            {data.totalDealsCount} total {data.totalDealsCount === 1 ? 'deal' : 'deals'}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Bar dataKey="forecast" fill="var(--color-primary)" name="Forecast" />
-                          <Bar dataKey="actual" fill="var(--color-success)" name="Actual" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Performance Metrics */}
-                  <PerformanceMetrics data={performanceData} revenueData={revenueData} />
-                </div>
-
-                {/* Right Sidebar */}
-                <div className="space-y-6">
-                  {/* Quick Actions */}
                   
-                  {/* Recent Activity */}
-                  <RecentActivity />
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <div className="overflow-x-auto pb-2 -mx-6 px-6 pipeline-scroll">
+                      <div className="flex gap-4 min-w-max">
+                        {Object.values(pipelineData)?.map((stage) => (
+                          <div key={stage?.id} className="w-72 flex-shrink-0">
+                            <PipelineStage
+                              stage={stage}
+                              totalValue={calculateStageTotal(stage)}
+                              weightedValue={calculateWeightedTotal(stage)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </DragDropContext>
                 </div>
+
+                {/* Revenue Forecast Chart */}
+                <div className="card p-6">
+                  <h2 className="text-xl font-normal text-text-primary mb-6">Monthly Revenue Forecast</h2>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={revenueData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                        <XAxis dataKey="month" stroke="#6B7280" />
+                        <YAxis stroke="#6B7280" tickFormatter={(value) => {
+                          const currency = configService.getCurrency();
+                          const symbol = new Intl.NumberFormat('en-US', { style: 'currency', currency }).formatToParts(0).find(part => part.type === 'currency').value;
+                          return `${symbol}${value / 1000}K`;
+                        }} />
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length > 0) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white p-3 border border-border rounded-lg shadow-lg">
+                                  <p className="font-semibold text-text-primary mb-2">{data.month}</p>
+                                  {payload.map((entry, index) => (
+                                    <div key={index} className="mb-1">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm text-text-secondary">{entry.name}:</span>
+                                        <span className="text-sm font-semibold" style={{ color: entry.color }}>
+                                          {formatCurrency(entry.value)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {data.actualDealsCount !== undefined && (
+                                    <div className="mt-2 pt-2 border-t border-border">
+                                      <p className="text-xs text-text-tertiary">
+                                        {data.actualDealsCount} {data.actualDealsCount === 1 ? 'deal' : 'deals'} closed
+                                      </p>
+                                      {data.totalDealsCount > 0 && (
+                                        <p className="text-xs text-text-tertiary">
+                                          {data.totalDealsCount} total {data.totalDealsCount === 1 ? 'deal' : 'deals'}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar dataKey="forecast" fill="var(--color-primary)" name="Forecast" />
+                        <Bar dataKey="actual" fill="var(--color-success)" name="Actual" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                <PerformanceMetrics data={performanceData} revenueData={revenueData} />
+
+                {/* Recent Activity - Full Width at Bottom */}
+                <RecentActivity />
               </div>
             </>
           )}

@@ -84,7 +84,7 @@ const PipelineStage = ({ stage, totalValue, weightedValue }) => {
           <div
             ref={provided?.innerRef}
             {...provided?.droppableProps}
-            className={`max-h-[500px] overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${
+            className={`max-h-[500px] overflow-y-auto space-y-2 pr-1 pipeline-scroll ${
               snapshot?.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20 rounded' : ''
             }`}
             style={{ minHeight: stage?.deals?.length === 0 ? '120px' : '200px' }}

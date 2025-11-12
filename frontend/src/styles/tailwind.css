@@ -202,3 +202,88 @@
     color: var(--color-text-primary);
   }
 }
+
+/* Modern, Thin Scrollbar Styles */
+@layer utilities {
+  /* Custom scrollbar for webkit browsers (Chrome, Safari, Edge) */
+  .scrollbar-modern::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+
+  /* Dark mode scrollbar */
+  .dark .scrollbar-modern::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+
+  .dark .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+    background: #64748B;
+  }
+
+  /* Firefox scrollbar */
+  .scrollbar-modern {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+  }
+
+  .dark .scrollbar-modern {
+    scrollbar-color: #475569 transparent;
+  }
+
+  /* Pipeline specific scrollbar - even thinner and cooler */
+  .pipeline-scroll::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .pipeline-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px;
+  }
+
+  .pipeline-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .pipeline-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%);
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Dark mode pipeline scrollbar */
+  .dark .pipeline-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%);
+  }
+
+  .dark .pipeline-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
+  }
+
+  /* Firefox pipeline scrollbar */
+  .pipeline-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #60A5FA transparent;
+  }
+
+  .dark .pipeline-scroll {
+    scrollbar-color: #60A5FA transparent;
+  }
+}

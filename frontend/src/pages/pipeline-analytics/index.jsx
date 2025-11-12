@@ -745,7 +745,7 @@ const PipelineAnalytics = () => {
                   </div>
                   
                   {/* Win Rate Insights */}
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-gray-700">
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <p className="text-text-secondary mb-1">Overall Win Rate</p>
@@ -789,7 +789,7 @@ const PipelineAnalytics = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-blue-300">
+                    <div className="mt-3 pt-3 border-t border-blue-300 dark:border-gray-600">
                       <div className="flex items-center space-x-4 text-xs">
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 bg-green-500 rounded"></div>

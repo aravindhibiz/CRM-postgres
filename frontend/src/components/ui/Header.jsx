@@ -90,18 +90,18 @@ const Header = () => {
   return (
     <>
   <header className="fixed top-0 left-0 right-0 bg-surface border-b border-border z-1000">
-        <div className="px-6 py-3">
-          <div className="flex items-center justify-between">
+        <div className="px-4 py-2.5">
+          <div className="flex items-center justify-between gap-2">
             {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/sales-dashboard" className="flex items-center space-x-3" onClick={handleNavigation}>
+            <div className="flex items-center flex-shrink-0">
+              <Link to="/sales-dashboard" className="flex items-center space-x-2" onClick={handleNavigation}>
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 13L12 4L21 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M9 21V13H15V21" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span className="text-xl font-semibold text-text-primary font-heading">SalesForce Lite</span>
+                <span className="text-lg font-semibold text-text-primary font-heading whitespace-nowrap">SalesForce Lite</span>
               </Link>
             </div>
 
@@ -112,7 +112,7 @@ const Header = () => {
                   key={item?.path}
                   to={item?.path}
                   onClick={handleNavigation}
-                  className={`px-6 py-4 rounded-lg text-sm font-medium transition-all duration-150 ease-smooth flex items-center space-x-2 ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ease-smooth flex items-center space-x-2 ${
                     isActiveRoute(item?.path)
                       ? 'bg-primary-50 text-primary border border-primary-100' : 'text-text-secondary hover:text-primary'
                   }`}
@@ -125,7 +125,7 @@ const Header = () => {
             </nav>
 
             {/* Right Side Actions */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               {/* Theme Toggle */}
               <ThemeToggle />
 
@@ -133,23 +133,23 @@ const Header = () => {
               <div className="relative">
                 <button
                   onClick={handleUserMenuToggle}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth"
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth"
                 >
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <Icon name="User" size={16} className="text-primary" />
                   </div>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium text-text-primary">
+                  <div className="hidden md:block text-left max-w-[150px]">
+                    <div className="text-sm font-medium text-text-primary truncate">
                       {userProfile?.full_name || userProfile?.first_name || user?.email || 'User'}
                     </div>
-                    <div className="text-xs text-text-secondary">
+                    <div className="text-xs text-text-secondary truncate">
                       {userProfile?.role === 'admin' ? 'Administrator' :
                        userProfile?.role === 'sales_manager' ? 'Sales Manager' :
                        userProfile?.role === 'sales_rep' ? 'Sales Rep' :
                        'User'}
                     </div>
                   </div>
-                  <Icon name="ChevronDown" size={16} className="text-text-secondary" />
+                  <Icon name="ChevronDown" size={16} className="text-text-secondary flex-shrink-0" />
                 </button>
 
                 {/* User Dropdown */}

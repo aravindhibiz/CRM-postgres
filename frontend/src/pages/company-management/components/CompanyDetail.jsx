@@ -124,7 +124,7 @@ const CompanyDetail = ({ company, onEdit, onDelete, onClose }) => {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 p-6 border-b border-border bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20">
+      <div className="flex-shrink-0 p-6 border-b border-border bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-800 dark:to-gray-750">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start space-x-4 flex-1">
             {/* Company Logo/Icon */}
@@ -141,7 +141,7 @@ const CompanyDetail = ({ company, onEdit, onDelete, onClose }) => {
             )}
 
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-text-primary mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 {company?.name || 'Unnamed Company'}
               </h2>
 

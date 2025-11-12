@@ -190,8 +190,8 @@ const OldCustomFields = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-text-primary">Custom Fields</h2>
-          <p className="text-text-secondary mt-1">Create and manage custom fields for your data</p>
+          <h2 className="text-2xl font-bold text-white">Custom Fields</h2>
+          <p className="text-gray-300 mt-1">Create and manage custom fields for your data</p>
         </div>
         <button
           onClick={handleCreateField}
@@ -220,12 +220,17 @@ const OldCustomFields = () => {
               {fields?.map((field) => (
                 <tr key={field?.id} className="border-b border-border hover:bg-surface-hover">
                   <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      <Icon name={getTypeIcon(field?.type)} size={16} className="text-text-tertiary" />
-                      <span className="font-medium text-text-primary">{field?.name}</span>
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Icon name={getTypeIcon(field?.type)} size={16} className="text-text-tertiary" />
+                        <span className="font-medium text-white">{field?.name || 'Unnamed Field'}</span>
+                      </div>
+                      {field?.label && (
+                        <div className="text-sm text-gray-400 ml-6">{field?.label}</div>
+                      )}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-sm text-text-secondary capitalize">{field?.type}</td>
+                  <td className="py-3 px-4 text-sm text-gray-300 capitalize">{field?.type || 'N/A'}</td>
                   <td className="py-3 px-4">{getEntityBadge(field?.entity)}</td>
                   <td className="py-3 px-4">
                     {field?.required ? (
@@ -234,10 +239,10 @@ const OldCustomFields = () => {
                       <Icon name="X" size={16} className="text-text-tertiary" />
                     )}
                   </td>
-                  <td className="py-3 px-4 text-sm text-text-secondary">
-                    {placements?.[field?.entity]?.find(p => p?.value === field?.placement)?.label || field?.placement}
+                  <td className="py-3 px-4 text-sm text-gray-300">
+                    {placements?.[field?.entity]?.find(p => p?.value === field?.placement)?.label || field?.placement || 'N/A'}
                   </td>
-                  <td className="py-3 px-4 text-sm text-text-secondary">{field?.createdAt}</td>
+                  <td className="py-3 px-4 text-sm text-gray-300">{field?.createdAt || 'N/A'}</td>
                   <td className="py-3 px-4">
                     <div className="flex space-x-2">
                       <button

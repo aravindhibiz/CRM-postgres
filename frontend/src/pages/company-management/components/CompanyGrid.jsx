@@ -139,16 +139,16 @@ const CompanyGrid = ({
             /* Grid Card View */
             <>
               {/* Card Header */}
-              <div className="relative p-6 pb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20">
+              <div className="relative p-6 pb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-800 dark:to-gray-750">
                 {/* Actions */}
                 <div className="absolute top-3 right-3 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {(hasPermission('companies.edit_all') || hasPermission('companies.edit_own')) && (
+                  {(hasPermission('companies.edit_all') ||  hasPermission('companies.edit_own')) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onEditCompany?.(company);
                       }}
-                      className="p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-primary hover:bg-primary-50 transition-all"
+                      className="p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-primary hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-all"
                       title="Edit company"
                     >
                       <Icon name="Edit2" size={16} />
@@ -162,7 +162,7 @@ const CompanyGrid = ({
                           onDeleteCompany?.(company?.id);
                         }
                       }}
-                      className="p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-error hover:bg-error-50 transition-all"
+                      className="p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-error hover:bg-error-50 dark:hover:bg-error-900/50 transition-all"
                       title="Delete company"
                     >
                       <Icon name="Trash2" size={16} />
@@ -203,7 +203,7 @@ const CompanyGrid = ({
                 </div>
 
                 {/* Company Name */}
-                <h3 className="text-center text-lg font-semibold text-text-primary truncate px-8">
+                <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-white truncate px-8">
                   {company?.name || 'Unnamed Company'}
                 </h3>
 
