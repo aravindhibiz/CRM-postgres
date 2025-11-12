@@ -306,6 +306,125 @@ export const activitiesService = {
     return await this.updateActivity(taskId, {
       outcome: 'completed'
     });
+  },
+
+  // ==================== CALENDAR-SPECIFIC METHODS ====================
+
+  // Get activities for calendar view
+  async getCalendarActivities(startDate, endDate, includeOutlook = true) {
+    console.log('Fetching calendar activities:', { startDate, endDate, includeOutlook });
+
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+      include_outlook: includeOutlook
+    });
+
+    const { data, error } = await apiClient.get(`/api/v1/activities/calendar?${params.toString()}`);
+
+    if (error) {
+      console.error('Error fetching calendar activities:', error);
+      throw error;
+    }
+
+    console.log('Fetched calendar activities:', data);
+    return data || [];
+  },
+
+  // Create activity from calendar with optional Outlook sync
+  async createCalendarActivity(activityData, syncToOutlook = false, createTeamsMeeting = false) {
+    console.log('Creating calendar activity:', { activityData, syncToOutlook, createTeamsMeeting });
+
+    const cleanActivityData = {
+      type: activityData.type,
+      subject: activityData.subject,
+      description: activityData.description || null,
+      scheduled_at: activityData.scheduled_at,
+      end_time: activityData.end_time,
+      location: activityData.location || null,
+      meeting_link: activityData.meeting_link || null,
+      attendees: activityData.attendees || [],
+      contact_id: activityData.contact_id || null,
+      deal_id: activityData.deal_id || null,
+      duration_minutes: activityData.duration_minutes || null,
+      outcome: activityData.outcome || null,
+    };
+
+    const params = new URLSearchParams({
+      sync_to_outlook: syncToOutlook,
+      create_teams_meeting: createTeamsMeeting
+    });
+
+    const { data, error } = await apiClient.post(
+      `/api/v1/activities/calendar?${params.toString()}`,
+      cleanActivityData
+    );
+
+    if (error) {
+      console.error('Error creating calendar activity:', error);
+      throw error;
+    }
+
+    console.log('Created calendar activity:', data);
+    return data;
+  },
+
+  // Update activity from calendar with optional Outlook sync
+  async updateCalendarActivity(activityId, updates, syncToOutlook = false) {
+    console.log('Updating calendar activity:', { activityId, updates, syncToOutlook });
+
+    const cleanActivityData = {
+      type: updates.type,
+      subject: updates.subject,
+      description: updates.description || null,
+      scheduled_at: updates.scheduled_at,
+      end_time: updates.end_time,
+      location: updates.location || null,
+      meeting_link: updates.meeting_link || null,
+      attendees: updates.attendees || [],
+      contact_id: updates.contact_id || null,
+      deal_id: updates.deal_id || null,
+      duration_minutes: updates.duration_minutes || null,
+      outcome: updates.outcome || null,
+    };
+
+    const params = new URLSearchParams({
+      sync_to_outlook: syncToOutlook
+    });
+
+    const { data, error} = await apiClient.put(
+      `/api/v1/activities/${activityId}/calendar?${params.toString()}`,
+      cleanActivityData
+    );
+
+    if (error) {
+      console.error('Error updating calendar activity:', error);
+      throw error;
+    }
+
+    console.log('Updated calendar activity:', data);
+    return data;
+  },
+
+  // Sync an existing activity to Outlook
+  async syncActivityToOutlook(activityId, createTeamsMeeting = false) {
+    console.log('Syncing activity to Outlook:', { activityId, createTeamsMeeting });
+
+    const params = new URLSearchParams({
+      create_teams_meeting: createTeamsMeeting
+    });
+
+    const { data, error } = await apiClient.post(
+      `/api/v1/calendar-integration/activities/${activityId}/sync-to-outlook?${params.toString()}`
+    );
+
+    if (error) {
+      console.error('Error syncing activity to Outlook:', error);
+      throw error;
+    }
+
+    console.log('Synced activity to Outlook:', data);
+    return data;
   }
 };
 

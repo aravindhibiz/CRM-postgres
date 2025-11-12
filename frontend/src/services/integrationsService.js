@@ -262,9 +262,16 @@ export const integrationsService = {
         icon: 'Calendar',
         color: 'text-blue-600',
         features: ['Meeting scheduling', 'Event sync', 'Activity tracking', 'Reminders']
+      },
+      outlook_calendar: {
+        name: 'Microsoft Outlook Calendar',
+        description: 'Two-way calendar sync with Outlook',
+        icon: 'Calendar',
+        color: 'text-blue-500',
+        features: ['Two-way sync', 'Meeting scheduling', 'Teams meetings', 'Activity tracking']
       }
     };
-    
+
     return configs[provider] || {
       name: provider,
       description: `Integration with ${provider}`,
@@ -272,6 +279,184 @@ export const integrationsService = {
       color: 'text-gray-600',
       features: []
     };
+  },
+
+  // ==================== OUTLOOK CALENDAR INTEGRATION ====================
+
+  // Get Outlook Calendar OAuth URL
+  async getOutlookCalendarAuthUrl() {
+    try {
+      console.log('Getting Outlook Calendar OAuth URL...');
+      const { data, error } = await apiClient.get('/api/v1/calendar-integration/outlook-calendar/connect');
+
+      if (error) {
+        console.error('Error getting Outlook auth URL:', error);
+        throw error;
+      }
+
+      console.log('Outlook Calendar auth URL:', data);
+      return data;
+    } catch (err) {
+      console.error('Error in getOutlookCalendarAuthUrl:', err);
+      throw err;
+    }
+  },
+
+  // Get Outlook Calendar integration status
+  async getOutlookCalendarStatus() {
+    try {
+      const { data, error } = await apiClient.get('/api/v1/calendar-integration/outlook-calendar/status');
+
+      if (error) {
+        console.error('Error getting Outlook calendar status:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Error in getOutlookCalendarStatus:', err);
+      throw err;
+    }
+  },
+
+  // Manually trigger Outlook Calendar sync
+  async syncOutlookCalendar(startDate = null, endDate = null) {
+    try {
+      console.log('Triggering Outlook Calendar sync...');
+
+      const params = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const { data, error } = await apiClient.post('/api/v1/calendar-integration/outlook-calendar/sync', null, {
+        params
+      });
+
+      if (error) {
+        console.error('Error syncing Outlook calendar:', error);
+        throw error;
+      }
+
+      console.log('Outlook Calendar sync result:', data);
+      return data;
+    } catch (err) {
+      console.error('Error in syncOutlookCalendar:', err);
+      throw err;
+    }
+  },
+
+  // Disconnect Outlook Calendar integration
+  async disconnectOutlookCalendar(integrationId) {
+    try {
+      console.log('Disconnecting Outlook Calendar integration:', integrationId);
+
+      const { data, error } = await apiClient.delete(
+        `/api/v1/calendar-integration/outlook-calendar/${integrationId}`
+      );
+
+      if (error) {
+        console.error('Error disconnecting Outlook calendar:', error);
+        throw error;
+      }
+
+      console.log('Outlook Calendar disconnected:', data);
+      return data;
+    } catch (err) {
+      console.error('Error in disconnectOutlookCalendar:', err);
+      throw err;
+    }
+  },
+
+  // Initiate Outlook Calendar OAuth in popup
+  async connectOutlookCalendar() {
+    try {
+      console.log('Initiating Outlook Calendar connection...');
+
+      const { auth_url, state } = await this.getOutlookCalendarAuthUrl();
+
+      // Open OAuth flow in popup window
+      const popup = window.open(
+        auth_url,
+        'outlook-calendar-auth',
+        'width=500,height=700,left=100,top=100'
+      );
+
+      if (!popup) {
+        throw new Error('Popup was blocked. Please allow popups for this site.');
+      }
+
+      // Listen for popup close or message
+      return new Promise((resolve, reject) => {
+        let messageReceived = false;
+
+        // Listen for postMessage from popup (preferred method)
+        const handleMessage = (event) => {
+          // Verify origin if needed (should come from same origin)
+          if (event.data && event.data.type === 'outlook-calendar-connected') {
+            messageReceived = true;
+            window.removeEventListener('message', handleMessage);
+            clearInterval(checkPopupClosed);
+            clearTimeout(timeoutId);
+
+            if (event.data.success) {
+              console.log('✅ Outlook Calendar connected via postMessage');
+              resolve({ success: true });
+            } else {
+              console.error('❌ Connection failed:', event.data.error);
+              reject(new Error(event.data.error || 'Connection failed'));
+            }
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+
+        // Poll for popup close (fallback method)
+        const checkPopupClosed = setInterval(async () => {
+          if (popup.closed) {
+            clearInterval(checkPopupClosed);
+            clearTimeout(timeoutId);
+            window.removeEventListener('message', handleMessage);
+
+            // If we didn't receive a postMessage, check integration status
+            if (!messageReceived) {
+              console.log('Popup closed without postMessage, checking integration status...');
+
+              try {
+                // Wait a bit for backend to process
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Check if integration was actually created
+                const status = await this.getOutlookCalendarStatus();
+
+                if (status && status.connected) {
+                  console.log('✅ Integration verified as connected');
+                  resolve({ success: true });
+                } else {
+                  console.log('❌ Integration not connected');
+                  reject(new Error('User closed the popup or authentication failed'));
+                }
+              } catch (err) {
+                console.error('❌ Error checking status:', err);
+                reject(new Error('Connection verification failed'));
+              }
+            }
+          }
+        }, 500);
+
+        // Timeout after 5 minutes
+        const timeoutId = setTimeout(() => {
+          window.removeEventListener('message', handleMessage);
+          clearInterval(checkPopupClosed);
+          if (!popup.closed) {
+            popup.close();
+          }
+          reject(new Error('OAuth flow timed out after 5 minutes'));
+        }, 300000);
+      });
+    } catch (err) {
+      console.error('Error connecting Outlook Calendar:', err);
+      throw err;
+    }
   }
 };
 
