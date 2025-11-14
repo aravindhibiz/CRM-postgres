@@ -72,24 +72,25 @@ const CampaignsList = ({
   return (
     <div className="bg-surface rounded-lg border border-border">
       {/* Search Bar */}
-      <div className="p-6 border-b border-border">
+      <div className="p-3 xs:p-4 sm:p-6 border-b border-border">
         <div className="relative">
           <Icon
             name="Search"
-            size={20}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
+            size={18}
+            className="absolute left-2.5 xs:left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
           />
           <input
             type="text"
-            placeholder="Search campaigns by name or description..."
+            placeholder="Search campaigns..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-text-primary placeholder-text-tertiary"
+            className="w-full pl-8 xs:pl-10 pr-10 xs:pr-12 py-2.5 xs:py-3 min-h-touch border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-text-primary placeholder-text-tertiary text-sm xs:text-base"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+              className="absolute right-2.5 xs:right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary min-h-touch min-w-touch flex items-center justify-center"
+              aria-label="Clear search"
             >
               <Icon name="X" size={16} />
             </button>
@@ -98,17 +99,17 @@ const CampaignsList = ({
       </div>
 
       {/* Filters and Controls */}
-      <div className="p-6 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-primary">All Campaigns</h2>
-          <div className="flex items-center space-x-4">
+      <div className="p-3 xs:p-4 sm:p-6 border-b border-border">
+        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mb-3 xs:mb-4 gap-2 xs:gap-0">
+          <h2 className="text-base xs:text-lg font-semibold text-text-primary">All Campaigns</h2>
+          <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4 w-full xs:w-auto">
             {/* Items per page selector */}
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-text-secondary">Show:</span>
+              <span className="text-xs xs:text-sm text-text-secondary whitespace-nowrap">Show:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-                className="text-sm border border-border rounded-md px-2 py-1 bg-surface"
+                className="text-xs xs:text-sm border border-border rounded-md px-2 py-1.5 min-h-touch bg-surface"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -117,20 +118,20 @@ const CampaignsList = ({
               </select>
             </div>
 
-            <div className="text-sm text-text-secondary">
+            <div className="text-xs xs:text-sm text-text-secondary whitespace-nowrap">
               {totalItems} campaign{totalItems !== 1 ? 's' : ''}
-              {(selectedStatusFilter !== 'all' || selectedTypeFilter !== 'all' || searchQuery) && ` (${Array.isArray(allCampaigns) ? allCampaigns.length : 0} total)`}
+              {(selectedStatusFilter !== 'all' || selectedTypeFilter !== 'all' || searchQuery) && <span className="hidden sm:inline"> ({Array.isArray(allCampaigns) ? allCampaigns.length : 0} total)</span>}
             </div>
           </div>
         </div>
 
         {/* Status Filter */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-text-secondary mb-2">Filter by Status:</label>
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-3 xs:mb-4">
+          <label className="block text-xs xs:text-sm font-medium text-text-secondary mb-2">Filter by Status:</label>
+          <div className="flex flex-wrap gap-1.5 xs:gap-2 -mx-3 px-3 xs:mx-0 xs:px-0 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => onStatusFilterChange('all')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-2.5 xs:px-3 py-1.5 min-h-touch text-xs xs:text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                 selectedStatusFilter === 'all'
                   ? 'bg-primary text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -144,7 +145,7 @@ const CampaignsList = ({
                 <button
                   key={status.value}
                   onClick={() => onStatusFilterChange(status.value)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  className={`px-2.5 xs:px-3 py-1.5 min-h-touch text-xs xs:text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                     selectedStatusFilter === status.value
                       ? 'bg-primary text-white'
                       : `${status.color} hover:opacity-80`

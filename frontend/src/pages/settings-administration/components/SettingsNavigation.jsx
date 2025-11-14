@@ -59,35 +59,35 @@ const SettingsNavigation = ({ activeSection, onSectionChange }) => {
   });
 
   return (
-    <nav className="w-80 bg-surface border-r border-border h-full">
-      <div className="p-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-6">Settings Categories</h2>
-        <ul className="space-y-2">
+    <nav className="w-full bg-surface border-r border-border h-full">
+      <div className="p-3 xs:p-4 sm:p-6">
+        <h2 className="text-base xs:text-lg font-semibold text-text-primary mb-3 xs:mb-4 sm:mb-6">Settings Categories</h2>
+        <ul className="space-y-1.5 xs:space-y-2">
           {allowedItems?.map((item) => (
             <li key={item?.id}>
               <button
                 onClick={() => onSectionChange?.(item?.id)}
-                className={`w-full text-left p-4 rounded-lg transition-all duration-150 ease-smooth group ${
+                className={`w-full text-left p-3 xs:p-4 rounded-lg transition-all duration-150 ease-smooth group min-h-touch ${
                   activeSection === item?.id
                     ? 'bg-primary-50 border border-primary-100 text-primary' :'text-text-secondary hover:text-primary'
                 }`}
               >
-                <div className="flex items-start space-x-3">
+                <div className="flex items-start space-x-2 xs:space-x-3">
                   <Icon
                     name={item?.icon}
-                    size={20}
-                    className={`mt-0.5 ${
+                    size={18}
+                    className={`xs:w-5 xs:h-5 mt-0.5 ${
                       activeSection === item?.id
                         ? 'text-primary' :'text-text-tertiary group-hover:text-primary'
                     }`}
                   />
-                  <div className="flex-1">
-                    <div className={`font-medium text-sm ${
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium text-xs xs:text-sm ${
                       activeSection === item?.id ? 'text-primary' : ''
                     }`}>
                       {item?.label}
                     </div>
-                    <div className="text-xs text-text-tertiary mt-1 leading-tight">
+                    <div className="text-xs text-text-tertiary mt-0.5 xs:mt-1 leading-tight">
                       {item?.description}
                     </div>
                   </div>

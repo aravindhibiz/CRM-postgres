@@ -266,19 +266,20 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 xs:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-text-primary">User Management</h2>
-          <p className="text-text-secondary mt-1">Manage users, roles, and permissions</p>
+      <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl xs:text-2xl font-bold text-text-primary truncate">User Management</h2>
+          <p className="text-xs xs:text-sm text-text-secondary mt-1 hidden sm:block">Manage users, roles, and permissions</p>
         </div>
         <button
           onClick={() => setShowInviteModal(true)}
-          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2"
+          className="bg-primary text-white px-3 xs:px-4 py-2 min-h-touch rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-1.5 xs:space-x-2 text-sm xs:text-base whitespace-nowrap flex-shrink-0"
         >
           <Icon name="UserPlus" size={16} />
-          <span>Invite User</span>
+          <span className="hidden xs:inline">Invite User</span>
+          <span className="xs:hidden">Invite</span>
         </button>
       </div>
       {/* Success/Error Messages */}
@@ -307,33 +308,33 @@ const UserManagement = () => {
         </div>
       )}
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative">
-            <Icon name="Search" size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary" />
+      <div className="flex flex-col gap-3 xs:gap-4">
+        <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
+          <div className="relative flex-1 xs:flex-initial">
+            <Icon name="Search" size={16} className="absolute left-2.5 xs:left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary" />
             <input
               type="text"
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e?.target?.value)}
-              className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary w-64"
+              className="pl-8 xs:pl-10 pr-3 xs:pr-4 py-2 min-h-touch border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary w-full xs:w-64 text-sm xs:text-base"
             />
           </div>
-          
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e?.target?.value)}
-            className="px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="px-3 py-2 min-h-touch border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm xs:text-base flex-1 xs:flex-initial"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          
+
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e?.target?.value)}
-            className="px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+            className="px-3 py-2 min-h-touch border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm xs:text-base flex-1 xs:flex-initial"
           >
             <option value="all">All Roles</option>
             {roles?.map(role => (
@@ -341,10 +342,10 @@ const UserManagement = () => {
             ))}
           </select>
         </div>
-        
+
         {/* Items per page selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-text-secondary whitespace-nowrap">Items per page:</label>
+        <div className="flex items-center gap-2 justify-end">
+          <label className="text-xs xs:text-sm text-text-secondary whitespace-nowrap">Items per page:</label>
           <select
             value={itemsPerPage}
             onChange={handleItemsPerPageChange}
@@ -360,21 +361,21 @@ const UserManagement = () => {
       </div>
       {/* Bulk Actions */}
       {selectedUsers?.length > 0 && (
-        <div className="bg-primary-50 border border-primary-100 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-primary font-medium">
+        <div className="bg-primary-50 border border-primary-100 rounded-lg p-3 xs:p-4">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-0">
+            <span className="text-xs xs:text-sm text-primary font-medium">
               {selectedUsers?.length} user{selectedUsers?.length !== 1 ? 's' : ''} selected
             </span>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 w-full xs:w-auto">
               <button
                 onClick={() => handleBulkAction('activate')}
-                className="px-3 py-1 text-xs bg-success text-white rounded hover:bg-success-600 transition-colors duration-150"
+                className="px-3 py-2 min-h-touch text-xs xs:text-sm bg-success text-white rounded hover:bg-success-600 transition-colors duration-150 flex-1 xs:flex-initial"
               >
                 Activate
               </button>
               <button
                 onClick={() => handleBulkAction('deactivate')}
-                className="px-3 py-1 text-xs bg-error text-white rounded hover:bg-error-600 transition-colors duration-150"
+                className="px-3 py-2 min-h-touch text-xs xs:text-sm bg-error text-white rounded hover:bg-error-600 transition-colors duration-150 flex-1 xs:flex-initial"
               >
                 Deactivate
               </button>
@@ -391,36 +392,37 @@ const UserManagement = () => {
           </div>
         </div>
       ) : (
-        /* Users Table */
-        (<div className="bg-surface rounded-lg border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-background border-b border-border">
-                <tr>
-                  <th className="text-left py-3 px-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers?.length === users?.length && users?.length > 0}
-                      onChange={handleSelectAll}
-                      className="rounded border-border text-primary focus:ring-primary"
-                    />
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">User</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Role</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Status</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Last Login</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedUsers?.length === 0 ? (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-surface rounded-lg border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-background border-b border-border">
                   <tr>
-                    <td colSpan="6" className="py-8 text-center">
-                      <Icon name="Users" size={48} className="text-text-tertiary mx-auto mb-4" />
-                      <p className="text-text-secondary">No users found</p>
-                    </td>
+                    <th className="text-left py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers?.length === users?.length && users?.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-border text-primary focus:ring-primary"
+                      />
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">User</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Role</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Last Login</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-text-primary">Actions</th>
                   </tr>
-                ) : (
+                </thead>
+                <tbody>
+                  {paginatedUsers?.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="py-8 text-center">
+                        <Icon name="Users" size={48} className="text-text-tertiary mx-auto mb-4" />
+                        <p className="text-text-secondary">No users found</p>
+                      </td>
+                    </tr>
+                  ) : (
                   paginatedUsers?.map((user) => {
                     const isProtected = user?.rawData?.role === 'admin' || user?.id === currentUser?.id;
                     return (
@@ -490,7 +492,7 @@ const UserManagement = () => {
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination */}
           {users?.length > 0 && (
             <Pagination
@@ -502,25 +504,123 @@ const UserManagement = () => {
               showInfo={true}
             />
           )}
-        </div>)
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3">
+          {paginatedUsers?.length === 0 ? (
+            <div className="bg-surface rounded-lg border border-border p-8 text-center">
+              <Icon name="Users" size={48} className="text-text-tertiary mx-auto mb-4" />
+              <p className="text-text-secondary">No users found</p>
+            </div>
+          ) : (
+            paginatedUsers?.map((user) => {
+              const isProtected = user?.rawData?.role === 'admin' || user?.id === currentUser?.id;
+              return (
+                <div key={user?.id} className="bg-surface rounded-lg border border-border p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers?.includes(user?.id)}
+                        onChange={() => handleSelectUser(user?.id)}
+                        disabled={isProtected}
+                        className="rounded border-border text-primary focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed mt-1 flex-shrink-0"
+                        title={isProtected ? "Protected account" : ""}
+                      />
+                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        {user?.avatar ? (
+                          <img src={user?.avatar} alt={user?.name} className="w-10 h-10 rounded-full" />
+                        ) : (
+                          <Icon name="User" size={18} className="text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-text-primary text-sm truncate">{user?.name || 'Unnamed User'}</div>
+                        <div className="text-xs text-text-secondary truncate">{user?.email}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Role:</span>
+                      <span className="text-text-primary font-medium">{user?.role}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Status:</span>
+                      {getStatusBadge(user?.status)}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Last Login:</span>
+                      <span className="text-text-primary text-xs truncate ml-2">{user?.lastLogin}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-border flex justify-end">
+                    {isProtected ? (
+                      <span className="text-xs text-text-tertiary px-2 py-1">
+                        {user?.id === currentUser?.id ? 'Current User' : 'Protected'}
+                      </span>
+                    ) : (
+                      <>
+                        {user?.status === 'Active' ? (
+                          <button
+                            onClick={() => handleUserAction('deactivate', user?.id)}
+                            className="px-3 py-2 min-h-touch text-xs bg-error text-white rounded hover:bg-error-600 transition-colors duration-150 flex items-center space-x-1"
+                          >
+                            <Icon name="UserX" size={14} />
+                            <span>Deactivate</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUserAction('activate', user?.id)}
+                            className="px-3 py-2 min-h-touch text-xs bg-success text-white rounded hover:bg-success-600 transition-colors duration-150 flex items-center space-x-1"
+                          >
+                            <Icon name="UserCheck" size={14} />
+                            <span>Activate</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* Mobile Pagination */}
+          {users?.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={users?.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              showInfo={true}
+            />
+          )}
+        </div>
+      </>
       )}
       {/* Invite User Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 z-1200 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
+          <div className="flex items-center justify-center min-h-screen px-3 xs:px-4">
             <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowInviteModal(false)}></div>
-            <div className="bg-surface rounded-lg shadow-xl max-w-md w-full relative z-1300">
-              <div className="p-6">
+            <div className="bg-surface rounded-lg shadow-xl max-w-md w-full relative z-1300 my-6">
+              <div className="p-4 xs:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-text-primary">Invite New User</h3>
+                  <h3 className="text-base xs:text-lg font-semibold text-text-primary">Invite New User</h3>
                   <button
                     onClick={() => setShowInviteModal(false)}
-                    className="text-text-secondary hover:text-text-primary transition-colors duration-150"
+                    className="text-text-secondary hover:text-text-primary transition-colors duration-150 p-1 min-h-touch min-w-touch flex items-center justify-center -m-1"
+                    aria-label="Close modal"
                   >
                     <Icon name="X" size={20} />
                   </button>
                 </div>
-                <form onSubmit={handleInviteUser} className="space-y-4">
+                <form onSubmit={handleInviteUser} className="space-y-3 xs:space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-1">Email Address</label>
                     <input

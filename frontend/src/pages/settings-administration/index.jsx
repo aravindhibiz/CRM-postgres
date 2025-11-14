@@ -79,28 +79,29 @@ const SettingsAdministration = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20">
+      <main className="pt-14 xs:pt-16 sm:pt-20">
         <div className="max-w-full mx-auto">
-          <div className="px-6 py-4">
+          <div className="px-3 xs:px-4 sm:px-6 py-3 xs:py-4 hidden sm:block">
             <Breadcrumb />
           </div>
-          
-          <div className="flex h-[calc(100vh-7rem)]">
-            {/* Left Navigation Panel */}
-            <div className="hidden lg:block">
-              <SettingsNavigation 
-                activeSection={activeSection} 
-                onSectionChange={setActiveSection} 
+
+          <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] xs:min-h-[calc(100vh-5rem)] sm:min-h-[calc(100vh-7rem)]">
+            {/* Desktop Left Navigation Panel */}
+            <div className="hidden lg:block lg:w-64 xl:w-72 flex-shrink-0">
+              <SettingsNavigation
+                activeSection={activeSection}
+                onSectionChange={setActiveSection}
               />
             </div>
-            
-            {/* Mobile Navigation - Collapsible */}
-            <div className="lg:hidden">
-              <div className="bg-surface border-r border-border p-4">
+
+            {/* Mobile Navigation Dropdown */}
+            <div className="lg:hidden sticky top-14 xs:top-16 sm:top-20 z-10 bg-surface border-b border-border">
+              <div className="px-3 xs:px-4 sm:px-6 py-3 xs:py-4">
                 <select
                   value={activeSection}
                   onChange={(e) => setActiveSection(e?.target?.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-primary focus:border-primary"
+                  className="w-full px-3 py-2.5 text-sm xs:text-base border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-surface text-text-primary min-h-touch"
+                  aria-label="Settings section"
                 >
                   {hasPermission('settings.user_management') && (
                     <option value="user-management">User Management</option>
@@ -123,10 +124,10 @@ const SettingsAdministration = () => {
                 </select>
               </div>
             </div>
-            
+
             {/* Main Content Area */}
             <div className="flex-1 overflow-y-auto">
-              <div className="p-6">
+              <div className="p-3 xs:p-4 sm:p-6">
                 {renderActiveSection()}
               </div>
             </div>

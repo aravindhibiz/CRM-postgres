@@ -6,6 +6,14 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    screens: {
+      'xs': '375px',    // Small phones
+      'sm': '640px',    // Large phones
+      'md': '768px',    // Tablets
+      'lg': '1024px',   // Small laptops
+      'xl': '1280px',   // Desktops
+      '2xl': '1536px',  // Large screens
+    },
     extend: {
       colors: {
         // Primary Colors
@@ -121,6 +129,13 @@ module.exports = {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
+        'touch': '44px', // Minimum touch target size
+      },
+      minHeight: {
+        'touch': '44px', // Minimum touch target size for mobile
+      },
+      minWidth: {
+        'touch': '44px', // Minimum touch target size for mobile
       },
       transitionTimingFunction: {
         'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',

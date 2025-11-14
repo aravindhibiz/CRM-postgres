@@ -81,18 +81,19 @@ const Header = () => {
   return (
     <>
   <header className="fixed top-0 left-0 right-0 bg-surface border-b border-border z-1000">
-        <div className="px-4 py-2.5">
-          <div className="flex items-center justify-between gap-2">
+        <div className="px-2 xs:px-3 sm:px-4 py-2 sm:py-2.5">
+          <div className="flex items-center justify-between gap-1 xs:gap-2">
             {/* Logo */}
-            <div className="flex items-center flex-shrink-0">
-              <Link to="/sales-dashboard" className="flex items-center space-x-2" onClick={handleNavigation}>
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div className="flex items-center flex-shrink-0 min-w-0">
+              <Link to="/sales-dashboard" className="flex items-center space-x-1.5 xs:space-x-2 min-w-0" onClick={handleNavigation}>
+                <div className="w-7 h-7 xs:w-8 xs:h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg width="18" height="18" className="xs:w-5 xs:h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 13L12 4L21 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M9 21V13H15V21" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span className="text-lg font-semibold text-text-primary font-heading whitespace-nowrap">SalesForce Lite</span>
+                <span className="text-base xs:text-lg font-semibold text-text-primary font-heading whitespace-nowrap hidden xs:inline">SalesForce Lite</span>
+                <span className="text-base font-semibold text-text-primary font-heading whitespace-nowrap xs:hidden">SF</span>
               </Link>
             </div>
 
@@ -116,21 +117,23 @@ const Header = () => {
             </nav>
 
             {/* Right Side Actions */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-1 xs:space-x-2 flex-shrink-0">
               {/* Theme Toggle */}
-              <ThemeToggle />
+              <div className="hidden xs:block">
+                <ThemeToggle />
+              </div>
 
               {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={handleUserMenuToggle}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth"
+                  className="flex items-center space-x-1.5 xs:space-x-2 p-1.5 xs:p-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 ease-smooth min-h-touch"
                 >
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 xs:w-8 xs:h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <Icon name="User" size={16} className="text-primary" />
                   </div>
-                  <div className="hidden md:block text-left max-w-[150px]">
-                    <div className="text-sm font-medium text-text-primary truncate">
+                  <div className="hidden sm:block text-left max-w-[120px] md:max-w-[150px]">
+                    <div className="text-xs sm:text-sm font-medium text-text-primary truncate">
                       {userProfile?.full_name || userProfile?.first_name || user?.email || 'User'}
                     </div>
                     <div className="text-xs text-text-secondary truncate">
@@ -140,7 +143,7 @@ const Header = () => {
                        'User'}
                     </div>
                   </div>
-                  <Icon name="ChevronDown" size={16} className="text-text-secondary flex-shrink-0" />
+                  <Icon name="ChevronDown" size={14} className="text-text-secondary flex-shrink-0 hidden xs:block" />
                 </button>
 
                 {/* User Dropdown */}
@@ -181,7 +184,8 @@ const Header = () => {
               {/* Mobile Menu Button */}
               <button
                 onClick={handleMobileMenuToggle}
-                className="lg:hidden p-2 text-text-secondary hover:text-text-primary transition-colors duration-150 ease-smooth"
+                className="lg:hidden p-2 min-h-touch min-w-touch flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-150 ease-smooth"
+                aria-label="Toggle mobile menu"
               >
                 <Icon name={isMobileMenuOpen ? "X" : "Menu"} size={20} />
               </button>
@@ -192,9 +196,9 @@ const Header = () => {
       {/* Mobile Navigation Drawer */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-1200 lg:hidden">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleMobileMenuToggle}></div>
-          <div className="fixed left-0 top-0 bottom-0 w-80 bg-surface shadow-xl">
-            <div className="p-6">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleMobileMenuToggle} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Escape' && handleMobileMenuToggle()} aria-label="Close menu"></div>
+          <div className="fixed left-0 top-0 bottom-0 w-[280px] xs:w-80 max-w-[85vw] bg-surface shadow-xl overflow-y-auto">
+            <div className="p-4 xs:p-6">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -213,19 +217,19 @@ const Header = () => {
                 </button>
               </div>
 
-              <nav className="space-y-2">
+              <nav className="space-y-1.5">
                 {allowedNavItems?.map((item) => (
                   <Link
                     key={item?.path}
                     to={item?.path}
                     onClick={handleNavigation}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-150 ease-smooth ${
+                    className={`flex items-center space-x-3 px-3 xs:px-4 py-3 min-h-touch rounded-lg text-sm xs:text-base font-medium transition-all duration-150 ease-smooth ${
                         isActiveRoute(item?.path)
                           ? 'bg-primary-50 text-primary border border-primary-100' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                       }`}
                   >
-                    <Icon name={item?.icon} size={20} />
-                    <span>{item?.label}</span>
+                    <Icon name={item?.icon} size={20} className="flex-shrink-0" />
+                    <span className="truncate">{item?.label}</span>
                   </Link>
                 ))}
                 
@@ -234,14 +238,14 @@ const Header = () => {
                 {allowedUserMenuItems?.map((item) => {
                   if (item.action === 'logout') {
                     return (
-                      <div
+                      <button
                         key={item.label}
                         onClick={handleLogout}
-                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-smooth cursor-pointer"
+                        className="w-full flex items-center space-x-3 px-3 xs:px-4 py-3 min-h-touch rounded-lg text-sm xs:text-base font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-smooth"
                       >
-                        <Icon name={item?.icon} size={20} />
-                        <span>{item?.label}</span>
-                      </div>
+                        <Icon name={item?.icon} size={20} className="flex-shrink-0" />
+                        <span className="truncate">{item?.label}</span>
+                      </button>
                     );
                   } else {
                     return (
@@ -249,10 +253,10 @@ const Header = () => {
                         key={item?.path}
                         to={item?.path}
                         onClick={() => handleMenuItemClick(item)}
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-smooth"
+                        className="flex items-center space-x-3 px-3 xs:px-4 py-3 min-h-touch rounded-lg text-sm xs:text-base font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-smooth"
                       >
-                        <Icon name={item?.icon} size={20} />
-                        <span>{item?.label}</span>
+                        <Icon name={item?.icon} size={20} className="flex-shrink-0" />
+                        <span className="truncate">{item?.label}</span>
                       </Link>
                     );
                   }

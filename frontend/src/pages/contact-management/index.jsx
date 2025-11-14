@@ -422,60 +422,67 @@ const ContactManagement = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-16">
-        <div className="px-6 py-8">
+      <main className="pt-14 xs:pt-16 sm:pt-16">
+        <div className="px-3 xs:px-4 sm:px-6 py-4 xs:py-6 sm:py-8">
           <div className="max-w-7xl mx-auto">
-            <Breadcrumb />
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-text-primary">Contact Management</h1>
-                <p className="text-text-secondary mt-1">Manage your customer relationships and communication history</p>
+            <div className="hidden sm:block">
+              <Breadcrumb />
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 xs:mb-6 gap-3 sm:gap-0">
+              <div className="w-full sm:w-auto">
+                <h1 className="text-xl xs:text-2xl md:text-3xl font-bold text-text-primary">Contact Management</h1>
+                <p className="text-xs xs:text-sm text-text-secondary mt-1 hidden xs:block">Manage your customer relationships and communication history</p>
               </div>
-              
-              <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
+
+              <div className="flex flex-wrap gap-2 xs:gap-3 w-full sm:w-auto">
                 {/* View Toggle */}
-                <div className="inline-flex items-center border border-border rounded-lg bg-surface">
+                <div className="inline-flex items-center border border-border rounded-lg bg-surface flex-shrink-0">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`inline-flex items-center space-x-2 px-3 py-2 rounded-l-lg transition-all duration-150 ${
-                      viewMode === 'grid' 
-                        ? 'bg-primary text-white' 
+                    className={`inline-flex items-center space-x-1 xs:space-x-2 px-2.5 xs:px-3 py-2 min-h-touch rounded-l-lg transition-all duration-150 ${
+                      viewMode === 'grid'
+                        ? 'bg-primary text-white'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                     }`}
                     title="Grid View"
+                    aria-label="Grid View"
                   >
-                    <Icon name="Grid" size={18} />
+                    <Icon name="Grid" size={16} className="xs:w-[18px] xs:h-[18px]" />
+                    <span className="hidden sm:inline text-sm">Grid</span>
                   </button>
                   <button
                     onClick={() => setViewMode('split')}
-                    className={`inline-flex items-center space-x-2 px-3 py-2 rounded-r-lg transition-all duration-150 ${
-                      viewMode === 'split' 
-                        ? 'bg-primary text-white' 
+                    className={`inline-flex items-center space-x-1 xs:space-x-2 px-2.5 xs:px-3 py-2 min-h-touch rounded-r-lg transition-all duration-150 ${
+                      viewMode === 'split'
+                        ? 'bg-primary text-white'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                     }`}
                     title="List View"
+                    aria-label="List View"
                   >
-                    <Icon name="List" size={18} />
+                    <Icon name="List" size={16} className="xs:w-[18px] xs:h-[18px]" />
+                    <span className="hidden sm:inline text-sm">List</span>
                   </button>
                 </div>
 
                 {permissionsService.hasPermission(user?.role, 'contacts', 'create') && (
                   <button
                     onClick={handleAddContact}
-                    className="btn-primary inline-flex items-center space-x-2"
+                    className="btn-primary inline-flex items-center space-x-1.5 xs:space-x-2 px-3 xs:px-4 py-2 min-h-touch text-sm xs:text-base flex-shrink-0"
                   >
-                    <Icon name="UserPlus" size={18} />
-                    <span>Add Contact</span>
+                    <Icon name="UserPlus" size={16} className="xs:w-[18px] xs:h-[18px]" />
+                    <span className="hidden xs:inline">Add Contact</span>
+                    <span className="xs:hidden">Add</span>
                   </button>
                 )}
 
                 {permissionsService.hasPermission(user?.role, 'contacts', 'import_export') && (
                   <button
                     onClick={() => setIsImportModalOpen(true)}
-                    className="inline-flex items-center space-x-2 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out"
+                    className="inline-flex items-center space-x-1.5 xs:space-x-2 px-3 xs:px-4 py-2 min-h-touch border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out text-sm xs:text-base flex-shrink-0"
                   >
-                    <Icon name="Upload" size={18} />
+                    <Icon name="Upload" size={16} className="xs:w-[18px] xs:h-[18px]" />
                     <span>Import</span>
                   </button>
                 )}
@@ -509,24 +516,24 @@ const ContactManagement = () => {
             )}
             
             {/* Search and Tabs */}
-            <div className="mb-6">
-              <div className="relative mb-4">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Icon name="Search" size={18} className="text-text-tertiary" />
+            <div className="mb-4 xs:mb-6">
+              <div className="relative mb-3 xs:mb-4">
+                <div className="absolute inset-y-0 left-0 pl-2.5 xs:pl-3 flex items-center pointer-events-none">
+                  <Icon name="Search" size={16} className="xs:w-[18px] xs:h-[18px] text-text-tertiary" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search contacts by name, email, or company..."
+                  placeholder="Search contacts..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e?.target?.value)}
-                  className="input-field pl-10"
+                  className="input-field pl-8 xs:pl-10 text-sm xs:text-base min-h-touch"
                 />
               </div>
-              
-              <div className="flex border-b border-border">
+
+              <div className="flex border-b border-border overflow-x-auto -mx-3 px-3 xs:mx-0 xs:px-0 scrollbar-hide">
                 <button
                   onClick={() => setActiveTab('all')}
-                  className={`px-4 py-2 text-sm font-medium ${
+                  className={`px-3 xs:px-4 py-2 text-xs xs:text-sm font-medium whitespace-nowrap min-h-touch flex items-center ${
                     activeTab === 'all' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
                   }`}
                 >
@@ -534,7 +541,7 @@ const ContactManagement = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('active')}
-                  className={`px-4 py-2 text-sm font-medium ${
+                  className={`px-3 xs:px-4 py-2 text-xs xs:text-sm font-medium whitespace-nowrap min-h-touch flex items-center ${
                     activeTab === 'active' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
                   }`}
                 >
@@ -542,7 +549,7 @@ const ContactManagement = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('inactive')}
-                  className={`px-4 py-2 text-sm font-medium ${
+                  className={`px-3 xs:px-4 py-2 text-xs xs:text-sm font-medium whitespace-nowrap min-h-touch flex items-center ${
                     activeTab === 'inactive' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
                   }`}
                 >
@@ -550,7 +557,7 @@ const ContactManagement = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('my')}
-                  className={`px-4 py-2 text-sm font-medium ${
+                  className={`px-3 xs:px-4 py-2 text-xs xs:text-sm font-medium whitespace-nowrap min-h-touch flex items-center ${
                     activeTab === 'my' ?'text-primary border-b-2 border-primary' :'text-text-secondary hover:text-text-primary'
                   }`}
                 >
@@ -569,7 +576,7 @@ const ContactManagement = () => {
               </div>
             ) : viewMode === 'grid' ? (
               /* Grid View - Show all contacts as cards */
-              <div className="bg-surface rounded-lg border border-border shadow-sm p-6">
+              <div className="bg-surface rounded-lg border border-border shadow-sm p-3 xs:p-4 sm:p-6">
                 <ContactGrid
                   contacts={filteredContacts}
                   onContactSelect={handleContactSelect}
@@ -578,7 +585,7 @@ const ContactManagement = () => {
               </div>
             ) : (
               /* Split View - Contact List + Detail */
-              <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex flex-col lg:flex-row gap-4 xs:gap-6">
                 {/* Contact List (Left Panel) */}
                 <div className="w-full lg:w-1/3 xl:w-1/4">
                   <div className="bg-surface rounded-lg border border-border shadow-sm">

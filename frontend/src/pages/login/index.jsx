@@ -78,17 +78,17 @@ const Login = () => {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-50 py-6 xs:py-12 px-3 xs:px-4 sm:px-6 lg:px-8">
       {/* Auto-login overlay */}
       {isAutoLoggingIn && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 xs:p-8 max-w-md w-full mx-4">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-              <h2 className="text-2xl font-bold text-text-primary mb-2">
+              <div className="animate-spin rounded-full h-12 w-12 xs:h-16 xs:w-16 border-b-4 border-primary mx-auto mb-4"></div>
+              <h2 className="text-xl xs:text-2xl font-bold text-text-primary mb-2">
                 Signing you in...
               </h2>
-              <p className="text-text-secondary">
+              <p className="text-sm xs:text-base text-text-secondary">
                 Connecting with Microsoft to authenticate your account
               </p>
             </div>
@@ -97,24 +97,24 @@ const Login = () => {
       )}
 
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-xl xs:rounded-2xl shadow-xl p-6 xs:p-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Icon name="BarChart3" size={28} className="text-white" />
+          <div className="text-center mb-6 xs:mb-8">
+            <div className="w-14 h-14 xs:w-16 xs:h-16 bg-primary rounded-lg xs:rounded-xl flex items-center justify-center mx-auto mb-3 xs:mb-4">
+              <Icon name="BarChart3" size={24} className="xs:w-7 xs:h-7 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-text-primary">Welcome back</h2>
-            <p className="text-text-secondary mt-2">Sign in to your SalesFlow account</p>
+            <h2 className="text-2xl xs:text-3xl font-bold text-text-primary">Welcome back</h2>
+            <p className="text-sm xs:text-base text-text-secondary mt-1 xs:mt-2">Sign in to your SalesFlow account</p>
           </div>
 
 
           {/* Login Form */}
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-4 xs:space-y-6" onSubmit={handleSubmit}>
             {authError && (
-              <div className="bg-error-50 border border-error-200 text-error rounded-lg p-4 flex items-center space-x-2">
-                <Icon name="AlertCircle" size={16} className="text-error flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm">{authError}</p>
+              <div className="bg-error-50 border border-error-200 text-error rounded-lg p-3 xs:p-4 flex items-start space-x-2">
+                <Icon name="AlertCircle" size={16} className="text-error flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs xs:text-sm break-words">{authError}</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -129,7 +129,8 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={clearAuthError}
-                  className="text-error hover:text-error-600"
+                  className="text-error hover:text-error-600 flex-shrink-0 min-h-touch min-w-touch flex items-center justify-center -m-1"
+                  aria-label="Close error message"
                 >
                   <Icon name="X" size={16} />
                 </button>
@@ -204,17 +205,17 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="btn-primary w-full flex justify-center items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full flex justify-center items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-touch"
               >
                 {isLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Signing in...</span>
+                    <span className="text-sm xs:text-base">Signing in...</span>
                   </>
                 ) : (
                   <>
                     <Icon name="LogIn" size={18} />
-                    <span>Sign in</span>
+                    <span className="text-sm xs:text-base">Sign in</span>
                   </>
                 )}
               </button>
@@ -222,33 +223,33 @@ const Login = () => {
           </form>
 
           {/* Microsoft SSO Divider */}
-          <div className="mt-6">
+          <div className="mt-5 xs:mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border" />
               </div>
-              <div className="relative flex justify-center text-sm">
+              <div className="relative flex justify-center text-xs xs:text-sm">
                 <span className="px-2 bg-white text-text-secondary">Or continue with</span>
               </div>
             </div>
           </div>
 
           {/* Microsoft Sign-In Button */}
-          <div className="mt-6">
+          <div className="mt-5 xs:mt-6">
             <button
               type="button"
               onClick={handleMicrosoftLogin}
               disabled={isLoading || isMicrosoftLoading}
-              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center px-4 py-3 min-h-touch border border-gray-300 rounded-lg shadow-sm bg-white text-xs xs:text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isMicrosoftLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-700 mr-3"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 xs:h-5 xs:w-5 border-b-2 border-gray-700 mr-2 xs:mr-3"></div>
                   <span>Signing in with Microsoft...</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-5 h-5 mr-3" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-4 h-4 xs:w-5 xs:h-5 mr-2 xs:mr-3 flex-shrink-0" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
                     <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
                     <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>

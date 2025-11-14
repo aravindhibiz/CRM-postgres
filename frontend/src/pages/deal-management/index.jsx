@@ -670,13 +670,13 @@ const DealManagement = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-16">
-          <div className="px-6 py-8">
+        <main className="pt-14 xs:pt-16 sm:pt-16">
+          <div className="px-3 xs:px-4 sm:px-6 py-4 xs:py-6 sm:py-8">
             <div className="max-w-7xl mx-auto">
               <div className="flex items-center justify-center h-96">
                 <div className="flex items-center space-x-3">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="text-text-secondary">Loading deal...</span>
+                  <span className="text-text-secondary text-sm xs:text-base">Loading deal...</span>
                 </div>
               </div>
             </div>
@@ -690,23 +690,25 @@ const DealManagement = () => {
   
 
   if (error && !selectedDeal && !isListView) {
-    
+
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-16">
-          <div className="px-6 py-8">
+        <main className="pt-14 xs:pt-16 sm:pt-16">
+          <div className="px-3 xs:px-4 sm:px-6 py-4 xs:py-6 sm:py-8">
             <div className="max-w-7xl mx-auto">
-              <Breadcrumb />
-              <div className="text-center py-12">
-                <Icon name="AlertCircle" size={48} className="text-text-tertiary mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-text-primary mb-2">
+              <div className="hidden sm:block">
+                <Breadcrumb />
+              </div>
+              <div className="text-center py-8 xs:py-12">
+                <Icon name="AlertCircle" size={40} className="xs:w-12 xs:h-12 text-text-tertiary mx-auto mb-4" />
+                <h2 className="text-lg xs:text-xl font-semibold text-text-primary mb-2">
                   {selectedDeal === null && dealId !== 'new' ? 'Deal Not Found' : 'Error'}
                 </h2>
-                <p className="text-text-secondary mb-6">{error}</p>
+                <p className="text-text-secondary mb-4 xs:mb-6 text-sm xs:text-base px-4">{error}</p>
                 <button
                   onClick={() => navigate('/sales-dashboard')}
-                  className="btn-primary"
+                  className="btn-primary min-h-touch"
                 >
                   Back to Dashboard
                 </button>
@@ -723,21 +725,23 @@ const DealManagement = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-16">
-        <div className="px-6 py-8">
+      <main className="pt-14 xs:pt-16 sm:pt-16">
+        <div className="px-3 xs:px-4 sm:px-6 py-4 xs:py-6 sm:py-8">
           <div className="max-w-7xl mx-auto">
-            <Breadcrumb />
+            <div className="hidden sm:block">
+              <Breadcrumb />
+            </div>
             
             {/* Error Alert */}
             {error && (
-              <div className="bg-error-50 border border-error-200 text-error p-4 rounded-lg flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-2">
-                  <Icon name="AlertCircle" size={20} />
-                  <span>{error}</span>
+              <div className="bg-error-50 border border-error-200 text-error p-3 xs:p-4 rounded-lg flex items-center justify-between mb-4 xs:mb-6">
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                  <Icon name="AlertCircle" size={20} className="flex-shrink-0" />
+                  <span className="text-xs xs:text-sm break-words">{error}</span>
                 </div>
-                <button 
+                <button
                   onClick={() => setError(null)}
-                  className="text-error hover:text-error-600"
+                  className="text-error hover:text-error-600 min-h-touch min-w-touch flex items-center justify-center -m-1 flex-shrink-0"
                 >
                   <Icon name="X" size={16} />
                 </button>
@@ -745,37 +749,37 @@ const DealManagement = () => {
             )}
             
             {/* Page Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-              <div className="mb-4 lg:mb-0">
-                <h1 className="text-3xl font-bold text-text-primary mb-2">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 xs:mb-6 sm:mb-8">
+              <div className="mb-3 xs:mb-4 lg:mb-0">
+                <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-text-primary mb-1 xs:mb-2">
                   {isListView ? 'Deal Management' : (selectedDeal?.name || 'New Deal')}
                 </h1>
-                <div className="flex items-center space-x-4 text-sm text-text-secondary">
+                <div className="flex flex-wrap items-center gap-x-2 xs:gap-x-4 text-xs xs:text-sm text-text-secondary">
                   {isListView ? (
-                    <span>Manage all your deals</span>
+                    <span className="hidden xs:inline">Manage all your deals</span>
                   ) : (
                     <>
                       {selectedDeal?.id && (
                         <>
-                          <span>Deal ID: #{selectedDeal?.id}</span>
-                          <span>•</span>
+                          <span className="hidden sm:inline">Deal ID: #{selectedDeal?.id}</span>
+                          <span className="hidden sm:inline">•</span>
                         </>
                       )}
                       {selectedDeal?.created_at && (
                         <>
                           <span>Created: {new Date(selectedDeal.created_at)?.toLocaleDateString()}</span>
-                          <span>•</span>
+                          <span className="hidden xs:inline">•</span>
                         </>
                       )}
                       {selectedDeal?.updated_at && (
-                        <span>Last updated: {new Date(selectedDeal.updated_at)?.toLocaleDateString()}</span>
+                        <span className="hidden xs:inline">Last updated: {new Date(selectedDeal.updated_at)?.toLocaleDateString()}</span>
                       )}
                     </>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 xs:space-x-3">
                 {isListView ? (
                   <>
                     {/* Export Button - Only for admin and sales_manager */}
@@ -783,30 +787,32 @@ const DealManagement = () => {
                       <button
                         onClick={handleExportDeals}
                         disabled={filteredDeals.length === 0}
-                        className="flex items-center space-x-2 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center space-x-1.5 xs:space-x-2 px-3 xs:px-4 py-2 min-h-touch border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed text-sm xs:text-base"
                         title="Export deals"
                       >
-                        <Icon name="Download" size={16} />
-                        <span>Export</span>
+                        <Icon name="Download" size={16} className="flex-shrink-0" />
+                        <span className="hidden sm:inline">Export</span>
                       </button>
                     )}
                     {hasPermission('deals.create') && (
                       <button
                         onClick={handleCreateNewDeal}
-                        className="btn-primary flex items-center space-x-2"
+                        className="btn-primary flex items-center space-x-1.5 xs:space-x-2 min-h-touch text-sm xs:text-base"
                       >
-                        <Icon name="Plus" size={16} />
-                        <span>Create Deal</span>
+                        <Icon name="Plus" size={16} className="flex-shrink-0" />
+                        <span className="hidden xs:inline">Create Deal</span>
+                        <span className="xs:hidden">Create</span>
                       </button>
                     )}
                   </>
                 ) : (
                   <button
                     onClick={handleBackToList}
-                    className="btn-secondary flex items-center space-x-2"
+                    className="btn-secondary flex items-center space-x-1.5 xs:space-x-2 min-h-touch text-sm xs:text-base"
                   >
-                    <Icon name="ArrowLeft" size={16} />
-                    <span>Back to List</span>
+                    <Icon name="ArrowLeft" size={16} className="flex-shrink-0" />
+                    <span className="hidden xs:inline">Back to List</span>
+                    <span className="xs:hidden">Back</span>
                   </button>
                 )}
               </div>
@@ -817,24 +823,24 @@ const DealManagement = () => {
               // Deals List View
               <div className="bg-surface rounded-lg border border-border">
                 {/* Search Bar */}
-                <div className="p-6 border-b border-border">
+                <div className="p-3 xs:p-4 sm:p-6 border-b border-border">
                   <div className="relative">
-                    <Icon 
-                      name="Search" 
-                      size={20} 
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary"
+                    <Icon
+                      name="Search"
+                      size={18}
+                      className="absolute left-2.5 xs:left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary flex-shrink-0"
                     />
                     <input
                       type="text"
-                      placeholder="Search deals by name, company, or description..."
+                      placeholder="Search deals..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-text-primary placeholder-text-tertiary"
+                      className="w-full pl-8 xs:pl-10 pr-8 xs:pr-10 py-2 xs:py-2.5 sm:py-3 min-h-touch border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-text-primary placeholder-text-tertiary text-sm xs:text-base"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                        className="absolute right-2 xs:right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary min-h-touch min-w-touch flex items-center justify-center -m-1"
                       >
                         <Icon name="X" size={16} />
                       </button>
@@ -842,17 +848,17 @@ const DealManagement = () => {
                   </div>
                 </div>
 
-                <div className="p-6 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-text-primary">All Deals</h2>
-                    <div className="flex items-center space-x-4">
+                <div className="p-3 xs:p-4 sm:p-6 border-b border-border">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 xs:gap-4">
+                    <h2 className="text-base xs:text-lg font-semibold text-text-primary">All Deals</h2>
+                    <div className="flex flex-wrap items-center gap-2 xs:gap-3 sm:gap-4">
                       {/* Items per page selector */}
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-text-secondary">Show:</span>
+                      <div className="flex items-center space-x-1.5 xs:space-x-2">
+                        <span className="text-xs xs:text-sm text-text-secondary whitespace-nowrap">Show:</span>
                         <select
                           value={itemsPerPage}
                           onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                          className="text-sm border border-border rounded-md px-2 py-1 bg-surface"
+                          className="text-xs xs:text-sm border border-border rounded-md px-1.5 xs:px-2 py-1 min-h-touch bg-surface"
                         >
                           <option value={10}>10</option>
                           <option value={25}>25</option>
@@ -860,45 +866,45 @@ const DealManagement = () => {
                           <option value={100}>100</option>
                         </select>
                       </div>
-                      
+
                       {/* View Toggle */}
-                      <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                      <div className="flex items-center bg-gray-100 rounded-lg p-0.5 xs:p-1">
                         <button
                           onClick={() => setIsGridView(false)}
-                          className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          className={`flex items-center space-x-1 px-2 xs:px-3 py-1.5 min-h-touch rounded-md text-xs xs:text-sm font-medium transition-colors ${
                             !isGridView
                               ? 'bg-white text-primary shadow-sm'
                               : 'text-text-secondary hover:text-text-primary'
                           }`}
                         >
                           <Icon name="List" size={16} />
-                          <span>List</span>
+                          <span className="hidden sm:inline">List</span>
                         </button>
                         <button
                           onClick={() => setIsGridView(true)}
-                          className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          className={`flex items-center space-x-1 px-2 xs:px-3 py-1.5 min-h-touch rounded-md text-xs xs:text-sm font-medium transition-colors ${
                             isGridView
                               ? 'bg-white text-primary shadow-sm'
                               : 'text-text-secondary hover:text-text-primary'
                           }`}
                         >
                           <Icon name="Grid" size={16} />
-                          <span>Grid</span>
+                          <span className="hidden sm:inline">Grid</span>
                         </button>
                       </div>
-                      <div className="text-sm text-text-secondary">
-                        {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''} 
+                      <div className="text-xs xs:text-sm text-text-secondary whitespace-nowrap">
+                        {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''}
                         {(selectedStageFilter !== 'all' || searchQuery) && ` (${allDeals.length} total)`}
                       </div>
                     </div>
                   </div>
                   
                   {/* Stage Filter */}
-                  <div className="mt-4">
-                    <div className="flex flex-wrap gap-2">
+                  <div className="mt-3 xs:mt-4">
+                    <div className="flex flex-wrap gap-1.5 xs:gap-2 -mx-3 px-3 xs:mx-0 xs:px-0 overflow-x-auto scrollbar-hide">
                       <button
                         onClick={() => setSelectedStageFilter('all')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        className={`px-2.5 xs:px-3 py-1.5 min-h-touch text-xs xs:text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                           selectedStageFilter === 'all'
                             ? 'bg-primary text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -912,7 +918,7 @@ const DealManagement = () => {
                           <button
                             key={stage.value}
                             onClick={() => setSelectedStageFilter(stage.value)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                            className={`px-2.5 xs:px-3 py-1.5 min-h-touch text-xs xs:text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                               selectedStageFilter === stage.value
                                 ? 'bg-primary text-white'
                                 : `${stage.color} hover:opacity-80`
@@ -927,33 +933,33 @@ const DealManagement = () => {
                 </div>
                 
                 {isLoading ? (
-                  <div className="p-8 text-center">
+                  <div className="p-6 xs:p-8 text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-text-secondary">Loading deals...</p>
+                    <p className="text-text-secondary text-sm xs:text-base">Loading deals...</p>
                   </div>
                 ) : filteredDeals.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <Icon name="Package" size={48} className="text-text-tertiary mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-text-primary mb-2">
+                  <div className="p-6 xs:p-8 text-center">
+                    <Icon name="Package" size={40} className="xs:w-12 xs:h-12 text-text-tertiary mx-auto mb-4" />
+                    <h3 className="text-base xs:text-lg font-medium text-text-primary mb-2">
                       {selectedStageFilter === 'all' ? 'No deals yet' : `No deals in ${stages.find(s => s.value === selectedStageFilter)?.label} stage`}
                     </h3>
-                    <p className="text-text-secondary mb-4">
-                      {selectedStageFilter === 'all' 
+                    <p className="text-text-secondary mb-4 text-sm xs:text-base">
+                      {selectedStageFilter === 'all'
                         ? 'Create your first deal to get started'
                         : 'Try selecting a different stage or create a new deal'
                       }
                     </p>
-                    {selectedStageFilter === 'all' && (
+                    {selectedStageFilter === 'all' && hasPermission('deals.create') && (
                       <button
                         onClick={handleCreateNewDeal}
-                        className="btn-primary"
+                        className="btn-primary min-h-touch"
                       >
                         Create Deal
                       </button>
                     )}
                   </div>
                 ) : isGridView ? (
-                  <div className="p-6">
+                  <div className="p-3 xs:p-4 sm:p-6">
                     <DealsGridView
                       deals={paginatedDeals}
                       stages={stages}
@@ -971,10 +977,10 @@ const DealManagement = () => {
                         setShowDeleteModal(true);
                       }}
                     />
-                    
+
                     {/* Pagination for Grid View */}
                     {filteredDeals.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-border">
+                      <div className="mt-4 xs:mt-6 pt-4 xs:pt-6 border-t border-border">
                         <Pagination
                           currentPage={currentPage}
                           totalPages={totalPages}
@@ -987,7 +993,7 @@ const DealManagement = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-gray-50">
                           <tr>
@@ -1149,10 +1155,93 @@ const DealManagement = () => {
                         </tbody>
                       </table>
                     </div>
-                    
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden p-3 xs:p-4">
+                      <div className="space-y-3">
+                        {paginatedDeals.map((deal) => (
+                          <div
+                            key={deal.id}
+                            className="bg-surface rounded-lg border border-border p-3 xs:p-4"
+                            onClick={() => handleViewDeal(deal)}
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm xs:text-base font-medium text-text-primary truncate mb-1">
+                                  {deal.name || 'Untitled Deal'}
+                                </h3>
+                                <p className="text-xs xs:text-sm text-text-secondary line-clamp-2 mb-2">
+                                  {deal.description || 'No description'}
+                                </p>
+                                <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                                  stages.find(s => s.value === deal.stage)?.color || 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {stages.find(s => s.value === deal.stage)?.label || deal.stage}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 xs:gap-3 mb-3 text-xs xs:text-sm">
+                              <div>
+                                <span className="text-text-tertiary">Value:</span>
+                                <span className="ml-1 text-text-primary font-medium">{formatCurrency(deal.value || 0)}</span>
+                              </div>
+                              <div>
+                                <span className="text-text-tertiary">Probability:</span>
+                                <span className="ml-1 text-text-primary font-medium">{deal.probability || 0}%</span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="text-text-tertiary">Created:</span>
+                                <span className="ml-1 text-text-primary">{new Date(deal.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-2 pt-3 border-t border-border">
+                              {hasAnyPermission(['deals.edit_all', 'deals.edit_own']) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewDeal(deal);
+                                    setTimeout(() => handleEditDeal(), 100);
+                                  }}
+                                  className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2 min-h-touch text-xs xs:text-sm text-primary bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                                >
+                                  <Icon name="Edit" size={14} />
+                                  <span>Edit</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedDeal(deal);
+                                  handleCloneDeal();
+                                }}
+                                className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2 min-h-touch text-xs xs:text-sm text-text-secondary bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors"
+                              >
+                                <Icon name="Copy" size={14} />
+                                <span>Clone</span>
+                              </button>
+                              {hasAnyPermission(['deals.delete_all', 'deals.delete_own']) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedDeal(deal);
+                                    setShowDeleteModal(true);
+                                  }}
+                                  className="flex items-center justify-center px-3 py-2 min-h-touch min-w-touch text-error bg-error-50 hover:bg-error-100 rounded-lg transition-colors"
+                                >
+                                  <Icon name="Trash2" size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Pagination for List View */}
                     {filteredDeals.length > 0 && (
-                      <div className="px-6 py-4 border-t border-border">
+                      <div className="px-3 xs:px-4 sm:px-6 py-3 xs:py-4 border-t border-border">
                         <Pagination
                           currentPage={currentPage}
                           totalPages={totalPages}
@@ -1167,7 +1256,7 @@ const DealManagement = () => {
               </div>
             ) : (
               // Deal Detail/Form View - Show loading, detail view, or form
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 xs:gap-6 sm:gap-8">
                 {/* Left Panel - Deal Detail or Form */}
                 <div className="xl:col-span-8">
                   {isLoading ? (
@@ -1218,29 +1307,29 @@ const DealManagement = () => {
       </main>
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-error-50 rounded-full flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 xs:p-4">
+          <div className="bg-surface rounded-lg p-4 xs:p-6 max-w-md w-full">
+            <div className="flex items-center space-x-2 xs:space-x-3 mb-3 xs:mb-4">
+              <div className="w-10 h-10 bg-error-50 rounded-full flex items-center justify-center flex-shrink-0">
                 <Icon name="AlertTriangle" size={20} className="text-error" />
               </div>
-              <h3 className="text-lg font-semibold text-text-primary">Delete Deal</h3>
+              <h3 className="text-base xs:text-lg font-semibold text-text-primary">Delete Deal</h3>
             </div>
-            
-            <p className="text-text-secondary mb-6">
+
+            <p className="text-text-secondary mb-4 xs:mb-6 text-sm xs:text-base">
               Are you sure you want to delete "{selectedDeal?.name}"? This action cannot be undone.
             </p>
-            
-            <div className="flex space-x-3">
+
+            <div className="flex flex-col xs:flex-row space-y-2 xs:space-y-0 xs:space-x-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2 border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150"
+                className="flex-1 px-4 py-2 min-h-touch border border-border rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 text-sm xs:text-base"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteDeal}
-                className="flex-1 px-4 py-2 bg-error text-white rounded-lg hover:bg-error-600 transition-colors duration-150"
+                className="flex-1 px-4 py-2 min-h-touch bg-error text-white rounded-lg hover:bg-error-600 transition-colors duration-150 text-sm xs:text-base"
               >
                 Delete Deal
               </button>

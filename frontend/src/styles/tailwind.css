@@ -286,4 +286,48 @@
   .dark .pipeline-scroll {
     scrollbar-color: #60A5FA transparent;
   }
+
+  /* Hide scrollbar utility for mobile */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Mobile responsive text utilities */
+  @media (max-width: 640px) {
+    .text-responsive-sm {
+      font-size: 0.875rem; /* 14px */
+    }
+    .text-responsive-base {
+      font-size: 1rem; /* 16px */
+    }
+    .text-responsive-lg {
+      font-size: 1.125rem; /* 18px */
+    }
+  }
+
+  /* Touch-friendly hover states - disable hover effects on touch devices */
+  @media (hover: none) {
+    .hover\:bg-surface-hover:hover {
+      background-color: inherit;
+    }
+    .hover\:shadow-md:hover {
+      box-shadow: inherit;
+    }
+  }
+
+  /* Improve tap highlighting on mobile */
+  * {
+    -webkit-tap-highlight-color: rgba(30, 64, 175, 0.1);
+  }
+
+  /* Prevent text selection on interactive elements */
+  button, .btn-primary, .btn-secondary {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }

@@ -379,21 +379,24 @@ const CampaignManagement = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-16">
-        <div className="px-6 py-8">
+      <main className="pt-14 xs:pt-16 sm:pt-16">
+        <div className="px-3 xs:px-4 sm:px-6 py-4 xs:py-6 sm:py-8">
           <div className="max-w-7xl mx-auto">
-            <Breadcrumb />
+            <div className="hidden sm:block">
+              <Breadcrumb />
+            </div>
 
             {/* Error Alert */}
             {error && (
-              <div className="bg-error-50 border border-error-200 text-error p-4 rounded-lg flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-2">
-                  <Icon name="AlertCircle" size={20} />
-                  <span>{error}</span>
+              <div className="bg-error-50 border border-error-200 text-error p-3 xs:p-4 rounded-lg flex items-start xs:items-center justify-between mb-4 xs:mb-6 gap-2">
+                <div className="flex items-start xs:items-center space-x-2 flex-1 min-w-0">
+                  <Icon name="AlertCircle" size={20} className="flex-shrink-0 mt-0.5 xs:mt-0" />
+                  <span className="text-sm xs:text-base break-words">{error}</span>
                 </div>
                 <button
                   onClick={() => setError(null)}
-                  className="text-error hover:text-error-600"
+                  className="text-error hover:text-error-600 flex-shrink-0 min-h-touch min-w-touch flex items-center justify-center -m-1"
+                  aria-label="Close error"
                 >
                   <Icon name="X" size={16} />
                 </button>
@@ -401,53 +404,54 @@ const CampaignManagement = () => {
             )}
 
             {/* Page Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-              <div className="mb-4 lg:mb-0">
-                <h1 className="text-3xl font-bold text-text-primary mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 xs:mb-6 sm:mb-8 gap-3 sm:gap-0">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-text-primary mb-1 xs:mb-2 truncate">
                   {isListView ? 'Campaign Management' : (selectedCampaign?.name || 'New Campaign')}
                 </h1>
-                <div className="flex items-center space-x-4 text-sm text-text-secondary">
+                <div className="flex flex-wrap items-center gap-x-2 xs:gap-x-4 gap-y-1 text-xs xs:text-sm text-text-secondary">
                   {isListView ? (
                     <span>Manage all your marketing campaigns</span>
                   ) : (
                     <>
                       {selectedCampaign?.id && (
                         <>
-                          <span>Campaign ID: #{selectedCampaign.id.slice(0, 8)}</span>
-                          <span>•</span>
+                          <span className="hidden xs:inline">Campaign ID: #{selectedCampaign.id.slice(0, 8)}</span>
+                          <span className="xs:inline hidden xs:inline">•</span>
                         </>
                       )}
                       {selectedCampaign?.created_at && (
                         <>
-                          <span>Created: {new Date(selectedCampaign.created_at).toLocaleDateString()}</span>
-                          <span>•</span>
+                          <span className="hidden sm:inline">Created: {new Date(selectedCampaign.created_at).toLocaleDateString()}</span>
+                          <span className="hidden sm:inline">•</span>
                         </>
                       )}
                       {selectedCampaign?.updated_at && (
-                        <span>Last updated: {new Date(selectedCampaign.updated_at).toLocaleDateString()}</span>
+                        <span className="hidden sm:inline">Last updated: {new Date(selectedCampaign.updated_at).toLocaleDateString()}</span>
                       )}
                     </>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 xs:space-x-3 flex-shrink-0 w-full sm:w-auto">
                 {isListView ? (
                   <>
                     {hasPermission('campaigns.create') && (
                       <button
                         onClick={handleCreateNewCampaign}
-                        className="btn-primary flex items-center space-x-2"
+                        className="btn-primary flex items-center space-x-1.5 xs:space-x-2 px-3 xs:px-4 py-2 min-h-touch text-sm xs:text-base flex-1 sm:flex-initial justify-center"
                       >
                         <Icon name="Plus" size={16} />
-                        <span>Create Campaign</span>
+                        <span className="hidden xs:inline">Create Campaign</span>
+                        <span className="xs:hidden">Create</span>
                       </button>
                     )}
                   </>
                 ) : (
                   <button
                     onClick={handleBackToList}
-                    className="btn-secondary flex items-center space-x-2"
+                    className="btn-secondary flex items-center space-x-1.5 xs:space-x-2 px-3 xs:px-4 py-2 min-h-touch text-sm xs:text-base"
                   >
                     <Icon name="ArrowLeft" size={16} />
                     <span>Back to List</span>

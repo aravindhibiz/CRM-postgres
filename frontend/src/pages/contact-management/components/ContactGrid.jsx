@@ -32,15 +32,15 @@ const ContactGrid = ({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 xs:gap-4">
       {contacts?.map(contact => (
-        <div 
+        <div
           key={contact?.id}
-          className="bg-surface rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden"
+          className="bg-surface rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden min-h-touch"
           onClick={() => onContactSelect?.(contact)}
         >
           {/* Card Header */}
-          <div className="relative p-6 pb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-800 dark:to-gray-750">
+          <div className="relative p-4 xs:p-6 pb-3 xs:pb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-800 dark:to-gray-750">
             {/* Delete Button */}
             <button
               onClick={(e) => {
@@ -49,34 +49,35 @@ const ContactGrid = ({
                   onDeleteContact?.(contact?.id);
                 }
               }}
-              className="absolute top-3 right-3 p-1.5 rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-error hover:bg-error-50 dark:hover:bg-error-900/50 transition-all duration-150 opacity-0 group-hover:opacity-100"
+              className="absolute top-2 right-2 xs:top-3 xs:right-3 p-2 min-h-touch min-w-touch flex items-center justify-center rounded-lg bg-surface/80 backdrop-blur-sm text-text-tertiary hover:text-error hover:bg-error-50 dark:hover:bg-error-900/50 transition-all duration-150 opacity-100 xs:opacity-0 group-hover:opacity-100"
               title="Delete contact"
+              aria-label="Delete contact"
             >
               <Icon name="Trash2" size={16} />
             </button>
 
             {/* Avatar */}
-            <div className="flex justify-center mb-3">
+            <div className="flex justify-center mb-2 xs:mb-3">
               <div className="relative">
                 <Image
                   src={contact?.avatar_url || '/assets/images/no_image.png'}
                   alt={`${contact?.first_name || ''} ${contact?.last_name || ''}`}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-surface shadow-md"
+                  className="w-16 h-16 xs:w-20 xs:h-20 rounded-full object-cover border-4 border-surface shadow-md"
                 />
-                <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-surface ${
+                <span className={`absolute bottom-0 right-0 w-3 h-3 xs:w-4 xs:h-4 rounded-full border-2 border-surface ${
                   contact?.status === 'active' ? 'bg-success' : 'bg-text-tertiary'
                 }`}></span>
               </div>
             </div>
 
             {/* Name */}
-            <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-white truncate">
+            <h3 className="text-center text-base xs:text-lg font-semibold text-gray-900 dark:text-white truncate px-2">
               {contact?.full_name || `${contact?.first_name || ''} ${contact?.last_name || ''}`?.trim() || 'Unnamed Contact'}
             </h3>
           </div>
 
           {/* Card Body */}
-          <div className="p-4 space-y-3">
+          <div className="p-3 xs:p-4 space-y-2 xs:space-y-3">
             {/* Company */}
             {contact?.company?.name && (
               <div className="flex items-center space-x-2">

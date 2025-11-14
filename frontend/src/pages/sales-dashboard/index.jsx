@@ -377,16 +377,18 @@ const SalesDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 px-6 pb-8">
+      <main className="pt-14 xs:pt-16 sm:pt-20 px-3 xs:px-4 sm:px-6 pb-6 xs:pb-8">
         <div className="max-w-7xl mx-auto">
-          <Breadcrumb />
-          
+          <div className="hidden sm:block">
+            <Breadcrumb />
+          </div>
+
           {/* Dashboard Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 xs:mb-6 sm:mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-text-primary mb-2">Sales Dashboard</h1>
-              <p className="text-text-secondary">
-                Last updated: {lastUpdated?.toLocaleTimeString()} • Auto-refresh every 5 minutes
+              <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-text-primary mb-1 xs:mb-2">Sales Dashboard</h1>
+              <p className="text-xs xs:text-sm text-text-secondary">
+                <span className="hidden xs:inline">Last updated: {lastUpdated?.toLocaleTimeString()} • </span>Auto-refresh every 5 min
               </p>
             </div>
           </div>
@@ -418,83 +420,83 @@ const SalesDashboard = () => {
           ) : (
             <>
               {/* Key Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="card p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-text-secondary text-sm font-normal">Total Pipeline</p>
-                      <p className="text-2xl font-normal text-text-primary">
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-6 mb-6 xs:mb-8">
+                <div className="card p-4 xs:p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-text-secondary text-xs xs:text-sm font-normal truncate">Total Pipeline</p>
+                      <p className="text-lg xs:text-xl sm:text-2xl font-normal text-text-primary truncate">
                         {formatCurrencyShort(totalPipelineValue)}
                       </p>
                     </div>
-                    <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
-                      <Icon name="TrendingUp" size={24} className="text-primary" />
+                    <div className="w-10 h-10 xs:w-12 xs:h-12 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon name="TrendingUp" size={20} className="xs:w-6 xs:h-6 text-primary" />
                     </div>
                   </div>
                 </div>
-                
-                <div className="card p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-text-secondary text-sm font-normal">Weighted Pipeline</p>
-                      <p className="text-2xl font-normal text-text-primary">
+
+                <div className="card p-4 xs:p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-text-secondary text-xs xs:text-sm font-normal truncate">Weighted Pipeline</p>
+                      <p className="text-lg xs:text-xl sm:text-2xl font-normal text-text-primary truncate">
                         {formatCurrencyShort(weightedPipelineValue)}
                       </p>
                     </div>
-                    <div className="w-12 h-12 bg-success-50 rounded-lg flex items-center justify-center">
-                      <Icon name="Target" size={24} className="text-success" />
+                    <div className="w-10 h-10 xs:w-12 xs:h-12 bg-success-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon name="Target" size={20} className="xs:w-6 xs:h-6 text-success" />
                     </div>
                   </div>
                 </div>
-                
-                <div className="card p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-text-secondary text-sm font-normal">Active Deals</p>
-                      <p className="text-2xl font-normal text-text-primary">{totalActiveDeals}</p>
+
+                <div className="card p-4 xs:p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-text-secondary text-xs xs:text-sm font-normal truncate">Active Deals</p>
+                      <p className="text-lg xs:text-xl sm:text-2xl font-normal text-text-primary">{totalActiveDeals}</p>
                     </div>
-                    <div className="w-12 h-12 bg-secondary-50 rounded-lg flex items-center justify-center">
-                      <Icon name="Briefcase" size={24} className="text-secondary" />
+                    <div className="w-10 h-10 xs:w-12 xs:h-12 bg-secondary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon name="Briefcase" size={20} className="xs:w-6 xs:h-6 text-secondary" />
                     </div>
                   </div>
                 </div>
-                
-                <div className="card p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-text-secondary text-sm font-normal">Quota Achievement</p>
-                      <p className="text-2xl font-normal text-text-primary">{performanceData?.percentage || 0}%</p>
+
+                <div className="card p-4 xs:p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-text-secondary text-xs xs:text-sm font-normal truncate">Quota Achievement</p>
+                      <p className="text-lg xs:text-xl sm:text-2xl font-normal text-text-primary">{performanceData?.percentage || 0}%</p>
                     </div>
-                    <div className="w-12 h-12 bg-accent-50 rounded-lg flex items-center justify-center">
-                      <Icon name="Award" size={24} className="text-accent" />
+                    <div className="w-10 h-10 xs:w-12 xs:h-12 bg-accent-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon name="Award" size={20} className="xs:w-6 xs:h-6 text-accent" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Main Pipeline Section */}
-              <div className="space-y-8">
+              <div className="space-y-6 xs:space-y-8">
                 {/* Interactive Pipeline */}
-                <div className="card p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-normal text-text-primary">Sales Pipeline</h2>
-                    <div className="flex items-center space-x-4">
+                <div className="card p-3 xs:p-4 sm:p-6">
+                  <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mb-3 xs:mb-4 gap-2">
+                    <h2 className="text-base xs:text-lg sm:text-xl font-normal text-text-primary">Sales Pipeline</h2>
+                    <div className="flex items-center space-x-3 xs:space-x-4 w-full xs:w-auto overflow-x-auto">
                       {filtersLoading && (
-                        <div className="flex items-center space-x-2 text-sm text-text-secondary">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                          <span>Applying filters...</span>
+                        <div className="flex items-center space-x-2 text-xs xs:text-sm text-text-secondary whitespace-nowrap">
+                          <div className="animate-spin rounded-full h-3 w-3 xs:h-4 xs:w-4 border-b-2 border-primary"></div>
+                          <span className="hidden xs:inline">Applying filters...</span>
                         </div>
                       )}
-                      <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
+                      <div className="hidden lg:flex items-center space-x-2 text-sm text-text-secondary whitespace-nowrap">
                         <Icon name="RefreshCw" size={16} />
                         <span>Drag deals to update stages</span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="overflow-x-auto pb-2 -mx-6 px-6 pipeline-scroll">
-                      <div className="flex gap-4 min-w-max">
+                    <div className="overflow-x-auto pb-2 -mx-3 px-3 xs:-mx-4 xs:px-4 sm:-mx-6 sm:px-6 pipeline-scroll">
+                      <div className="flex gap-3 xs:gap-4 min-w-max">
                         {Object.values(pipelineData)?.map((stage) => (
                           <div key={stage?.id} className="w-72 flex-shrink-0">
                             <PipelineStage
