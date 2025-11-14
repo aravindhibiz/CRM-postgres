@@ -6,7 +6,6 @@ import ProtectedRoute from "components/ProtectedRoute";
 
 // Page imports
 import Login from "pages/login";
-import Register from "pages/register";
 import ForgotPassword from "pages/forgot-password";
 import ResetPassword from "pages/reset-password";
 import MicrosoftCallback from "pages/auth/MicrosoftCallback";
@@ -48,7 +47,6 @@ const Routes = () => {
         <ScrollToTop />
         <RouterRoutes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Login />} />

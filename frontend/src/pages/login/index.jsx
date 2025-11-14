@@ -260,14 +260,6 @@ const Login = () => {
             </button>
           </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-text-secondary">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-primary hover:text-primary-600">
-                Sign up here
-              </Link>
-            </p>
-          </div>
         </div>
 
         {/* Footer */}

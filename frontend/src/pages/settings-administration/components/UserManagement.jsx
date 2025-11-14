@@ -273,13 +273,13 @@ const UserManagement = () => {
           <h2 className="text-2xl font-bold text-text-primary">User Management</h2>
           <p className="text-text-secondary mt-1">Manage users, roles, and permissions</p>
         </div>
-        {/* <button
+        <button
           onClick={() => setShowInviteModal(true)}
           className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-150 ease-smooth flex items-center space-x-2"
         >
           <Icon name="UserPlus" size={16} />
           <span>Invite User</span>
-        </button> */}
+        </button>
       </div>
       {/* Success/Error Messages */}
       {success && (

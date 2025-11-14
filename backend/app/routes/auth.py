@@ -77,44 +77,45 @@ def get_company_info(db: Session) -> Dict[str, str]:
         }
 
 
-@router.post("/register", response_model=Token)
-async def register(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if user already exists
-    db_user = db.query(UserProfile).filter(
-        UserProfile.email == user.email).first()
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-
-    # Create new user
-    hashed_password = get_password_hash(user.password)
-    db_user = UserProfile(
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        role=user.role,
-        phone=user.phone,
-        hashed_password=hashed_password
-    )
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-
-    # Create access token with session timeout from system configuration
-    session_timeout = get_session_timeout_minutes(db)
-    access_token_expires = timedelta(minutes=session_timeout)
-    access_token = create_access_token(
-        data={"sub": str(db_user.id)}, expires_delta=access_token_expires
-    )
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": UserResponse.model_validate(db_user)
-    }
+# Public registration disabled - users must be invited by an admin
+# @router.post("/register", response_model=Token)
+# async def register(user: UserCreate, db: Session = Depends(get_db)):
+#     # Check if user already exists
+#     db_user = db.query(UserProfile).filter(
+#         UserProfile.email == user.email).first()
+#     if db_user:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Email already registered"
+#         )
+#
+#     # Create new user
+#     hashed_password = get_password_hash(user.password)
+#     db_user = UserProfile(
+#         email=user.email,
+#         first_name=user.first_name,
+#         last_name=user.last_name,
+#         role=user.role,
+#         phone=user.phone,
+#         hashed_password=hashed_password
+#     )
+#
+#     db.add(db_user)
+#     db.commit()
+#     db.refresh(db_user)
+#
+#     # Create access token with session timeout from system configuration
+#     session_timeout = get_session_timeout_minutes(db)
+#     access_token_expires = timedelta(minutes=session_timeout)
+#     access_token = create_access_token(
+#         data={"sub": str(db_user.id)}, expires_delta=access_token_expires
+#     )
+#
+#     return {
+#         "access_token": access_token,
+#         "token_type": "bearer",
+#         "user": UserResponse.model_validate(db_user)
+#     }
 
 
 @router.post("/login", response_model=Token)
