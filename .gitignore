@@ -54,9 +54,16 @@ next-env.d.ts
 
 # Environment files (more comprehensive)
 .env
+.env.local
+.env.production
 .env.production.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.staging
+backend/.env
+frontend/.env
 
 # Testing artifacts
 /test-results/

@@ -16,17 +16,6 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CRM API", version="1.0.0")
 
-# Add request logging middleware for debugging
-
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print(f"DEBUG: Incoming request - {request.method} {request.url}")
-    print(f"DEBUG: Headers: {dict(request.headers)}")
-    response = await call_next(request)
-    print(f"DEBUG: Response status: {response.status_code}")
-    return response
-
 # CORS middleware - MUST be added BEFORE routes
 app.add_middleware(
     CORSMiddleware,

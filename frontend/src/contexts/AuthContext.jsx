@@ -42,15 +42,10 @@ export const AuthProvider = ({ children }) => {
   // Load user permissions from backend
   const loadUserPermissions = async () => {
     try {
-      console.log('🔐 Loading user permissions...')
       const permissionsData = await permissionsService.fetchUserPermissions()
-      console.log('🔐 Permissions data received:', permissionsData)
       if (permissionsData) {
         const perms = permissionsData.permissions || []
-        console.log('🔐 Setting permissions:', perms)
-        console.log('🔐 Number of permissions:', perms.length)
         setPermissions(perms)
-        console.log('🔐 Permissions set successfully!')
       } else {
         console.warn('🔐 No permissions data received')
       }
@@ -149,18 +144,15 @@ export const AuthProvider = ({ children }) => {
       const { microsoftAuthService } = await import('../services/microsoftAuthService')
 
       if (!microsoftAuthService.shouldAttemptSharePointSSO()) {
-        console.log('Silent SSO not requested')
         return { user: null, error: null }
       }
 
-      console.log('🔄 Attempting silent SSO...')
 
       // Note: In a real implementation, you would need to get the Microsoft access token
       // from the SharePoint context. This is a placeholder.
       // You'll need to integrate with @microsoft/sp-http or similar SharePoint libraries
 
       // For now, we'll just return and let the user sign in manually
-      console.log('⚠️ Silent SSO not fully implemented - SharePoint context integration needed')
       return { user: null, error: null }
     } catch (error) {
       console.error('Silent SSO error:', error)
@@ -186,8 +178,6 @@ export const AuthProvider = ({ children }) => {
   // Helper to check if user has a specific permission
   const hasPermission = (permissionName) => {
     const result = permissions.includes(permissionName)
-    // Debug: uncomment to see every permission check
-    // console.log(`hasPermission("${permissionName}"): ${result}, available:`, permissions.length)
     return result
   }
 
@@ -198,7 +188,6 @@ export const AuthProvider = ({ children }) => {
 
   // Force refresh permissions without logging out
   const refreshPermissions = async () => {
-    console.log('🔄 Manually refreshing permissions...')
     await loadUserPermissions()
     return permissions
   }

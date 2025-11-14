@@ -290,7 +290,6 @@ export const CustomFieldsGroup = ({
 }) => {
   // Safety checks
   if (!Array.isArray(fields) || fields.length === 0) {
-    console.log('CustomFieldsGroup: No fields to render', fields);
     return null;
   }
 

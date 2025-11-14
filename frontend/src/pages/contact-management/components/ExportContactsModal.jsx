@@ -26,9 +26,6 @@ const ExportContactsModal = ({ contacts, onClose }) => {
     
     // Simulate export process
     setTimeout(() => {
-      console.log('Exporting contacts:', contacts);
-      console.log('Export format:', exportFormat);
-      console.log('Selected fields:', selectedFields);
       
       // In a real app, this would generate and download the file
       

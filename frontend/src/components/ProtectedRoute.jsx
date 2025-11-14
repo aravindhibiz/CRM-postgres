@@ -8,15 +8,6 @@ import Icon from './AppIcon';
 const ProtectedRoute = ({ children, requiredRoles = [], requiredPermission = null, requiredPermissions = [] }) => {
   const { user, loading, hasPermission, hasAnyPermission, permissions } = useAuth();
 
-  console.log('🛡️ ProtectedRoute check:', {
-    loading,
-    user: user?.email,
-    permissions,
-    requiredPermission,
-    requiredPermissions,
-    requiredRoles
-  });
-
   if (loading) {
     // Optionally render a loading spinner or skeleton here
     return (

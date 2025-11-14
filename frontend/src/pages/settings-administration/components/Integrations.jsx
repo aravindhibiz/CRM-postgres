@@ -79,11 +79,8 @@ const Integrations = () => {
 
   const handleOAuthCallback = async () => {
     try {
-      console.log('🔄 Starting OAuth callback processing...');
-      console.log('🔍 URL params:', window.location.search);
       
       const result = await integrationsService.handleOAuthCallbackFromUrl();
-      console.log('✅ OAuth callback result:', result);
       
       toast.success(`Successfully connected ${result.provider || 'integration'}!`);
       
@@ -129,14 +126,12 @@ const Integrations = () => {
 
   const handleConnect = async (provider) => {
     try {
-      console.log('🔌 Connecting to provider:', provider);
       setConnecting(prev => ({ ...prev, [provider]: true }));
       
       // Outlook Calendar uses popup OAuth flow
       if (provider === 'outlook_calendar') {
         try {
           const result = await integrationsService.connectOutlookCalendar();
-          console.log('✅ Outlook Calendar connected:', result);
           toast.success('Successfully connected Microsoft Outlook Calendar!');
           await loadIntegrations(); // Reload to get updated status
         } catch (error) {
@@ -152,12 +147,9 @@ const Integrations = () => {
       localStorage.setItem('oauth_provider', provider);
       
       // Get OAuth URL and redirect to Google
-      console.log('📞 Calling integrationsService.getOAuthUrl...');
       const response = await integrationsService.getOAuthUrl(provider);
-      console.log('📬 OAuth response:', response);
       
       if (response) {
-        console.log('🚀 Redirecting to:', response);
         window.location.href = response;
       } else {
         console.error('❌ No OAuth URL received');
@@ -243,7 +235,6 @@ const Integrations = () => {
   };
 
   const handleSaveConfig = () => {
-    console.log('Saving configuration for:', selectedIntegration?.name);
     setShowConfigModal(false);
     setSelectedIntegration(null);
   };

@@ -13,9 +13,7 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
     const loadContacts = async () => {
       try {
         setLoading(true);
-        console.log('Loading contacts for activity filters...');
         const contacts = await contactsService.getContactsForActivityFilters();
-        console.log('Loaded contacts with activity counts:', contacts);
         
         const contactOptions = [
           { value: 'all', label: 'All Contacts' },
@@ -26,7 +24,6 @@ const ActivityFilters = ({ selectedFilters, onFiltersChange }) => {
           }))
         ];
         
-        console.log('Contact options:', contactOptions);
         setTeamMembers(contactOptions);
       } catch (error) {
         console.error('Error loading contacts:', error);

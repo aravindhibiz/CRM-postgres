@@ -32,7 +32,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
   // Populate form when deal prop changes
   useEffect(() => {
-    console.log('DealForm useEffect triggered with deal:', deal);
 
     // Load custom fields
     loadCustomFields();
@@ -41,7 +40,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
     loadSystemConfig();
 
     if (deal) {
-      console.log('Populating form with deal data:', deal);
       setFormData({
         name: deal?.name || '',
         description: deal?.description || '',
@@ -58,14 +56,12 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
       // Load custom field values from deal object or API
       if (deal?.custom_fields) {
         // Use custom_fields from deal object (already includes values)
-        console.log('Using custom fields from deal object:', deal.custom_fields);
         const fieldValues = {};
         Object.entries(deal.custom_fields).forEach(([key, fieldData]) => {
           if (fieldData?.value !== null && fieldData?.value !== undefined) {
             fieldValues[key] = fieldData.value;
           }
         });
-        console.log('Custom field values extracted:', fieldValues);
         setCustomFieldValues(fieldValues);
       } else if (deal?.id) {
         // Fallback: Load from API
@@ -82,7 +78,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
     try {
       const configs = await systemConfigService.getConfigurationsGrouped();
       const valueRequired = configs?.sales?.require_deal_value ?? true;
-      console.log('Loaded system config - require value:', valueRequired);
       setIsValueRequired(valueRequired);
     } catch (error) {
       console.error('Error loading system config:', error);
@@ -97,7 +92,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
       const defaultStage = configs?.sales?.default_pipeline_stage || 'lead';
       const valueRequired = configs?.sales?.require_deal_value ?? true;
 
-      console.log('Loaded system config - default stage:', defaultStage, 'require value:', valueRequired);
 
       setIsValueRequired(valueRequired);
       setFormData({
@@ -135,7 +129,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
   const loadCustomFields = async () => {
     setCustomFieldsLoading(true);
     try {
-      console.log('Loading custom fields for deals...');
       const fields = await customFieldsAPI.getAllFields({
         entity_type: 'deal',
         is_active: true
@@ -146,7 +139,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         field.placement === 'form' || field.placement === 'both'
       );
       
-      console.log('Custom fields loaded:', formFields);
       setCustomFields(formFields);
     } catch (err) {
       console.error('Error loading custom fields:', err);
@@ -158,7 +150,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
 
   const loadCustomFieldValues = async (dealId) => {
     try {
-      console.log('Loading custom field values for deal:', dealId);
       const fieldsWithValues = await customFieldsAPI.getEntityCustomFields('deal', dealId);
       
       const fieldValues = {};
@@ -168,7 +159,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         }
       });
       
-      console.log('Custom field values loaded:', fieldValues);
       setCustomFieldValues(fieldValues);
     } catch (err) {
       console.error('Error loading custom field values:', err);
@@ -181,14 +171,12 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
     
     // Prevent double submission with multiple guards
     if (loading || isSubmitting || submissionRef.current) {
-      console.log('Form submission blocked - already processing');
       return;
     }
     
     const submissionId = Date.now();
     submissionRef.current = submissionId;
     
-    console.log('Starting form submission...', submissionId);
     setLoading(true);
     setIsSubmitting(true);
     setErrors({});
@@ -247,10 +235,8 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
       });
 
       // Pass data to parent component for API call
-      console.log('Submitting form data to parent component:', submitData);
       await onSubmit(submitData);
       
-      console.log('Form submission completed successfully');
     } catch (err) {
       console.error('Error in form submission:', err);
       
@@ -270,7 +256,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
         submit: errorMessage
       });
     } finally {
-      console.log('Form submission completed, resetting states...');
       setLoading(false);
       setIsSubmitting(false);
       submissionRef.current = null;
@@ -356,7 +341,6 @@ const DealForm = ({ deal = null, contacts = [], companies = [], stages = [], onS
     { value: 'other', label: 'Other' }
   ];
 
-  console.log('DealForm rendering - deal:', deal?.id, 'contacts:', contacts.length, 'companies:', companies.length, 'stages:', stages.length);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

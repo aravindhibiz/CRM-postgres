@@ -22,7 +22,6 @@ const SystemConfiguration = () => {
       // Get configurations grouped by category from the API
       const configData = await systemConfigService.getConfigurationsGrouped();
       
-      console.log('Loaded configuration data:', configData);
       
       // Convert grouped data to flat array format for transformation
       const flatConfigArray = [];
@@ -36,12 +35,10 @@ const SystemConfiguration = () => {
         });
       });
 
-      console.log('Flat config array:', flatConfigArray);
       
       // Transform flat data to UI format
       const transformedConfig = systemConfigService.transformConfigurationsForUI(flatConfigArray);
 
-      console.log('Transformed configuration for UI:', transformedConfig);
 
       setConfig(transformedConfig);
     } catch (err) {
@@ -161,12 +158,6 @@ const SystemConfiguration = () => {
         }
         return isValid;
       });
-      
-      console.log('Original flat configurations:', flatConfigurations);
-      console.log('Valid configurations after filtering:', validConfigurations);
-      console.log('Request payload that will be sent:', {
-        configurations: validConfigurations
-      });
 
       // Validate the format before sending
       if (!Array.isArray(validConfigurations) || validConfigurations.length === 0) {
@@ -188,11 +179,9 @@ const SystemConfiguration = () => {
         value: config.value
       }));
 
-      console.log('Final configurations to send:', typedConfigurations);
 
       const result = await systemConfigService.updateConfigurationsBulk(typedConfigurations);
       
-      console.log('Save result:', result);
       
       setSuccess('Configuration saved successfully!');
       setHasChanges(false);

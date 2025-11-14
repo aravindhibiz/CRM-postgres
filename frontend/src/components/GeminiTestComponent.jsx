@@ -19,7 +19,6 @@ const GeminiTestComponent = () => {
         email: 'john@example.com'
       };
 
-      console.log('Testing template generation...');
       const generated = await geminiService.generateEmailContent(mockContact, '', '');
       setResult(generated);
     } catch (err) {
@@ -43,7 +42,6 @@ const GeminiTestComponent = () => {
         email: 'jane@example.com'
       };
 
-      console.log('Testing enhancement...');
       const generated = await geminiService.generateEmailContent(
         mockContact, 
         'Quick follow up',

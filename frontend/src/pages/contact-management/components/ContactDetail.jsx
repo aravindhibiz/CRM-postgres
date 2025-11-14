@@ -30,7 +30,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
       
       try {
         setLoadingActivities(true);
-        console.log(`Fetching activities for contact: ${contact.id}`);
         
         // Get all activities and filter for this contact
         const allActivities = await activitiesService.getUserActivities();
@@ -38,7 +37,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
           activity.contact_id === contact.id
         );
         
-        console.log(`Found ${filteredActivities.length} activities for contact ${contact.first_name} ${contact.last_name}`);
         setContactActivities(filteredActivities);
       } catch (error) {
         console.error('Error fetching contact activities:', error);
@@ -58,7 +56,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
       
       try {
         setLoadingDeals(true);
-        console.log(`Fetching deals for contact: ${contact.id}`);
         
         // Get all deals and filter for this contact
         const allDeals = await dealsService.getUserDeals();
@@ -66,7 +63,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
           deal.contact_id === contact.id
         );
         
-        console.log(`Found ${filteredDeals.length} deals for contact ${contact.first_name} ${contact.last_name}`);
         setContactDeals(filteredDeals);
       } catch (error) {
         console.error('Error fetching contact deals:', error);
@@ -474,7 +470,6 @@ const ContactDetail = ({ contact, onEdit, onDelete, onContactUpdate }) => {
           contact={contact}
           onClose={() => setIsEmailModalOpen(false)}
           onSend={(emailData) => {
-            console.log('Email sent:', emailData);
             setIsEmailModalOpen(false);
           }}
         />

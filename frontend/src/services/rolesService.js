@@ -54,7 +54,6 @@ export const rolesService = {
       permissions: permissions
     };
 
-    console.log('Sending to backend:', requestBody);
 
     const { data, error } = await apiClient.put(`/api/v1/roles/by-name/${encodeURIComponent(roleName)}/permissions`, requestBody);
     if (error) throw error;

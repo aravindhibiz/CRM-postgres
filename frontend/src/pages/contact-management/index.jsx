@@ -102,7 +102,6 @@ const ContactManagement = () => {
 
   const handleContactSelect = async (contact) => {
     
-    console.log('handleContactSelect called with:', contact);
     try {
       // Fetch full contact data including custom fields
       if (contact?.id) {
@@ -127,13 +126,11 @@ const ContactManagement = () => {
   };
 
   const handleContactMultiSelect = (contactId) => {
-    console.log('handleContactMultiSelect called with:', contactId);
     try {
       setSelectedContacts(prev => {
         const newSelected = prev?.includes(contactId) 
           ? prev?.filter(id => id !== contactId)
           : [...(prev || []), contactId];
-        console.log('Updated selectedContacts:', newSelected);
         return newSelected;
       });
     } catch (error) {
@@ -184,23 +181,14 @@ const ContactManagement = () => {
     try {
       setError('');
       let result;
-      
-      console.log('handleSaveContact called with:', {
-        isAddingContact,
-        isEditingContact,
-        selectedContactId: selectedContact?.id,
-        contactData
-      });
-      
+
       if (isAddingContact) {
         // Create new contact
-        console.log('Creating new contact...');
         
         let companyId = contactData.company_id;
         
         // Handle company creation if companyName is provided but no company_id
         if (contactData.companyName?.trim() && !companyId) {
-          console.log('Creating new company:', contactData.companyName);
           
           try {
             // First check if company already exists
@@ -210,14 +198,12 @@ const ContactManagement = () => {
             );
             
             if (existingCompany) {
-              console.log('Found existing company:', existingCompany);
               companyId = existingCompany.id;
             } else {
               // Create new company
               const newCompany = await companiesService?.createCompany({
                 name: contactData.companyName?.trim()
               });
-              console.log('Created new company:', newCompany);
               companyId = newCompany.id;
             }
           } catch (companyError) {
@@ -244,13 +230,11 @@ const ContactManagement = () => {
         setSuccess(`Contact "${result?.first_name} ${result?.last_name}" created successfully!`);
       } else if (isEditingContact && selectedContact) {
         // Update existing contact
-        console.log('Updating existing contact:', selectedContact?.id);
         
         let companyId = contactData.company_id;
         
         // Handle company creation if companyName is provided but no company_id
         if (contactData.companyName?.trim() && !companyId) {
-          console.log('Creating new company for update:', contactData.companyName);
           
           try {
             // First check if company already exists
@@ -260,14 +244,12 @@ const ContactManagement = () => {
             );
             
             if (existingCompany) {
-              console.log('Found existing company:', existingCompany);
               companyId = existingCompany.id;
             } else {
               // Create new company
               const newCompany = await companiesService?.createCompany({
                 name: contactData.companyName?.trim()
               });
-              console.log('Created new company:', newCompany);
               companyId = newCompany.id;
             }
           } catch (companyError) {
@@ -290,16 +272,8 @@ const ContactManagement = () => {
           }
         });
         
-        console.log('Cleaned data for update:', cleanedData);
         result = await contactsService?.updateContact(selectedContact?.id, cleanedData);
-        console.log('Update result:', result);
         setSuccess(`Contact "${result?.first_name} ${result?.last_name}" updated successfully!`);
-      } else {
-        console.log('No valid action - missing conditions:', {
-          isAddingContact,
-          isEditingContact,
-          hasSelectedContact: !!selectedContact
-        });
       }
       
       setSelectedContact(result);
@@ -323,7 +297,6 @@ const ContactManagement = () => {
         }
       }
       
-      console.log('Setting error message:', errorMessage);
       setError(errorMessage);
     }
   };
@@ -419,9 +392,7 @@ const ContactManagement = () => {
     try {
       setError('');
       setLoading(true);
-      console.log('Calling import API with contacts:', importedContacts);
       const result = await contactsService?.importContacts(importedContacts);
-      console.log('Import result:', result);
       
       // Check for errors
       if (result?.error_count > 0 && result?.errors?.length > 0) {

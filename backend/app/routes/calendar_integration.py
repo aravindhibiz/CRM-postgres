@@ -211,7 +211,6 @@ async def outlook_calendar_callback(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Calendar callback error: {str(e)}")
         return f"""
         <html>
             <head><title>Connection Failed</title></head>

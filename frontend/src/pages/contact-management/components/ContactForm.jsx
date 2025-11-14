@@ -60,14 +60,12 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
       // Load custom field values from contact object or API
       if (contact?.custom_fields) {
         // Use custom_fields from contact object (already includes values)
-        console.log('Using custom fields from contact object:', contact.custom_fields);
         const fieldValues = {};
         Object.entries(contact.custom_fields).forEach(([key, fieldData]) => {
           if (fieldData?.value !== null && fieldData?.value !== undefined) {
             fieldValues[key] = fieldData.value;
           }
         });
-        console.log('Custom field values extracted:', fieldValues);
         setCustomFieldValues(fieldValues);
       } else if (contact?.id) {
         // Fallback: Load from API
@@ -91,7 +89,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
   const loadCustomFields = async () => {
     setCustomFieldsLoading(true);
     try {
-      console.log('Loading custom fields for contacts...');
       const fields = await customFieldsAPI.getAllFields({
         entity_type: 'contact',
         is_active: true
@@ -102,7 +99,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         field.placement === 'form' || field.placement === 'both'
       );
       
-      console.log('Custom fields loaded:', formFields);
       setCustomFields(formFields);
     } catch (err) {
       console.error('Error loading custom fields:', err);
@@ -114,7 +110,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
 
   const loadCustomFieldValues = async (contactId) => {
     try {
-      console.log('Loading custom field values for contact:', contactId);
       const fieldsWithValues = await customFieldsAPI.getEntityCustomFields('contact', contactId);
       
       const fieldValues = {};
@@ -124,7 +119,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
         }
       });
       
-      console.log('Custom field values loaded:', fieldValues);
       setCustomFieldValues(fieldValues);
     } catch (err) {
       console.error('Error loading custom field values:', err);
@@ -170,7 +164,6 @@ const ContactForm = ({ contact = null, onSubmit, onCancel }) => {
       };
 
       // Pass data to parent component for API call
-      console.log('Submitting contact form data to parent component:', submitData);
       await onSubmit?.(submitData);
     } catch (err) {
       console.error('Error saving contact:', err);

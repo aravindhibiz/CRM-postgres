@@ -229,18 +229,14 @@ const AddActivityModal = ({ isOpen, onClose, onActivityAdded, onActivityUpdated,
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined
       };
 
-      console.log('Form data before submit:', formData);
-      console.log('Submit data to API:', submitData);
 
       if (editingActivity) {
         // Update existing activity
         const updatedActivity = await activitiesService.updateActivity(editingActivity.id, submitData);
-        console.log('Activity updated:', updatedActivity);
         onActivityUpdated && onActivityUpdated(updatedActivity);
       } else {
         // Create new activity
         const newActivity = await activitiesService.createActivity(submitData);
-        console.log('New activity created:', newActivity);
         onActivityAdded(newActivity);
       }
       onClose();

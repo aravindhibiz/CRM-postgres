@@ -10,7 +10,6 @@ const UserManagement = () => {
     const { user: currentUser } = useAuth();
     
     // Debug logging
-    console.log('UserManagement - currentUser:', currentUser);
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

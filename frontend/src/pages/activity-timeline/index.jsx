@@ -41,20 +41,13 @@ const ActivityTimeline = () => {
 
   const loadActivities = useCallback(async () => {
     if (!user) return;
-    console.log("Starting to load activities...");
     try {
       setLoading(true);
       setError('');
       const data = await activitiesService.getUserActivities();
-      console.log("Activities loaded from service:", data);
-      console.log("Number of activities:", data?.length);
-      if (data && data.length > 0) {
-        console.log("First activity sample:", data[0]);
-      }
       setActivities(data);
       setLastRefresh(new Date());
     } catch (err) {
-      console.error("Error loading activities:", err);
       setError("Failed to load activities. Please try again.");
     } finally {
       setLoading(false);
@@ -223,27 +216,11 @@ const ActivityTimeline = () => {
   }, [activities]);
 
   const filteredActivities = useMemo(() => {
-    console.log('Filtering activities with:', {
-      selectedFilters,
-      totalActivities: transformedActivities.length
-    });
-    
     return transformedActivities.filter(activity => {
       const matchesType = selectedFilters.activityType === 'all' || activity.type === selectedFilters.activityType;
       const matchesChannel = selectedFilters.channel === 'all' || activity.channel === selectedFilters.channel;
       const matchesContact = selectedFilters.teamMember === 'all' || activity.contact_id === selectedFilters.teamMember;
-      
-      // Debug contact filtering
-      if (selectedFilters.teamMember !== 'all') {
-        console.log('Activity contact check:', {
-          activityId: activity.id,
-          activitySubject: activity.subject || activity.title,
-          activityContactId: activity.contact_id,
-          selectedContactId: selectedFilters.teamMember,
-          matchesContact: matchesContact
-        });
-      }
-      
+
       const lowerCaseQuery = searchQuery.toLowerCase();
       const matchesSearch = searchQuery === '' || 
         activity.title?.toLowerCase().includes(lowerCaseQuery) ||

@@ -13,10 +13,6 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Debug: Log current permissions when Header renders
-  console.log('📊 Header - Current permissions:', permissions);
-  console.log('📊 Header - User:', user?.email, 'Role:', user?.role);
-
   const navigationItems = [
     { label: 'Dashboard', path: '/sales-dashboard', icon: 'BarChart3', tooltip: 'Pipeline overview and metrics', requiredPermission: 'dashboard.view_stats' },
     { label: 'Campaigns', path: '/campaign-management', icon: 'Megaphone', tooltip: 'Marketing campaign management', requiredPermission: 'campaigns.view_own' },
@@ -36,7 +32,6 @@ const Header = () => {
   const allowedNavItems = navigationItems.filter(item => {
     if (!item.requiredPermission) return true;
     const hasAccess = hasPermission(item.requiredPermission);
-    console.log(`🔍 Nav item "${item.label}": requires "${item.requiredPermission}" - ${hasAccess ? '✅ ALLOWED' : '❌ DENIED'}`);
     return hasAccess;
   });
 
@@ -63,18 +58,14 @@ const Header = () => {
   };
 
   const handleLogout = async () => {
-    console.log('handleLogout called');
     try {
       setIsUserMenuOpen(false);
       setIsMobileMenuOpen(false);
-      
-      console.log('Calling signOut...');
+
       await signOut();
-      console.log('SignOut completed');
       toast.success('Logged out successfully!');
       navigate('/login');
     } catch (error) {
-      console.error('Logout error:', error);
       toast.error('Failed to logout. Please try again.');
     }
   };

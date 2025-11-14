@@ -5,16 +5,12 @@ import { dealsService } from './dealsService';
 export const activitiesService = {
   // Get all activities for the current user
   async getUserActivities(limit = 50) {
-    console.log('Fetching user activities (new architecture)...');
     const { data, error } = await apiClient.get(`/api/v1/activities?limit=${limit}`);
 
     if (error) {
-      console.error('Error fetching activities:', error);
       throw error;
     }
 
-    console.log('Fetched activities data from v2 (with relations):', data);
-    
     // New architecture returns activities with relations already populated
     return data || [];
   },
@@ -78,22 +74,17 @@ export const activitiesService = {
 
   // Get a single activity by ID (includes custom fields)
   async getActivityById(activityId) {
-    console.log('Fetching activity by ID (new architecture):', activityId);
     const { data, error } = await apiClient.get(`/api/v1/activities/${activityId}`);
 
     if (error) {
-      console.error('Error fetching activity:', error);
       throw error;
     }
 
-    console.log('Fetched activity data:', data);
     return data;
   },
 
   // Create a new activity
   async createActivity(activityData) {
-    console.log('Creating activity with data:', activityData);
-    
     const cleanActivityData = {
       type: activityData.type,
       subject: activityData.subject,
@@ -105,23 +96,17 @@ export const activitiesService = {
       custom_fields: activityData.custom_fields || undefined,
     };
 
-    console.log('Sending clean activity data:', cleanActivityData);
-
     const { data, error } = await apiClient.post('/api/v1/activities', cleanActivityData);
 
     if (error) {
-      console.error('Error creating activity:', error);
       throw error;
     }
-    
-    console.log('Created activity response:', data);
+
     return data;
   },
 
   // Update an activity
   async updateActivity(activityId, updates) {
-    console.log('Updating activity with data:', updates);
-
     const cleanActivityData = {
       type: updates.type,
       subject: updates.subject,
@@ -133,16 +118,12 @@ export const activitiesService = {
       custom_fields: updates.custom_fields || undefined,
     };
 
-    console.log('Sending clean update data:', cleanActivityData);
-
     const { data, error } = await apiClient.put(`/api/v1/activities/${activityId}`, cleanActivityData);
 
     if (error) {
-      console.error('Error updating activity:', error);
       throw error;
     }
 
-    console.log('Updated activity response:', data);
     return data;
   },
 
@@ -312,8 +293,6 @@ export const activitiesService = {
 
   // Get activities for calendar view
   async getCalendarActivities(startDate, endDate, includeOutlook = true) {
-    console.log('Fetching calendar activities:', { startDate, endDate, includeOutlook });
-
     const params = new URLSearchParams({
       start_date: startDate,
       end_date: endDate,
@@ -323,18 +302,14 @@ export const activitiesService = {
     const { data, error } = await apiClient.get(`/api/v1/activities/calendar?${params.toString()}`);
 
     if (error) {
-      console.error('Error fetching calendar activities:', error);
       throw error;
     }
 
-    console.log('Fetched calendar activities:', data);
     return data || [];
   },
 
   // Create activity from calendar with optional Outlook sync
   async createCalendarActivity(activityData, syncToOutlook = false, createTeamsMeeting = false) {
-    console.log('Creating calendar activity:', { activityData, syncToOutlook, createTeamsMeeting });
-
     const cleanActivityData = {
       type: activityData.type,
       subject: activityData.subject,
@@ -361,18 +336,14 @@ export const activitiesService = {
     );
 
     if (error) {
-      console.error('Error creating calendar activity:', error);
       throw error;
     }
 
-    console.log('Created calendar activity:', data);
     return data;
   },
 
   // Update activity from calendar with optional Outlook sync
   async updateCalendarActivity(activityId, updates, syncToOutlook = false) {
-    console.log('Updating calendar activity:', { activityId, updates, syncToOutlook });
-
     const cleanActivityData = {
       type: updates.type,
       subject: updates.subject,
@@ -398,18 +369,14 @@ export const activitiesService = {
     );
 
     if (error) {
-      console.error('Error updating calendar activity:', error);
       throw error;
     }
 
-    console.log('Updated calendar activity:', data);
     return data;
   },
 
   // Sync an existing activity to Outlook
   async syncActivityToOutlook(activityId, createTeamsMeeting = false) {
-    console.log('Syncing activity to Outlook:', { activityId, createTeamsMeeting });
-
     const params = new URLSearchParams({
       create_teams_meeting: createTeamsMeeting
     });
@@ -419,11 +386,9 @@ export const activitiesService = {
     );
 
     if (error) {
-      console.error('Error syncing activity to Outlook:', error);
       throw error;
     }
 
-    console.log('Synced activity to Outlook:', data);
     return data;
   }
 };

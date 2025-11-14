@@ -147,7 +147,6 @@ const CompanyForm = ({ company = null, onSubmit, onCancel }) => {
   };
 
   const handleCustomFieldChange = (fieldKey, value) => {
-    console.log('handleCustomFieldChange called:', { fieldKey, value });
     setCustomFieldValues(prev => ({
       ...prev,
       [fieldKey]: value
@@ -156,9 +155,6 @@ const CompanyForm = ({ company = null, onSubmit, onCancel }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    console.log('Validating form with data:', formData);
-    console.log('Custom fields for validation:', customFields);
-    console.log('Custom field values for validation:', customFieldValues);
 
     // Required fields
     if (!formData.name?.trim()) {
@@ -185,29 +181,22 @@ const CompanyForm = ({ company = null, onSubmit, onCancel }) => {
     // Validate required custom fields
     customFields?.forEach(field => {
       const fieldKey = field.field_key || field.id;
-      console.log(`Checking custom field: ${field.name}, required: ${field.is_required}, field_key: ${fieldKey}, value:`, customFieldValues[fieldKey]);
       if (field.is_required && !customFieldValues[fieldKey]) {
         newErrors[`custom_${fieldKey}`] = `${field.name} is required`;
       }
     });
 
-    console.log('Validation result:', newErrors);
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('CompanyForm handleSubmit called');
-    console.log('Form data:', formData);
-    console.log('Custom field values:', customFieldValues);
 
     // Validate form
     const newErrors = validateForm();
-    console.log('Validation errors:', newErrors);
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      console.log('Form validation failed, not submitting');
       return;
     }
 
@@ -219,9 +208,7 @@ const CompanyForm = ({ company = null, onSubmit, onCancel }) => {
         custom_fields: customFieldValues
       };
 
-      console.log('Submitting data:', submitData);
       await onSubmit(submitData);
-      console.log('Form submitted successfully');
     } catch (err) {
       console.error('Error submitting form:', err);
       setErrors({ submit: err?.message || 'Failed to save company' });

@@ -25,8 +25,6 @@ const AddAudienceModal = ({ campaignId, onClose, onSuccess }) => {
         campaignsService.getProspects()
       ]);
 
-      console.log('📊 Loaded contacts:', contactsData?.length, contactsData?.[0]);
-      console.log('📊 Loaded prospects:', prospectsData?.length, prospectsData?.[0]);
 
       setContacts(Array.isArray(contactsData) ? contactsData : []);
       setProspects(Array.isArray(prospectsData) ? prospectsData : []);

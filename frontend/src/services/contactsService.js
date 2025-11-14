@@ -3,7 +3,6 @@ import apiClient from '../lib/apiClient';
 export const contactsService = {
   // Get all contacts for the current user
   async getUserContacts() {
-    console.log('[contactsService] Fetching all user contacts...');
     const { data, error } = await apiClient.get('/api/v1/contacts');
 
     if (error) {
@@ -11,13 +10,11 @@ export const contactsService = {
       throw error;
     }
     
-    console.log(`[contactsService] Fetched ${data?.length || 0} contacts`);
     return data || [];
   },
 
   // Get contacts sorted by activity count for activity filters
   async getContactsForActivityFilters() {
-    console.log('[contactsService] Fetching contacts for activity filters...');
     const { data, error } = await apiClient.get('/api/v1/contacts/activity-filters');
 
     if (error) {
@@ -25,7 +22,6 @@ export const contactsService = {
       throw error;
     }
     
-    console.log(`[contactsService] Fetched ${data?.length || 0} contacts with activity counts`);
     return data || [];
   },
 
@@ -196,14 +192,12 @@ export const contactsService = {
 
   // Import contacts (bulk create)
   async importContacts(contactsData) {
-    console.log('Importing contacts via API:', contactsData);
     const { data, error } = await apiClient.post('/api/v1/contacts/import', contactsData);
 
     if (error) {
       console.error('Import API error:', error);
       throw error;
     }
-    console.log('Import API response:', data);
     
     // Log errors if any
     if (data?.errors && data.errors.length > 0) {

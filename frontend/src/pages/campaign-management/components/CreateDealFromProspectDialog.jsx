@@ -93,7 +93,6 @@ const CreateDealFromProspectDialog = ({ prospect, campaignId, onClose, onSuccess
         if (linkError) {
           // If 404, the prospect isn't in campaign audience - add it first then retry
           if (linkError.status === 404) {
-            console.log('⚠️ Prospect not in campaign audience, adding now...');
             try {
               // Add prospect to campaign audience
               await apiClient.post(`/api/v1/campaigns/${campaignId}/audience`, {
@@ -114,7 +113,6 @@ const CreateDealFromProspectDialog = ({ prospect, campaignId, onClose, onSuccess
                 console.error('❌ Error linking deal after adding to audience:', retryError);
                 toast.warning('Deal created but could not link to campaign.');
               } else {
-                console.log('✅ Successfully linked deal to campaign after adding to audience');
               }
             } catch (audienceError) {
               console.error('❌ Error adding prospect to audience:', audienceError);
@@ -125,7 +123,6 @@ const CreateDealFromProspectDialog = ({ prospect, campaignId, onClose, onSuccess
             toast.warning('Deal created but could not link to campaign.');
           }
         } else {
-          console.log('✅ Successfully linked deal to campaign');
         }
       } catch (linkError) {
         console.error('❌ Error linking deal to campaign:', linkError);

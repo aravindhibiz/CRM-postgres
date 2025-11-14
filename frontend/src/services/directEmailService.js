@@ -6,7 +6,6 @@ const SENDER_EMAIL = import.meta.env.VITE_SENDER_EMAIL || "onboarding@resend.dev
 
 const directEmailService = {
   sendEmail: async (emailData) => {
-    console.log('Attempting to send email directly via Resend API:', emailData);
     
     try {
       // Format the request for Resend API
@@ -36,7 +35,6 @@ const directEmailService = {
         }
       });
       
-      console.log('Email sent directly via Resend API:', response.data);
       return {
         success: true,
         data: response.data,
@@ -134,7 +132,6 @@ const directEmailService = {
   // Track email open
   trackEmailOpen: async (trackingData) => {
     // This would typically log to a database
-    console.log('Email tracking:', trackingData);
     return { tracked: true, ...trackingData };
   },
 
@@ -163,7 +160,6 @@ const directEmailService = {
   // Schedule email
   scheduleEmail: async (scheduledEmail) => {
     // This would typically use a job queue
-    console.log('Email scheduling not implemented, sending immediately');
     return directEmailService.sendEmail(scheduledEmail);
   },
 };

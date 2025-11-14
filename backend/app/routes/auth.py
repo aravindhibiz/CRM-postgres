@@ -269,22 +269,6 @@ async def forgot_password(
 
     # Send password reset email
     try:
-        print(f"\n{'='*60}")
-        print(f"🔐 PASSWORD RESET REQUEST")
-        print(f"User: {user.email} ({user.first_name} {user.last_name})")
-        print(f"Token: {reset_token.token}")
-        print(f"{'='*60}\n")
-
-        # Debug SMTP configuration
-        print("📧 SMTP Configuration:")
-        print(f"  SMTP_HOST: {settings.SMTP_HOST}")
-        print(f"  SMTP_PORT: {settings.SMTP_PORT}")
-        print(f"  SMTP_USER: {settings.SMTP_USER}")
-        print(f"  SMTP_PASS: {'*' * len(settings.SMTP_PASS) if settings.SMTP_PASS else 'NOT SET'}")
-        print(f"  FROM_EMAIL: {settings.FROM_EMAIL}")
-        print(f"  SMTP_SECURE: {settings.SMTP_SECURE}")
-        print()
-
         # Validate SMTP configuration
         if not settings.SMTP_HOST:
             raise ValueError("SMTP_HOST is not configured in environment variables")
@@ -295,11 +279,7 @@ async def forgot_password(
         if not settings.FROM_EMAIL:
             raise ValueError("FROM_EMAIL is not configured in environment variables")
 
-        print("✅ SMTP configuration validated")
-        print()
-
         # Initialize SMTP service
-        print("🔧 Initializing SMTP service...")
         smtp_service = SMTPService(
             smtp_host=settings.SMTP_HOST,
             smtp_port=settings.SMTP_PORT,
@@ -308,14 +288,9 @@ async def forgot_password(
             from_email=settings.FROM_EMAIL,
             smtp_secure=settings.SMTP_SECURE
         )
-        print("✅ SMTP service initialized")
-        print()
 
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         reset_link = f"{frontend_url}/reset-password?token={reset_token.token}"
-
-        print(f"🔗 Reset link: {reset_link}")
-        print()
 
         # Get company info from system configuration
         company_info = get_company_info(db)
@@ -374,35 +349,16 @@ async def forgot_password(
         </html>
         """
 
-        print(f"📨 Attempting to send email to: {user.email}")
-        print(f"📬 From: {company_name} <{settings.FROM_EMAIL}>")
-        print(f"📋 Subject: Reset Your Password - {company_name}")
-        print()
-
         result = smtp_service.send_email(
             to_email=user.email,
             subject=f"Reset Your Password - {company_name}",
             html_content=html_content,
             from_name=company_name
         )
-
-        print(f"📤 Email send result: {result}")
-        print()
-
-        if result.get('success'):
-            print(f"✅ SUCCESS! Password reset email sent to {user.email}")
-        else:
-            print(f"❌ FAILED! Error: {result.get('message')}")
-            print(f"   Status code: {result.get('status_code')}")
     except ValueError as ve:
-        print(f"❌ CONFIGURATION ERROR: {str(ve)}")
-        print("Please check your .env file and ensure all SMTP settings are configured correctly.")
+        pass
     except Exception as e:
-        print(f"❌ UNEXPECTED ERROR: {str(e)}")
-        print(f"   Error type: {type(e).__name__}")
-        import traceback
-        print(f"   Traceback:")
-        traceback.print_exc()
+        pass
         # Don't fail the request if email sending fails
         # User can still use the token if they have it
 
@@ -446,11 +402,11 @@ async def reset_password(
             detail="User not found"
         )
 
-    # Validate password strength (at least 5 characters)
-    if len(request.new_password) < 5:
+    # Validate password strength (at least 8 characters)
+    if len(request.new_password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 5 characters long"
+            detail="Password must be at least 8 characters long"
         )
 
     # Update user's password
@@ -533,10 +489,8 @@ async def reset_password(
             from_name=company_name
         )
 
-        if not result.get('success'):
-            print(f"Failed to send password confirmation email: {result.get('message')}")
     except Exception as e:
-        print(f"Failed to send password confirmation email: {str(e)}")
+        pass
 
     return {
         "message": "Password has been reset successfully. You can now log in with your new password."
@@ -573,7 +527,6 @@ async def microsoft_login():
             "state": state
         }
     except Exception as e:
-        print(f"❌ Microsoft login error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initiate Microsoft login: {str(e)}"
@@ -596,7 +549,6 @@ async def microsoft_callback(
     # Handle error from Microsoft
     if error:
         error_msg = error_description or error
-        print(f"❌ Microsoft OAuth error: {error_msg}")
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         error_encoded = urllib.parse.quote(f"Microsoft login failed: {error_msg}")
         return RedirectResponse(
@@ -605,7 +557,6 @@ async def microsoft_callback(
 
     # Validate required parameters
     if not code or not state:
-        print("❌ Missing code or state in Microsoft callback")
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         return RedirectResponse(
             url=f"{frontend_url}/login?error=Invalid+callback+parameters"
@@ -613,7 +564,6 @@ async def microsoft_callback(
 
     # Validate state (CSRF protection)
     if state not in _oauth_states:
-        print(f"❌ Invalid state token: {state}")
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         return RedirectResponse(
             url=f"{frontend_url}/login?error=Invalid+state+token"
@@ -624,7 +574,6 @@ async def microsoft_callback(
 
     try:
         # Exchange authorization code for access token
-        print(f"🔄 Exchanging authorization code for token...")
         token_response = microsoft_sso_service.acquire_token_by_auth_code(code)
 
         if not token_response:
@@ -634,13 +583,7 @@ async def microsoft_callback(
             )
 
         # Extract user data from token response
-        print(f"📋 Extracting user data from token...")
         email, microsoft_id, first_name, last_name = microsoft_sso_service.extract_user_data(token_response)
-
-        print(f"✅ Microsoft user data:")
-        print(f"   Email: {email}")
-        print(f"   Microsoft ID: {microsoft_id}")
-        print(f"   Name: {first_name} {last_name}")
 
         # Get or create user
         user_service = UserService(db)
@@ -651,14 +594,8 @@ async def microsoft_callback(
             last_name=last_name
         )
 
-        if is_new:
-            print(f"✅ Created new Microsoft SSO user: {email}")
-        else:
-            print(f"✅ Found existing user: {email}")
-
         # Check if user is active
         if not user.is_active:
-            print(f"❌ User account is deactivated: {email}")
             frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
             return RedirectResponse(
                 url=f"{frontend_url}/login?error=Account+deactivated"
@@ -680,20 +617,15 @@ async def microsoft_callback(
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         redirect_url = f"{frontend_url}/auth/microsoft/success?token={access_token}&user={user_json}"
 
-        print(f"✅ Microsoft SSO successful, redirecting to frontend")
         return RedirectResponse(url=redirect_url)
 
     except ValueError as ve:
-        print(f"❌ Validation error: {str(ve)}")
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         error_encoded = urllib.parse.quote(str(ve))
         return RedirectResponse(
             url=f"{frontend_url}/login?error={error_encoded}"
         )
     except Exception as e:
-        print(f"❌ Microsoft callback error: {str(e)}")
-        import traceback
-        traceback.print_exc()
         frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
         return RedirectResponse(
             url=f"{frontend_url}/login?error=Authentication+failed"
@@ -711,7 +643,6 @@ async def microsoft_silent_login(
     """
     try:
         # Validate Microsoft token and get user info
-        print(f"🔍 Validating Microsoft token for silent SSO...")
         user_info = microsoft_sso_service.validate_token(sso_data.access_token)
 
         if not user_info:
@@ -757,8 +688,6 @@ async def microsoft_silent_login(
             expires_delta=access_token_expires
         )
 
-        print(f"✅ Silent SSO successful for: {email}")
-
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -768,9 +697,6 @@ async def microsoft_silent_login(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Silent SSO error: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Silent SSO failed: {str(e)}"

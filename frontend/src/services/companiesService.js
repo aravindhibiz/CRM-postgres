@@ -3,10 +3,8 @@ import apiClient from '../lib/apiClient';
 export const companiesService = {
   // Get all companies (public read access)
   async getAllCompanies() {
-    console.log('DEBUG: companiesService.getAllCompanies() called');
     try {
       const { data, error } = await apiClient.get('/api/v1/companies');
-      console.log('DEBUG: getAllCompanies response - data:', data, 'error:', error);
 
       if (error) throw error;
       return data || [];
@@ -106,13 +104,10 @@ export const companiesService = {
 
   // Get company statistics
   async getCompanyStats() {
-    console.log('DEBUG: companiesService.getCompanyStats() called');
     try {
       const { data, error } = await apiClient.get('/api/v1/companies/statistics');
-      console.log('DEBUG: getCompanyStats response - data:', data, 'error:', error);
 
       if (error) {
-        console.log('DEBUG: getCompanyStats API failed, using fallback');
         // Fallback: calculate stats from all companies
         const companies = await this.getAllCompanies();
 
@@ -140,11 +135,9 @@ export const companiesService = {
           stats.sizes[size] = (stats.sizes[size] || 0) + 1;
         });
 
-        console.log('DEBUG: getCompanyStats fallback result:', stats);
         return stats;
       }
 
-      console.log('DEBUG: getCompanyStats success result:', data);
       return data;
     } catch (error) {
       console.error('DEBUG: getCompanyStats error:', error);

@@ -141,7 +141,6 @@ const ImportContactsModal = ({ onImport, onClose }) => {
           return contact;
         });
 
-      console.log('Importing contacts:', importedContacts);
 
       if (importedContacts.length === 0) {
         setParseError('No valid contacts found. Please ensure firstName and lastName are provided for all contacts.');

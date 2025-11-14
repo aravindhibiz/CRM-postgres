@@ -61,7 +61,7 @@ const ActivityCalendar = ({ filters, currentUser }) => {
 
       setEvents(calendarEvents);
     } catch (error) {
-      console.error('Failed to fetch calendar activities:', error);
+      // Error handling
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,6 @@ const ActivityCalendar = ({ filters, currentUser }) => {
   // Handle clicking on empty calendar slot to create new activity
   const handleSelectSlot = (slotInfo) => {
     // TODO: Open create activity modal with pre-filled dates
-    console.log('Create new activity:', slotInfo);
   };
 
   // Custom event styling based on type and source

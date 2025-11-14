@@ -248,17 +248,6 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
     e?.preventDefault();
     setIsSending(true);
     try {
-      console.log('Submitting email with data:', {
-        to: emailData?.to,
-        subject: emailData?.subject,
-        body: emailData?.body,
-        cc: emailData?.cc ? emailData.cc.split(',').map(email => email.trim()) : undefined,
-        bcc: emailData?.bcc ? emailData.bcc.split(',').map(email => email.trim()) : undefined,
-        template_id: selectedTemplate || undefined,
-        contactId: contact?.id,
-        attachments: attachments.length
-      });
-      
       // Prepare form data if there are attachments
       let emailPayload;
       
@@ -316,11 +305,9 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
 
       const response = await emailTemplateService.sendEmail(emailPayload);
       
-      console.log('Email response:', response);
       
       // Show success notification with sender email
       if (response?.success && response?.sender_email) {
-        console.log(`Email sent from ${response.sender_email} to ${emailData.to}`);
       }
       
       onSend({
@@ -352,10 +339,6 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
     try {
       setIsGenerating(true);
       
-      console.log('🚀 Starting email generation...');
-      console.log('Contact:', contact);
-      console.log('Current subject:', emailData.subject);
-      console.log('Current body:', emailData.body);
       
       // Pass current form values and contact info to the service
       const generated = await geminiService.generateEmailContent(
@@ -364,7 +347,6 @@ const ComposeEmailModal = ({ contact, onClose, onSend }) => {
         emailData.body
       );
       
-      console.log('✅ Email generated successfully:', generated);
       setGeneratedContent(generated);
       setShowPreview(true);
     } catch (error) {

@@ -10,14 +10,12 @@ export const permissionsService = {
   // Fetch current user's permissions from backend
   async fetchUserPermissions() {
     try {
-      console.log('🔄 Fetching fresh permissions from backend...');
       const { data, error } = await apiClient.get('/api/v1/auth/me/permissions');
       if (error) {
         console.error('❌ Error fetching permissions:', error);
         return null;
       }
 
-      console.log('✅ Fresh permissions received:', data.permissions);
 
       // Cache the permissions in memory only (no localStorage)
       this._cachedPermissions = data.permissions || [];
@@ -40,7 +38,6 @@ export const permissionsService = {
 
   // Clear cached permissions (call on logout)
   clearCache() {
-    console.log('🧹 Clearing permission cache');
     this._cachedPermissions = null;
     this._permissionsByCategory = null;
     this._userRole = null;

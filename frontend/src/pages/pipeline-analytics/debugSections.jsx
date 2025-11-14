@@ -20,7 +20,6 @@ class SectionErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.log(`Error in ${this.props.section}:`, error, errorInfo);
   }
 
   render() {
@@ -38,7 +37,6 @@ class SectionErrorBoundary extends React.Component {
 }
 
 const PipelineAnalyticsDebugSections = () => {
-  console.log('🔍 Starting PipelineAnalytics component...');
   
   // Basic state
   const [selectedDateRange, setSelectedDateRange] = useState('all');
@@ -64,18 +62,15 @@ const PipelineAnalyticsDebugSections = () => {
   const pipelineChartRef = useRef(null);
   const performanceChartRef = useRef(null);
 
-  console.log('🔍 State initialized');
 
   // Configuration loading
   useEffect(() => {
-    console.log('🔍 Loading configuration...');
     const loadConfig = async () => {
       try {
         await configService.loadConfiguration();
         const options = await dealsService.getFilterOptions();
         setFilterOptions(options);
         setConfigLoaded(true);
-        console.log('✅ Configuration loaded');
       } catch (error) {
         console.error('❌ Config error:', error);
         setError(`Config error: ${error.message}`);
@@ -89,7 +84,6 @@ const PipelineAnalyticsDebugSections = () => {
   useEffect(() => {
     if (!configLoaded) return;
     
-    console.log('🔍 Loading data...');
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -138,7 +132,6 @@ const PipelineAnalyticsDebugSections = () => {
         ]);
 
         setLoading(false);
-        console.log('✅ Data loaded successfully');
         
       } catch (err) {
         console.error('❌ Data error:', err);
@@ -173,7 +166,6 @@ const PipelineAnalyticsDebugSections = () => {
     performance: performanceChartRef
   };
 
-  console.log('🔍 About to render component');
 
   if (loading) {
     return (
@@ -292,10 +284,10 @@ const PipelineAnalyticsDebugSections = () => {
           </SectionErrorBoundary>
 
           <SectionErrorBoundary section="Export Menu">
-            <ExportMenu 
+            <ExportMenu
               isOpen={isExportMenuOpen}
               onClose={() => setIsExportMenuOpen(false)}
-              onExport={(format) => console.log('Export:', format)}
+              onExport={(format) => { /* Export handler */ }}
               analyticsData={exportAnalyticsData}
               filters={{
                 dateRange: selectedDateRange,

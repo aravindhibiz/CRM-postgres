@@ -8,7 +8,6 @@ export const integrationsService = {
       if (error) throw error;
       return data || [];
     } catch (err) {
-      console.error('Error fetching integrations:', err);
       throw err;
     }
   },
@@ -20,7 +19,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error fetching integration:', err);
       throw err;
     }
   },
@@ -32,7 +30,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error creating integration:', err);
       throw err;
     }
   },
@@ -44,7 +41,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error updating integration:', err);
       throw err;
     }
   },
@@ -56,7 +52,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error deleting integration:', err);
       throw err;
     }
   },
@@ -64,25 +59,15 @@ export const integrationsService = {
   // Get OAuth URL for a provider
   async getOAuthUrl(provider) {
     try {
-      console.log('🔗 Getting OAuth URL for provider:', provider);
       const response = await apiClient.post(`/api/v1/integrations/oauth/url?provider=${provider}`);
-      console.log('📡 OAuth URL Response:', response);
-      
+
       const { data, error } = response;
       if (error) {
-        console.error('❌ OAuth URL Error:', error);
         throw error;
       }
-      
-      console.log('✅ OAuth URL Success:', data);
+
       return data.auth_url;
     } catch (err) {
-      console.error('💥 Error getting OAuth URL:', err);
-      console.error('💥 Error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
-      });
       throw err;
     }
   },
@@ -98,7 +83,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error handling OAuth callback:', err);
       throw err;
     }
   },
@@ -110,7 +94,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error testing integration:', err);
       throw err;
     }
   },
@@ -124,7 +107,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error syncing integration:', err);
       throw err;
     }
   },
@@ -136,7 +118,6 @@ export const integrationsService = {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error disconnecting integration:', err);
       throw err;
     }
   },
@@ -150,7 +131,6 @@ export const integrationsService = {
       if (error) throw error;
       return data || [];
     } catch (err) {
-      console.error('Error fetching integration logs:', err);
       throw err;
     }
   },
@@ -166,53 +146,44 @@ export const integrationsService = {
       // Redirect to OAuth URL
       window.location.href = authUrl;
     } catch (err) {
-      console.error('Error initiating OAuth flow:', err);
       throw err;
     }
   },
 
   // Helper method to handle OAuth callback from URL
   async handleOAuthCallbackFromUrl() {
-    console.log('🔄 Processing OAuth callback from URL...');
-    
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const error = urlParams.get('error');
-    
-    console.log('🔍 URL Parameters:', { code: code?.substring(0, 20) + '...', state, error });
-    
+
     if (error) {
       throw new Error(`OAuth error: ${error}`);
     }
-    
+
     if (!code) {
       throw new Error('No authorization code received');
     }
-    
+
     // Get provider from localStorage or state
     let provider = localStorage.getItem('oauth_provider');
     if (state && state.includes(':')) {
       const [userId, stateProvider] = state.split(':');
       provider = stateProvider;
-      console.log('🔍 Provider from state:', provider);
     }
-    
+
     if (!provider) {
       throw new Error('No provider information available');
     }
-    
+
     try {
-      console.log('📡 Calling backend OAuth callback...');
       const result = await this.handleOAuthCallback(provider, code, state);
-      console.log('✅ Backend OAuth callback result:', result);
-      
+
       // Clear stored provider
       localStorage.removeItem('oauth_provider');
-      
+
       return result;
     } catch (err) {
-      console.error('💥 Backend OAuth callback error:', err);
       localStorage.removeItem('oauth_provider');
       throw err;
     }
@@ -286,18 +257,14 @@ export const integrationsService = {
   // Get Outlook Calendar OAuth URL
   async getOutlookCalendarAuthUrl() {
     try {
-      console.log('Getting Outlook Calendar OAuth URL...');
       const { data, error } = await apiClient.get('/api/v1/calendar-integration/outlook-calendar/connect');
 
       if (error) {
-        console.error('Error getting Outlook auth URL:', error);
         throw error;
       }
 
-      console.log('Outlook Calendar auth URL:', data);
       return data;
     } catch (err) {
-      console.error('Error in getOutlookCalendarAuthUrl:', err);
       throw err;
     }
   },
@@ -308,13 +275,11 @@ export const integrationsService = {
       const { data, error } = await apiClient.get('/api/v1/calendar-integration/outlook-calendar/status');
 
       if (error) {
-        console.error('Error getting Outlook calendar status:', error);
         throw error;
       }
 
       return data;
     } catch (err) {
-      console.error('Error in getOutlookCalendarStatus:', err);
       throw err;
     }
   },
@@ -322,8 +287,6 @@ export const integrationsService = {
   // Manually trigger Outlook Calendar sync
   async syncOutlookCalendar(startDate = null, endDate = null) {
     try {
-      console.log('Triggering Outlook Calendar sync...');
-
       const params = {};
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
@@ -333,14 +296,11 @@ export const integrationsService = {
       });
 
       if (error) {
-        console.error('Error syncing Outlook calendar:', error);
         throw error;
       }
 
-      console.log('Outlook Calendar sync result:', data);
       return data;
     } catch (err) {
-      console.error('Error in syncOutlookCalendar:', err);
       throw err;
     }
   },
@@ -348,21 +308,16 @@ export const integrationsService = {
   // Disconnect Outlook Calendar integration
   async disconnectOutlookCalendar(integrationId) {
     try {
-      console.log('Disconnecting Outlook Calendar integration:', integrationId);
-
       const { data, error } = await apiClient.delete(
         `/api/v1/calendar-integration/outlook-calendar/${integrationId}`
       );
 
       if (error) {
-        console.error('Error disconnecting Outlook calendar:', error);
         throw error;
       }
 
-      console.log('Outlook Calendar disconnected:', data);
       return data;
     } catch (err) {
-      console.error('Error in disconnectOutlookCalendar:', err);
       throw err;
     }
   },
@@ -370,8 +325,6 @@ export const integrationsService = {
   // Initiate Outlook Calendar OAuth in popup
   async connectOutlookCalendar() {
     try {
-      console.log('Initiating Outlook Calendar connection...');
-
       const { auth_url, state } = await this.getOutlookCalendarAuthUrl();
 
       // Open OAuth flow in popup window
@@ -399,10 +352,8 @@ export const integrationsService = {
             clearTimeout(timeoutId);
 
             if (event.data.success) {
-              console.log('✅ Outlook Calendar connected via postMessage');
               resolve({ success: true });
             } else {
-              console.error('❌ Connection failed:', event.data.error);
               reject(new Error(event.data.error || 'Connection failed'));
             }
           }
@@ -419,8 +370,6 @@ export const integrationsService = {
 
             // If we didn't receive a postMessage, check integration status
             if (!messageReceived) {
-              console.log('Popup closed without postMessage, checking integration status...');
-
               try {
                 // Wait a bit for backend to process
                 await new Promise(resolve => setTimeout(resolve, 1500));
@@ -429,14 +378,11 @@ export const integrationsService = {
                 const status = await this.getOutlookCalendarStatus();
 
                 if (status && status.connected) {
-                  console.log('✅ Integration verified as connected');
                   resolve({ success: true });
                 } else {
-                  console.log('❌ Integration not connected');
                   reject(new Error('User closed the popup or authentication failed'));
                 }
               } catch (err) {
-                console.error('❌ Error checking status:', err);
                 reject(new Error('Connection verification failed'));
               }
             }
@@ -454,7 +400,6 @@ export const integrationsService = {
         }, 300000);
       });
     } catch (err) {
-      console.error('Error connecting Outlook Calendar:', err);
       throw err;
     }
   }

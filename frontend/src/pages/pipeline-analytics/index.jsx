@@ -101,7 +101,6 @@ const PipelineAnalytics = () => {
         
         setConfigLoaded(true);
       } catch (error) {
-        console.error('Failed to load configuration:', error);
         setConfigLoaded(true); // Continue with fallback
       }
     };
@@ -280,7 +279,6 @@ const PipelineAnalytics = () => {
                   conversionRate: repPerf.conversionRate || 0
                 };
               } catch (error) {
-                console.error(`Error fetching performance for ${rep.label}:`, error);
                 return {
                   name: rep.label,
                   revenue: 0,
@@ -329,7 +327,6 @@ const PipelineAnalytics = () => {
         }
 
       } catch (err) {
-        console.error("Failed to fetch analytics data:", err);
         setError("Failed to load analytics data. Please try again.");
       } finally {
         setLoading(false);
@@ -343,7 +340,6 @@ const PipelineAnalytics = () => {
   useEffect(() => {
     if (refreshInterval) {
       const interval = setInterval(() => {
-        console.log('Auto-refreshing analytics data...');
         // Re-trigger data fetch
       }, refreshInterval * 60 * 1000); // Convert minutes to milliseconds
 

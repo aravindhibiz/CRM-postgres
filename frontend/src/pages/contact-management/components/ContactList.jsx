@@ -39,7 +39,6 @@ const ContactList = ({
               ? 'bg-primary-50' :'hover:bg-surface-hover'
           }`}
           onClick={() => {
-            console.log('Contact clicked:', contact);
             onContactSelect?.(contact);
           }}
         >
@@ -49,7 +48,6 @@ const ContactList = ({
                 type="checkbox"
                 checked={selectedContacts?.includes(contact?.id) || false}
                 onChange={(e) => {
-                  console.log('Checkbox clicked for contact:', contact?.id, 'checked:', e?.target?.checked);
                   e?.stopPropagation();
                   onContactMultiSelect?.(contact?.id);
                 }}

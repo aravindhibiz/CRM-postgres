@@ -54,9 +54,6 @@ const MicrosoftCallback = () => {
         // Parse user data
         const user = JSON.parse(decodeURIComponent(userJson));
 
-        console.log('✅ Microsoft callback successful');
-        console.log('   Token received:', token ? 'Yes' : 'No');
-        console.log('   User:', user.email);
 
         // Store token and user in localStorage
         apiClient.setToken(token);
@@ -69,7 +66,6 @@ const MicrosoftCallback = () => {
         setStatus('success');
 
         // Redirect to dashboard
-        console.log('🚀 Redirecting to dashboard...');
         navigate('/sales-dashboard', { replace: true });
 
       } catch (error) {

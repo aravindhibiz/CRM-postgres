@@ -57,16 +57,11 @@ export const systemConfigService = {
 
   // Update configurations in bulk
   async updateConfigurationsBulk(configurations) {
-    console.log('✅ About to send bulk update request');
-    console.log('✅ Raw configurations:', configurations);
-    console.log('✅ Configurations count:', configurations.length);
-    console.log('✅ Sample configuration:', configurations[0]);
     
     const requestPayload = {
       configurations: configurations
     };
     
-    console.log('✅ Request payload:', JSON.stringify(requestPayload, null, 2));
     
     const { data, error } = await apiClient.put('/api/v1/system-config/bulk', requestPayload);
     if (error) throw error;

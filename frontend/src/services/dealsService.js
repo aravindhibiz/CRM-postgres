@@ -87,7 +87,6 @@ export const dealsService = {
   // Create a new deal
   async createDeal(dealData) {
     try {
-      console.log('dealsService.createDeal called with:', dealData);
       const cleanDealData = {
         name: dealData.name,
         value: dealData.value || null,
@@ -101,14 +100,12 @@ export const dealsService = {
         contact_id: dealData.contact_id || null,
       };
 
-      console.log('Sending to API:', cleanDealData);
       const { data, error } = await apiClient.post('/api/v1/deals', cleanDealData);
 
       if (error) {
         console.error('API returned error:', error);
         throw error;
       }
-      console.log('API returned data:', data);
       return data;
     } catch (err) {
       console.error('Error creating deal:', err);
@@ -119,7 +116,6 @@ export const dealsService = {
   // Update a deal
   async updateDeal(dealId, updates) {
     try {
-      console.log('Updating deal:', dealId, 'with data:', updates);
       const { data, error } = await apiClient.put(`/api/v1/deals/${dealId}`, updates);
 
       if (error) {
@@ -127,7 +123,6 @@ export const dealsService = {
         console.error('Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
-      console.log('Deal updated successfully:', data);
       return data;
     } catch (err) {
       console.error('Error updating deal:', err);

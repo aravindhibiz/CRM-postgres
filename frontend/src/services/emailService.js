@@ -2,14 +2,12 @@ import apiClient from '../lib/apiClient';
 
 const emailService = {
   sendEmail: async (emailData) => {
-    console.log('Attempting to send email with data:', emailData);
 
     try {
       const { data, error } = await apiClient.post('/emails/send', emailData);
 
       if (error) throw error;
 
-      console.log('Email sent successfully:', data);
       return data;
     } catch (error) {
       console.error('Error sending email:', error);

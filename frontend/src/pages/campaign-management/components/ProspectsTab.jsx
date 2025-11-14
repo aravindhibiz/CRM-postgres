@@ -91,7 +91,6 @@ const ProspectsTab = ({ campaignId }) => {
           contact_ids: [],
           prospect_ids: [newProspect.id]
         });
-        console.log('✅ Prospect added to campaign audience');
       } catch (audienceError) {
         console.error('⚠️ Failed to add prospect to campaign audience:', audienceError);
         // Continue anyway - prospect was created
@@ -113,7 +112,6 @@ const ProspectsTab = ({ campaignId }) => {
   };
 
   const handleDealCreated = async (deal) => {
-    console.log('Deal created:', deal);
     await loadProspects(); // Reload to update any prospect data
   };
 

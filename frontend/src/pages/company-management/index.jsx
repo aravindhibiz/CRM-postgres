@@ -43,22 +43,17 @@ const CompanyManagement = () => {
   // Load companies data
   const loadCompanies = async () => {
     try {
-      console.log('DEBUG: loadCompanies() called');
       setLoading(true);
 
       let companiesData = [];
       if (searchQuery) {
-        console.log('DEBUG: Loading companies with search:', searchQuery);
         companiesData = await companiesService.searchCompanies(searchQuery);
       } else if (Object.values(filters).some(f => f && (Array.isArray(f) ? f.length > 0 : true))) {
-        console.log('DEBUG: Loading companies with filters:', filters);
         companiesData = await companiesService.filterCompanies(filters);
       } else {
-        console.log('DEBUG: Loading all companies');
         companiesData = await companiesService.getAllCompanies();
       }
 
-      console.log('DEBUG: Companies loaded:', companiesData);
       setCompanies(companiesData || []);
 
       // If URL has companyId, load that company
@@ -80,9 +75,7 @@ const CompanyManagement = () => {
   // Load statistics
   const loadStats = async () => {
     try {
-      console.log('DEBUG: loadStats() called');
       const statsData = await companiesService.getCompanyStats();
-      console.log('DEBUG: Stats loaded:', statsData);
       setStats(statsData);
     } catch (err) {
       console.error('Error loading company statistics:', err);
@@ -90,13 +83,10 @@ const CompanyManagement = () => {
   };
 
   useEffect(() => {
-    console.log('DEBUG: useEffect triggered - user:', user, 'searchQuery:', searchQuery, 'filters:', filters, 'companyId:', companyId);
     if (user) {
-      console.log('DEBUG: User exists, loading companies and stats');
       loadCompanies();
       loadStats();
     } else {
-      console.log('DEBUG: No user, skipping load');
     }
   }, [user, searchQuery, filters, companyId]);
 
@@ -158,21 +148,15 @@ const CompanyManagement = () => {
   };
 
   const handleSaveCompany = async (companyData) => {
-    console.log('handleSaveCompany called with:', companyData);
-    console.log('isEditingCompany:', isEditingCompany, 'selectedCompany:', selectedCompany);
     
     try {
       if (isEditingCompany && selectedCompany?.id) {
-        console.log('Updating company with ID:', selectedCompany.id);
         const updated = await companiesService.updateCompany(selectedCompany.id, companyData);
-        console.log('Company updated successfully:', updated);
         toast.success('Company updated successfully!');
         setSelectedCompany(updated);
         setIsEditingCompany(false);
       } else {
-        console.log('Creating new company');
         const created = await companiesService.createCompany(companyData);
-        console.log('Company created successfully:', created);
         toast.success('Company created successfully!');
         setSelectedCompany(created);
         setIsAddingCompany(false);

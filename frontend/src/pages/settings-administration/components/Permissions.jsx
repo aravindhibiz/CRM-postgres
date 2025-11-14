@@ -187,8 +187,6 @@ const Permissions = () => {
       setError('');
       setSuccess('');
 
-      console.log('Saving permission changes for:', selectedRole);
-      console.log('Current permissions:', rolePermissions[selectedRole]);
 
       const permissions = rolePermissions[selectedRole] || {};
 
@@ -218,7 +216,6 @@ const Permissions = () => {
       setError('');
       setSuccess('');
 
-      console.log('Restoring default permissions for:', selectedRole);
 
       // Call the backend API to restore defaults
       const result = await rolesService.restoreDefaultPermissions(selectedRole);

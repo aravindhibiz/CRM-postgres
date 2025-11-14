@@ -27,7 +27,6 @@ export const campaignsService = {
       const queryString = params.toString();
       const endpoint = queryString ? `/api/v1/campaigns?${queryString}` : '/api/v1/campaigns';
 
-      console.log('📡 Fetching campaigns from:', endpoint);
       const { data, error } = await apiClient.get(endpoint);
 
       if (error) {
@@ -35,11 +34,9 @@ export const campaignsService = {
         throw error;
       }
 
-      console.log('✅ getCampaigns raw response:', data);
 
       // Handle paginated response format: { campaigns: [...], total: N, skip: 0, limit: 100 }
       if (data && typeof data === 'object' && Array.isArray(data.campaigns)) {
-        console.log('✅ Returning campaigns array, length:', data.campaigns.length);
         return data.campaigns;
       }
 
@@ -73,7 +70,6 @@ export const campaignsService = {
   // Create a new campaign
   async createCampaign(campaignData) {
     try {
-      console.log('campaignsService.createCampaign called with:', campaignData);
 
       const cleanCampaignData = {
         name: campaignData.name,
@@ -88,14 +84,12 @@ export const campaignsService = {
         owner_id: campaignData.owner_id || null,
       };
 
-      console.log('Sending to API:', cleanCampaignData);
       const { data, error } = await apiClient.post('/api/v1/campaigns', cleanCampaignData);
 
       if (error) {
         console.error('API returned error:', error);
         throw error;
       }
-      console.log('API returned data:', data);
       return data;
     } catch (err) {
       console.error('Error creating campaign:', err);
@@ -106,14 +100,12 @@ export const campaignsService = {
   // Update a campaign
   async updateCampaign(campaignId, updates) {
     try {
-      console.log('Updating campaign:', campaignId, 'with data:', updates);
       const { data, error } = await apiClient.put(`/api/v1/campaigns/${campaignId}`, updates);
 
       if (error) {
         console.error('API returned error:', error);
         throw error;
       }
-      console.log('Campaign updated successfully:', data);
       return data;
     } catch (err) {
       console.error('Error updating campaign:', err);
@@ -412,7 +404,6 @@ export const campaignsService = {
         ? `/api/v1/campaigns/${campaignId}/prospects?${queryString}`
         : `/api/v1/campaigns/${campaignId}/prospects`;
 
-      console.log('📡 Fetching campaign prospects from:', endpoint);
       const { data, error } = await apiClient.get(endpoint);
 
       if (error) {
@@ -420,11 +411,9 @@ export const campaignsService = {
         throw error;
       }
 
-      console.log('✅ getCampaignProspects raw response:', data);
 
       // Handle paginated response format: { prospects: [...], total: N, skip: 0, limit: 100 }
       if (data && typeof data === 'object' && Array.isArray(data.prospects)) {
-        console.log('✅ Returning prospects array, length:', data.prospects.length);
         return data.prospects;
       }
 
@@ -458,7 +447,6 @@ export const campaignsService = {
   // Create a new prospect
   async createProspect(prospectData) {
     try {
-      console.log('campaignsService.createProspect called with:', prospectData);
 
       const { data, error } = await apiClient.post('/api/v1/prospects', prospectData);
 
@@ -466,7 +454,6 @@ export const campaignsService = {
         console.error('API returned error:', error);
         throw error;
       }
-      console.log('API returned data:', data);
       return data;
     } catch (err) {
       console.error('Error creating prospect:', err);
@@ -477,14 +464,12 @@ export const campaignsService = {
   // Update a prospect
   async updateProspect(prospectId, updates) {
     try {
-      console.log('Updating prospect:', prospectId, 'with data:', updates);
       const { data, error } = await apiClient.put(`/api/v1/prospects/${prospectId}`, updates);
 
       if (error) {
         console.error('API returned error:', error);
         throw error;
       }
-      console.log('Prospect updated successfully:', data);
       return data;
     } catch (err) {
       console.error('Error updating prospect:', err);
@@ -508,7 +493,6 @@ export const campaignsService = {
   // Convert prospect to contact
   async convertProspectToContact(prospectId, conversionData = {}) {
     try {
-      console.log('Converting prospect:', prospectId, 'with data:', conversionData);
 
       const { data, error } = await apiClient.post(
         `/api/v1/prospects/${prospectId}/convert`,
@@ -519,7 +503,6 @@ export const campaignsService = {
         console.error('API returned error:', error);
         throw error;
       }
-      console.log('Prospect converted successfully:', data);
       return data;
     } catch (err) {
       console.error('Error converting prospect:', err);

@@ -12,9 +12,6 @@ class GeminiService {
 
     try {
       const hasExistingContent = existingSubject.trim() || existingBody.trim();
-      console.log('Gemini Generation Mode:', hasExistingContent ? 'Enhancement' : 'Template');
-      console.log('API Key present:', !!GEMINI_API_KEY);
-      console.log('Contact info:', contactInfo);
       
       let prompt;
       
@@ -24,7 +21,6 @@ class GeminiService {
         prompt = this.createTemplatePrompt(contactInfo);
       }
 
-      console.log('Sending request to Gemini API...');
 
       const response = await axios.post(
         `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
@@ -48,7 +44,6 @@ class GeminiService {
         }
       );
 
-      console.log('Gemini API Response received:', response.status);
 
       if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
         console.error('Invalid response structure:', response.data);
@@ -62,11 +57,9 @@ class GeminiService {
       }
 
       const generatedText = candidate.content.parts[0].text;
-      console.log('Generated text:', generatedText);
       
       const parsedContent = this.parseEmailContent(generatedText);
       
-      console.log('Email content generated successfully:', parsedContent);
       return parsedContent;
     } catch (error) {
       console.error('Gemini API Error:', error);

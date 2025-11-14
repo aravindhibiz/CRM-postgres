@@ -396,7 +396,6 @@ class ExportService {
       };
 
       // Placeholder API call
-      console.log('Scheduling email report:', reportData);
       
       // For now, we'll create a JSON file that could be sent to backend
       const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');

@@ -4,8 +4,6 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ApiClient {
   constructor() {
-    console.log('ApiClient initialized with BASE_URL:', BASE_URL);
-    
     this.client = axios.create({
       baseURL: BASE_URL,
       timeout: 10000,
@@ -69,30 +67,17 @@ class ApiClient {
   // Auth API calls
   async login(email, password) {
     try {
-      console.log('Attempting login with:', { email, baseURL: this.client.defaults.baseURL });
-      
       const response = await this.client.post('/api/v1/auth/login', {
         email,
         password,
       });
 
-      console.log('Login response received:', response.status, response.data);
-
       const { access_token, user } = response.data;
       this.setToken(access_token);
       this.setCurrentUser(user);
 
-      console.log('Login successful, token set:', access_token ? 'Yes' : 'No');
       return { user, error: null };
     } catch (error) {
-      console.error('Login error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-        url: error.config?.url
-      });
-      
       const errorMessage = error.response?.data?.detail || error.message || 'Login failed';
       return { user: null, error: { message: errorMessage } };
     }
@@ -112,7 +97,6 @@ class ApiClient {
       this.setToken(access_token);
       this.setCurrentUser(user);
 
-      console.log('Registration successful, token set:', access_token ? 'Yes' : 'No');
       return { user, error: null };
     } catch (error) {
       const errorMessage = error.response?.data?.detail || 'Registration failed';
@@ -138,7 +122,6 @@ class ApiClient {
       this.setToken(token);
       this.setCurrentUser(user);
 
-      console.log('Microsoft SSO successful, token set:', token ? 'Yes' : 'No');
       return { user, error: null };
     } catch (error) {
       console.error('Microsoft login error:', error);
@@ -162,7 +145,6 @@ class ApiClient {
       this.setToken(token);
       this.setCurrentUser(user);
 
-      console.log('Silent SSO successful, token set:', token ? 'Yes' : 'No');
       return { user, error: null };
     } catch (error) {
       console.error('Silent SSO error:', error);

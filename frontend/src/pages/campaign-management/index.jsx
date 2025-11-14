@@ -158,7 +158,6 @@ const CampaignManagement = () => {
 
       try {
         const campaignsData = await campaignsService.getCampaigns();
-        console.log('Campaigns data received:', campaignsData);
         setAllCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
 
         // Handle specific campaign ID in URL

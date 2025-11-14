@@ -9,7 +9,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
   const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
-  const { signIn, signInWithMicrosoft, authError, clearAuthError } = useAuth();
+  const { signIn, authError, clearAuthError } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -44,44 +44,16 @@ const Login = () => {
       // Direct redirect to Microsoft (no popup)
       window.location.href = auth_url;
     } catch (error) {
-      console.error('❌ Microsoft login failed:', error);
       setIsMicrosoftLoading(false);
     }
   };
 
-  const handleDemoLogin = async (role) => {
-    setIsLoading(true);
-    clearAuthError();
-
-    const demoCredentials = {
-      admin: { email: 'aravind@hibizsolutions.com', password: '12345' },
-      sales_manager: { email: 'peter@gmail.com', password: '12345' },
-      sales_rep: { email: 'steve@gmail.com', password: '12345' },
-      user: { email: 'tony@gmail.com', password: '12345' }
-    };
-
-    const credentials = demoCredentials?.[role];
-    if (credentials) {
-      setEmail(credentials?.email);
-      setPassword(credentials?.password);
-
-      const { user, error } = await signIn(credentials?.email, credentials?.password);
-
-      if (user && !error) {
-        navigate('/sales-dashboard');
-      }
-    }
-
-    setIsLoading(false);
-  };
 
   // Auto-login effect for SharePoint seamless SSO
   useEffect(() => {
     const autoParam = searchParams.get('auto');
 
     if (autoParam === 'microsoft') {
-      console.log('🔄 Auto-login detected: Redirecting to Microsoft...');
-
       // Automatically redirect to Microsoft (no popup needed)
       const autoLogin = async () => {
         try {
@@ -92,12 +64,10 @@ const Login = () => {
           }
 
           const { auth_url } = await response.json();
-          console.log('✅ Redirecting to Microsoft authentication...');
 
           // Direct redirect to Microsoft
           window.location.href = auth_url;
         } catch (error) {
-          console.error('❌ Auto-login failed:', error);
           setIsAutoLoggingIn(false);
         }
       };
@@ -137,69 +107,6 @@ const Login = () => {
             <p className="text-text-secondary mt-2">Sign in to your SalesFlow account</p>
           </div>
 
-         
-          {/* Demo Credentials */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-background text-text-secondary">Quick Demo Access</span>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('admin')}
-                disabled={isLoading}
-                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
-              >
-                <Icon name="Crown" size={16} className="mr-2" />
-                Admin Demo
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('sales_manager')}
-                disabled={isLoading}
-                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
-              >
-                <Icon name="Users" size={16} className="mr-2" />
-                Manager Demo
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('sales_rep')}
-                disabled={isLoading}
-                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
-              >
-                <Icon name="Target" size={16} className="mr-2" />
-                Sales Rep Demo
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('user')}
-                disabled={isLoading}
-                className="flex items-center justify-center px-3 py-2 border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50"
-              >
-                <Icon name="User" size={16} className="mr-2" />
-                User Demo
-              </button>
-            </div>
-          </div>
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-text-secondary">Or sign in manually</span>
-            </div>
-          </div>
 
           {/* Login Form */}
           <form className="space-y-6" onSubmit={handleSubmit}>
