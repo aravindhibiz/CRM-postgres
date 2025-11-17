@@ -20,22 +20,6 @@ const Integrations = () => {
   // Available providers configuration
   const availableProviders = [
     {
-      id: 'gmail',
-      name: 'Gmail',
-      description: 'Sync emails and contacts with Gmail',
-      icon: 'Mail',
-      color: 'text-red-600',
-      features: ['Email sync', 'Contact sync', 'Email templates', 'Auto-logging']
-    },
-    {
-      id: 'google_calendar',
-      name: 'Google Calendar', 
-      description: 'Schedule meetings and sync calendar events',
-      icon: 'Calendar',
-      color: 'text-blue-600',
-      features: ['Meeting scheduling', 'Event sync', 'Activity tracking', 'Reminders']
-    },
-    {
       id: 'outlook_calendar',
       name: 'Microsoft Outlook Calendar',
       description: 'Two-way calendar sync with Outlook',
