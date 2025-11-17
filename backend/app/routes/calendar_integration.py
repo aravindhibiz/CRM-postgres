@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
@@ -188,7 +188,7 @@ async def outlook_calendar_callback(
             db.commit()
 
         # Return HTML that closes popup and signals success
-        return """
+        return HTMLResponse(content="""
         <html>
             <head><title>Connection Successful</title></head>
             <body>
@@ -206,12 +206,12 @@ async def outlook_calendar_callback(
                 <p>If it doesn't close, you can close it manually.</p>
             </body>
         </html>
-        """
+        """)
 
     except HTTPException:
         raise
     except Exception as e:
-        return f"""
+        return HTMLResponse(content=f"""
         <html>
             <head><title>Connection Failed</title></head>
             <body>
@@ -228,7 +228,7 @@ async def outlook_calendar_callback(
                 <p>You can close this window and try again.</p>
             </body>
         </html>
-        """
+        """)
 
 
 # ==================== STATUS & MANAGEMENT ENDPOINTS ====================
